@@ -174,9 +174,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const muatSemula = () => {
     setMemuat(true);
     fetch('/api/system/users')
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      // Baca ralat SEBENAR daripada pelayan sebelum lempar (bendera merah CLAUDE.md: `throw new
+      // Error()` kosong buang mesej sebab sebenar pelayan — sebelum ni ralat rangkaian/kebenaran/
+      // 5xx sebenar semuanya tenggelam jadi "Gagal memuatkan senarai anggota." generik yang sama,
+      // tak kira sebab). Kini paparkan `error` sebenar bila ada.
+      .then(async r => { if (!r.ok) { const d = await bacaJsonSelamat(r).catch(() => ({} as any)); throw new Error(d?.error || `HTTP ${r.status}`); } return r.json(); })
       .then(d => { setStaffList(Array.isArray(d) ? d : []); setRalat(''); })
-      .catch(() => setRalat('Gagal memuatkan senarai anggota.'))
+      .catch((e) => setRalat(e?.message ? `Gagal memuatkan senarai anggota: ${e.message}` : 'Gagal memuatkan senarai anggota.'))
       .finally(() => setMemuat(false));
   };
   useEffect(muatSemula, []);
@@ -194,9 +198,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const muatDasarAktif = () => {
     setMemuatDasarAktif(true);
     fetch('/api/system/dasar-aktif-editorial')
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      // Sama pembetulan seperti muatSemula() di atas — baca ralat sebenar sebelum lempar.
+      .then(async r => { if (!r.ok) { const d = await bacaJsonSelamat(r).catch(() => ({} as any)); throw new Error(d?.error || `HTTP ${r.status}`); } return r.json(); })
       .then(d => { if (d && typeof d.amaranPertamaHari === 'number') setDasarAktif(d); })
-      .catch(() => setRalatDasarAktif('Gagal memuatkan Dasar Aktif Editorial.'))
+      .catch((e) => setRalatDasarAktif(e?.message ? `Gagal memuatkan Dasar Aktif Editorial: ${e.message}` : 'Gagal memuatkan Dasar Aktif Editorial.'))
       .finally(() => setMemuatDasarAktif(false));
   };
   useEffect(muatDasarAktif, []);
@@ -237,9 +242,10 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const muatPermohonan = (status = tapisanPermohonan) => {
     setMemuatPermohonan(true);
     fetch(`/api/system/permohonan-editor${status ? `?status=${status}` : ''}`)
-      .then(r => { if (!r.ok) throw new Error(); return r.json(); })
+      // Sama pembetulan seperti muatSemula() di atas — baca ralat sebenar sebelum lempar.
+      .then(async r => { if (!r.ok) { const d = await bacaJsonSelamat(r).catch(() => ({} as any)); throw new Error(d?.error || `HTTP ${r.status}`); } return r.json(); })
       .then(d => { setPermohonanList(Array.isArray(d) ? d : []); setRalatPermohonan(''); })
-      .catch(() => setRalatPermohonan('Gagal memuatkan senarai permohonan.'))
+      .catch((e) => setRalatPermohonan(e?.message ? `Gagal memuatkan senarai permohonan: ${e.message}` : 'Gagal memuatkan senarai permohonan.'))
       .finally(() => setMemuatPermohonan(false));
   };
   useEffect(() => { if (isPentadbir) muatPermohonan('baharu'); }, [isPentadbir]);
