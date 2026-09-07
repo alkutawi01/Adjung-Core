@@ -99,11 +99,22 @@ export async function padamFailMuatNaikYatim(dbGet, senaraiNama, { konteks = 'pa
   for (const nama of senaraiNama || []) {
     let masihDirujuk = false;
 
+    // Nama fail (dijana mediaRoutes.js) dibenarkan mengandungi `_` (lihat regex
+    // namaFailMuatNaik di atas: [A-Za-z0-9._-]+) — tapi `_` ialah WILDCARD LIKE (padan MANA-MANA
+    // SATU aksara), bukan aksara literal. Tanpa escape, semakan "masih dirujuk" untuk fail
+    // seperti "...-gambar_utama.jpg" jadi terlalu longgar (padan rentetan lain yang cuma
+    // KEBETULAN sama panjang di kedudukan `_` tu), sama corak pepijat yang dibaiki di
+    // searchRoutes.js (LIKE wildcard injection). Di sini kesannya bukan kebocoran data — falsafah
+    // kegagalan modul ni ("ragu, JANGAN padam") bermakna padanan terlalu longgar cuma buat fail
+    // yatim TAK dipadam (bukan padam fail salah) — tapi ia tetap memecahkan niat asal semakan tu
+    // (padanan tepat substring), jadi diselaraskan sama seperti searchRoutes.js.
+    const namaTerlepas = nama.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+
     for (const tapak of TAPAK_RUJUKAN) {
       try {
         const baris = await dbGet(
-          `SELECT 1 AS ada FROM ${tapak.jadual} WHERE ${tapak.lajur} LIKE ? LIMIT 1`,
-          [`%${nama}%`]
+          `SELECT 1 AS ada FROM ${tapak.jadual} WHERE ${tapak.lajur} LIKE ? ESCAPE '\\' LIMIT 1`,
+          [`%${namaTerlepas}%`]
         );
         if (baris) { masihDirujuk = true; break; }
       } catch (e) {
