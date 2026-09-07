@@ -312,10 +312,25 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         return res.status(400).json({ error: `Tindakan tidak sah: "${action}". Guna 'approve' atau 'reject'.` });
       }
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
+      // `decision` MESTI turut ditukar ke penanda MANUAL_*, bukan cuma `status` (2026-09-08,
+      // dapatan bug-hunt — kelas pepijat SAMA yang dibaiki 2026-08-20 untuk purge kata kunci
+      // disekat, lihat komen penuh di nilaiSemulaKeputusanSediaAda() atas fail ni, tapi laluan
+      // ni terlepas pembetulan yang sama). Sebelum ni UPDATE cuma tulis `status`, `decision`
+      // asal (EDITOR_REVIEW/TITLE_TOO_SHORT) kekal — nilaiSemulaKeputusanSediaAda() (dipanggil
+      // SETIAP kitaran executeDirectRssFetch() 3 jam DAN setiap POST /rss-settings) menyasarkan
+      // baris `decision IN ('AUTO_LIVE','EDITOR_REVIEW','REJECT','TITLE_TOO_SHORT',
+      // 'BLOCKED_KEYWORD')`, kira semula status daripada skor TERSIMPAN (tak berubah) semata,
+      // dan SENTIASA pulangkan status yang SAMA seperti asal (EDITOR_REVIEW->'pending',
+      // TITLE_TOO_SHORT->'pending') — jadi kelulusan/penolakan MANUAL Ketua Editor/Penolong
+      // dalam Review Queue senyap TERBALIK semula ke 'pending' dalam masa 3 jam, walau tiada
+      // sesiapa sentuh tetapan RSS langsung. Penanda MANUAL_APPROVED/MANUAL_REJECTED tidak
+      // sepadan mana-mana nilai dalam senarai IN() tu, jadi baris ni kekal DIKECUALIKAN
+      // daripada nilai semula automatik selama-lamanya — keputusan manusia jadi kata putus.
+      const newDecision = action === 'approve' ? 'MANUAL_APPROVED' : 'MANUAL_REJECTED';
       // Baca tajuk DULU (sebelum UPDATE) semata-mata untuk `detail` logAudit bermakna — bukan
       // gerbang kebenaran (itu kekal requirePermission di atas).
       const itemSediaAda = await dbGet("SELECT title FROM rss_ticker_items WHERE id = ?", [itemId]);
-      const h = await dbRun("UPDATE rss_ticker_items SET status = ? WHERE id = ?", [newStatus, itemId]);
+      const h = await dbRun("UPDATE rss_ticker_items SET status = ?, decision = ? WHERE id = ?", [newStatus, newDecision, itemId]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Item Ticker tidak dijumpai.' });
       // Log Audit (2026-09-07, bug-hunt Izzat) — laluan ni LANGSUNG tiada panggilan logAudit()
       // sebelum ni, walaupun ia tindakan editor SEBENAR (requirePermission('manageEditorial'),
