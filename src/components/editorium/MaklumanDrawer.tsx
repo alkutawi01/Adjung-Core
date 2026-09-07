@@ -60,6 +60,11 @@ interface MaklumanDrawerProps {
   // apa yg ditolak... pautan utk edit pun tak diberi"). Pilihan — tak semua jenis notifikasi ada
   // sasaran boleh dibuka (cth Sistem RSS/cuaca gagal, Nota Ketua Editor).
   onBukaSasaran?: (sasaranJenis: string, sasaranId: string, jenisNotifikasi: string) => void;
+  // Lapor tab yang BENAR-BENAR dilihat (2026-09-08, dapatan bug-hunt) — EditoriumView.tsx guna
+  // ni supaya tanda-dibaca bila laci ditutup hanya kenakan tab yang editor sempat lihat, bukan
+  // KEDUA-DUA tab secara membuta tuli (lihat nota panjang di notificationRoutes.js `kumpulan`).
+  // Dipanggil sekali untuk tab AWAL (lihat useEffect di bawah) dan setiap kali tab ditukar.
+  onTabDilihat?: (tab: 'editorial' | 'sistem') => void;
 }
 
 // Jenis notifikasi kandungan yang ada pautan "Buka" bermakna (targetType 'kandungan'/'draf_ditolak'
@@ -139,7 +144,7 @@ const tarikhRingkas = (iso: string) => {
 // tergolong Editorial (ia memang tindakan/arahan manusia, bukan kegagalan sistem).
 const isNotifikasiSistem = (n: ItemMakluman) => n.jenisSumber === 'notifikasi' && n.jenis.startsWith('sistem_');
 
-export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi, onPadamNotifikasi, onBukaSasaran }) => {
+export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi, memuat, onTutup, onKlikNotifikasi, onPadamNotifikasi, onBukaSasaran, onTabDilihat }) => {
   // Backdrop-click guard (lihat LoginModal.tsx, pepijat Izzat 2026-08-07) — kekal false selagi
   // mousedown tak bermula terus pada backdrop.
   const mousedownPadaBackdrop = React.useRef(false);
@@ -207,6 +212,13 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
     const terbaharuEditorial = masaTerbaharu((jenis) => !jenis.startsWith('sistem_'));
     return terbaharuSistem > terbaharuEditorial ? 'sistem' : 'editorial';
   });
+
+  // Lapor SETIAP tab yang benar-benar dipaparkan (awal + tukar) kepada ibu bapa — lihat komen
+  // prop `onTabDilihat` di atas. Sengaja TIDAK sertakan `onTabDilihat` dalam senarai dependensi
+  // (corak biasa untuk callback ibu bapa yang tak wujud dalam useCallback) — kita hanya nak
+  // ia jalan bila `tab` sendiri berubah.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  React.useEffect(() => { onTabDilihat?.(tab); }, [tab]);
 
   // Senarai gabungan, tersusun terbaharu dahulu — nota disemat tetap naik ke atas dalam
   // kumpulannya sendiri (peraturan sedia ada), notifikasi disisipkan ikut tarikh sahaja.

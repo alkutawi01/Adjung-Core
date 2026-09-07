@@ -49,14 +49,35 @@ export function createNotificationRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  // POST /api/system/notifications/mark-read — tanda SATU (id dihantar) atau SEMUA (tiada id)
-  // notis pengguna semasa sebagai dibaca. Hanya baris milik SENDIRI boleh disentuh — WHERE userId
-  // sentiasa ikut sesi, bukan medan dihantar pelanggan.
+  // POST /api/system/notifications/mark-read — tanda SATU (id dihantar), SATU KUMPULAN
+  // ('sistem'/'editorial', param `kumpulan`) atau SEMUA (tiada id/kumpulan) notis pengguna
+  // semasa sebagai dibaca. Hanya baris milik SENDIRI boleh disentuh — WHERE userId sentiasa
+  // ikut sesi, bukan medan dihantar pelanggan.
+  //
+  // `kumpulan` ditambah 2026-09-08 (dapatan bug-hunt) — Peti Makluman (MaklumanDrawer.tsx) ada
+  // DUA tab (Editorial/Sistem) tapi laci cuma papar SATU pada satu masa; EditoriumView.tsx dahulu
+  // panggil laluan ni TANPA `id` bila laci ditutup, menandakan SEMUA notis (kedua-dua tab)
+  // dibaca — walau editor cuma sempat lihat SATU tab sebelum tutup. Ini melanggar kontrak "Lencana
+  // = janji" (CLAUDE.md, Peti Makluman): lencana bell utk tab yang TAK dilihat hilang senyap tanpa
+  // editor pernah nampak notis baharu tu. Klien kini hantar `kumpulan` ikut tab yang BENAR-BENAR
+  // dilihat sepanjang laci terbuka (boleh satu atau kedua-dua); laluan ni tandakan SETEPAT itu.
+  // `type` diawali `sistem_` utk kategori Sistem (lihat isNotifikasiSistem, MaklumanDrawer.tsx) —
+  // `_` ialah wildcard LIKE, WAJIB escape (corak sama searchRoutes.js/failMuatNaik.js).
   router.post('/system/notifications/mark-read', requireAuth, async (req, res) => {
     try {
-      const { id } = req.body || {};
+      const { id, kumpulan } = req.body || {};
       if (id) {
         await dbRun(`UPDATE notifications SET isRead = 1 WHERE id = ? AND userId = ?`, [id, req.session.user.id]);
+      } else if (kumpulan === 'sistem') {
+        await dbRun(
+          `UPDATE notifications SET isRead = 1 WHERE userId = ? AND isRead = 0 AND type LIKE 'sistem\\_%' ESCAPE '\\'`,
+          [req.session.user.id]
+        );
+      } else if (kumpulan === 'editorial') {
+        await dbRun(
+          `UPDATE notifications SET isRead = 1 WHERE userId = ? AND isRead = 0 AND type NOT LIKE 'sistem\\_%' ESCAPE '\\'`,
+          [req.session.user.id]
+        );
       } else {
         await dbRun(`UPDATE notifications SET isRead = 1 WHERE userId = ? AND isRead = 0`, [req.session.user.id]);
       }

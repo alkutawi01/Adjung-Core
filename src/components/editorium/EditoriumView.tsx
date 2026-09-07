@@ -382,6 +382,9 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   const [kiraanBelumBaca, setKiraanBelumBaca] = useState(0);
   const [memuatMakluman, setMemuatMakluman] = useState(true);
   const [makluanTerbuka, setMaklumanTerbuka] = useState(false);
+  // Tab yang BENAR-BENAR dilihat sepanjang laci terbuka kali ini (2026-09-08, dapatan bug-hunt)
+  // — lihat nota panjang tutupMakluman() di bawah + onTabDilihat di MaklumanDrawer.tsx.
+  const [tabMaklumanDilihat, setTabMaklumanDilihat] = useState<Set<'editorial' | 'sistem'>>(new Set());
   // Dinaikkan selepas konsol Nota menyimpan sesuatu, supaya lencana header tak kekal lapuk.
   const [maklumanVersi, setMaklumanVersi] = useState(0);
 
@@ -454,6 +457,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   }, [currentUser, maklumanVersi]);
 
   const bukaMakluman = () => {
+    // Sesi lihat BAHARU setiap kali laci dibuka — lihat nota tutupMakluman() di bawah.
+    setTabMaklumanDilihat(new Set());
     setMaklumanTerbuka(true);
   };
 
@@ -465,12 +470,38 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // cuba tengok. Kini tanda-dibaca tercetus di sini (bila laci TUTUP) — sepanjang laci terbuka,
   // titik/penonjol kekal kelihatan (Izzat ada masa penuh untuk imbas), cuma dikosongkan bila dia
   // dah selesai tengok dan tutup laci, iaitu isyarat "saya dah nampak semua ni" yang lebih tepat.
+  //
+  // Hanya tandakan tab yang BENAR-BENAR dilihat (2026-09-08, dapatan bug-hunt). Peti Makluman ada
+  // DUA tab (Editorial/Sistem, MaklumanDrawer.tsx) tapi cuma SATU dipaparkan pada satu masa — kod
+  // asal hantar mark-read TANPA `id`, menandakan SEMUA notis (kedua-dua tab) dibaca semata-mata
+  // sebab laci ditutup. Senario sebenar: lencana bell janji "ada baharu", laci auto-pilih tab
+  // paling SEGAR (kesegaran, bukan kuantiti — lihat komen di MaklumanDrawer.tsx), tapi kalau editor
+  // tak sempat/tak tukar ke tab SATU LAGI sebelum tutup, notis belum-dibaca tab tu terus lesap
+  // secara SENYAP tanpa editor pernah nampaknya — melanggar terus kontrak "Lencana = janji"
+  // (CLAUDE.md, seksyen Peti Makluman). `tabMaklumanDilihat` (dikumpul via `onTabDilihat` drawer,
+  // direset setiap kali laci dibuka) rekod tab MANA sahaja yang benar-benar dipaparkan sepanjang
+  // sesi laci ni — hantar SATU kumpulan kalau cuma satu tab dilihat, atau tanda kedua-dua secara
+  // jelas kalau dua-dua sempat dilihat. Kiraan lencana (kiraanBelumBaca) TIDAK ditetapkan terus ke
+  // 0 di sini lagi — biar useEffect kiraan (bergantung `makluanTerbuka`) muat semula angka SEBENAR
+  // drpd pelayan, yang kini boleh > 0 kalau satu tab kekal tak dilihat.
   const tutupMakluman = () => {
     setMaklumanTerbuka(false);
-    fetch('/api/system/notifications/mark-read', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' })
+    const tabDilihat = tabMaklumanDilihat;
+    if (tabDilihat.size === 0) return; // laci ditutup sebelum sempat papar apa-apa tab — jangan tanda apa-apa.
+    const kumpulanTunggal = tabDilihat.size === 1 ? [...tabDilihat][0] : null;
+    const tandaSatuKumpulan = (kumpulan: 'editorial' | 'sistem' | null) =>
+      fetch('/api/system/notifications/mark-read', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(kumpulan ? { kumpulan } : {}),
+      });
+    tandaSatuKumpulan(kumpulanTunggal)
       .then(() => {
-        setNotifikasiMakluman((prev) => prev.map((n) => ({ ...n, dibaca: true })));
-        setKiraanBelumBaca(0);
+        setNotifikasiMakluman((prev) => prev.map((n) => {
+          const iniSistem = typeof n.jenis === 'string' && n.jenis.startsWith('sistem_');
+          const ditandaSekarang = !kumpulanTunggal || (kumpulanTunggal === 'sistem') === iniSistem;
+          return ditandaSekarang ? { ...n, dibaca: true } : n;
+        }));
       })
       .catch((e) => console.warn('Gagal tanda semua makluman dibaca:', e.message));
   };
@@ -938,6 +969,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           onKlikNotifikasi={klikNotifikasi}
           onPadamNotifikasi={padamNotifikasi}
           onBukaSasaran={bukaSasaranNotifikasi}
+          onTabDilihat={(t) => setTabMaklumanDilihat((prev) => (prev.has(t) ? prev : new Set(prev).add(t)))}
         />
       )}
 
