@@ -55,6 +55,23 @@ function sahkanMedanPermohonan(b) {
   }
   return '';
 }
+// Kunci keputusan permohonan (2026-09-08, bug-hunt) — POST .../keputusan baca `rekod.status`
+// (gerbang "sudah baharu") SEBELUM menulis balik status baharu, bukan operasi baca-ubah-tulis
+// atomik. Dua permintaan hampir serentak (klik dua kali pada butang Terima/Tolak di
+// DirektoriConsole, atau percubaan semula rangkaian) pada permohonan SAMA kedua-duanya boleh
+// baca status='baharu' sebelum mana-mana sempat tulis balik — gerbang
+// `if (rekod.status !== 'baharu')` di atas sendiri terdedah kepada race yang ia cuba elakkan,
+// menyebabkan UPDATE berganda, log audit berganda dan (bagi 'ditolak') e-mel penolakan
+// berganda dihantar. Sama corak `denganKunciAktifkanPenaja` (permohonanPenajaRoutes.js,
+// 2026-09-08) / `denganKunciKandungan` — kunci rantaian promise global, tindakan pentadbiran
+// jarang berlaku, serialisasi global mencukupi.
+let rantaianKunciKeputusanPermohonanEditor = Promise.resolve();
+function denganKunciKeputusanPermohonanEditor(fn) {
+  const giliran = rantaianKunciKeputusanPermohonanEditor.catch(() => {}).then(fn);
+  rantaianKunciKeputusanPermohonanEditor = giliran.catch(() => {});
+  return giliran;
+}
+
 const HAD = {
   namaPenuh: 120,
   emel: 160,
@@ -197,7 +214,7 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
   // POST /api/system/permohonan-editor/:id/keputusan — tanda diterima/ditolak + catatan.
   // Untuk keputusan 'diterima', klien memanggil POST /api/system/users DAHULU (cipta akaun +
   // e-mel jemputan), kemudian laluan ini merekodkan keputusan — lihat nota kepala fail.
-  router.post('/system/permohonan-editor/:id/keputusan', requirePermission('manageAccounts'), async (req, res) => {
+  router.post('/system/permohonan-editor/:id/keputusan', requirePermission('manageAccounts'), (req, res) => denganKunciKeputusanPermohonanEditor(async () => {
     try {
       const { id } = req.params;
       const { keputusan, catatan } = req.body || {};
@@ -244,7 +261,7 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
       console.error('POST permohonan-editor keputusan error:', err);
       res.status(500).json({ error: 'Gagal merekodkan keputusan.' });
     }
-  });
+  }));
 
   return router;
 }
