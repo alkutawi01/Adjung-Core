@@ -1981,7 +1981,21 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                         />
                       </span>
                     </Tooltip>
-                    {activeItemModal.scheduledPublishAt && (
+                    {/* Nota "Dijadualkan terbit" (2026-09-07, bug-hunt Izzat) — dahulu papar tanpa
+                        syarat status, jadi kandungan yang SUDAH Aktif berbulan lalu (jadual
+                        terbitnya dah lama berlaku, medan tak pernah dikosongkan server selepas
+                        runSchedulingTick berjaya terbit) terus papar seolah-olah MASIH menunggu
+                        jadual — mengelirukan Ketua Editor sangka ia belum live. Lebih serius:
+                        kalau "Simpan Jadual" ditekan dalam keadaan ni (cth sekadar nak tutup
+                        panel), PATCH hantar scheduledPublishAt LAMA tanpa status eksplisit,
+                        resolveEffectiveStatus() (Scheduling.js) anggap ia 'scheduled' semula —
+                        kandungan LIVE tiba-tiba hilang drpd frontpage sehingga tik seterusnya
+                        (90 saat) terbitkannya semula. Nota ni kini HANYA relevan sebelum
+                        kandungan jadi Live (status tu sendiri jadi bukti jadual belum/baru
+                        berlaku) — "Dijadualkan luput" (bawah) KEKAL papar tanpa syarat, sebab
+                        makna ia BERBEZA (kandungan LIVE sengaja dijadualkan luput MASA HADAPAN,
+                        bukan kekeliruan tarikh lampau). */}
+                    {activeItemModal.scheduledPublishAt && activeItemModal.status !== 'Live' && (
                       <p className="text-[9px] text-sky-700 mt-1">Dijadualkan terbit: {formatKlDisplay(activeItemModal.scheduledPublishAt)}</p>
                     )}
                   </div>

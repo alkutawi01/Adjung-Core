@@ -340,8 +340,18 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
       // lapisan pertahanan kedua) — tik ni kini dikunci merentasi denganKunciKandungan (utama),
       // tapi pengawal ni pastikan UPDATE tak sekali-kali tulis-ganti status yang dah berubah
       // sejak SELECT di atas tik ni bermula, walau atas sebab lain (bug masa depan/kunci gagal).
+      // scheduledPublishAt dikosongkan SERENTAK (2026-09-07, bug-hunt Izzat — dahulu KEKAL
+      // selama-lamanya walau tik ni dah berjaya jalankan jadual, jadi kandungan yang dah lama
+      // Aktif terus papar "Dijadualkan terbit: <tarikh lampau>" di IndeksConsole.tsx, seolah-olah
+      // masih menunggu). Lebih serius drpd kosmetik: tarikh lampau yang bertahan ni ialah
+      // KANDUNGAN sebenar dibaca resolveEffectiveStatus() (Scheduling.js) — kalau PATCH lain
+      // (cth "Simpan Jadual" ditekan tanpa niat, atau laluan simpan lain hantar payload yang
+      // secara tak sengaja bawa balik scheduledPublishAt lama tanpa `status` eksplisit),
+      // fungsi tu anggap kandungan PATUT jadi 'scheduled' semula — kandungan yang DAH LIVE tiba-
+      // tiba hilang drpd frontpage awam sehingga tik seterusnya (90 saat) betulkannya semula.
+      // Kosongkan di SINI (bukan hanya sorok di UI) hapuskan punca, bukan sekadar gejala.
       const hasilJadual = await dbRun(
-        "UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ? AND status = 'scheduled'",
+        "UPDATE editorial_revisions SET status = ?, scheduledPublishAt = NULL, updatedAt = ? WHERE id = ? AND status = 'scheduled'",
         [statusJadual, nowIso, row.revisionId]
       );
       if (!hasilJadual || hasilJadual.changes === 0) continue;
@@ -382,8 +392,13 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
     for (const row of dueToExpire) {
       if (!isDue(row.scheduledExpiresAt)) continue;
       // Pengawal `AND status = 'approved'` — lihat nota sama di (1) Terbit berjadual di atas.
+      // scheduledExpiresAt dikosongkan SERENTAK (2026-09-07, bug-hunt Izzat, sama rasional
+      // seperti scheduledPublishAt di (1) di atas) — kalau kandungan ni dipulihkan/diluluskan
+      // semula kemudian (Pulih Versi/Tindakan->Siar) tanpa menyedari tarikh luput lama masih
+      // wujud, tik SETERUSNYA (90 saat) akan terus arkibkannya semula secara senyap, sebab
+      // syarat query (status='approved' AND scheduledExpiresAt bukan null) tetap padan.
       const hasilLuput = await dbRun(
-        "UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ? AND status = 'approved'",
+        "UPDATE editorial_revisions SET status = 'archived', scheduledExpiresAt = NULL, updatedAt = ? WHERE id = ? AND status = 'approved'",
         [nowIso, row.revisionId]
       );
       if (!hasilLuput || hasilLuput.changes === 0) continue;
