@@ -3246,7 +3246,10 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
     };
 
     for (const line of lines) {
-      const trimmed = line.trim();
+      // Label bernombor (2026-09-08, dapatan drift semasa bug-hunt Scheduling/ManualBlockFormat)
+      // — SALINAN KEDUA normalisasi yang sama di ManualBlockFormat.js (lihat nota penuh di sana,
+      // ~baris 219). MESTI kekal selari dgn salinan client tu.
+      const trimmed = line.trim().replace(/^(Sumber|URL|Tarikh sumber)\s+\d+\s*:/i, '$1:');
 
       // Nilai bagi label tunggal yang menanti — lihat nota di ManualBlockFormat.js.
       if (labelTunggalMenanti) {

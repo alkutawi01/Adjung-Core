@@ -93,3 +93,20 @@ test('ManualBlockFormat - blok berbilang dgn perenggan tidak bocor antara satu s
   assert.equal(blok[0].title, 'Satu');
   assert.equal(blok[1].title, 'Dua');
 });
+
+test('ManualBlockFormat - label bernombor ("Sumber 1:"/"URL 2:") dilayan sama macam label polos', () => {
+  // Punca: prompt sistem sendiri (buildAiPrompt) guna label bernombor "URL sumber 1:"/"URL sumber
+  // 2:" utk SENARAI sumber diberi kpd AI, AI luaran boleh tiru corak input tu bila menjana output
+  // sendiri. Tanpa normalisasi (~baris 229, ManualBlockFormat.js), "Sumber 1:"/"URL 2:" gagal
+  // padan ADA_LABEL_DIKENALI terus -> baris hilang senyap/tersasar jadi teks sambungan. Salinan
+  // server (parseManualSummaryTemplate, server.js) mesti kekal selari — dibaiki 2026-09-08
+  // selepas dapatan drift semasa bug-hunt Scheduling/ManualBlockFormat (lihat commit tersebut).
+  const f = parseManualBlockFields(
+    'Tajuk: T\nSumber 1: The Star\nURL 2: https://example.com/artikel'
+  );
+  assert.equal(f.source, 'The Star');
+  assert.equal(f.url, 'https://example.com/artikel');
+  assert.equal(f.sources.length, 1);
+  assert.equal(f.sources[0].name, 'The Star');
+  assert.equal(f.sources[0].url, 'https://example.com/artikel');
+});
