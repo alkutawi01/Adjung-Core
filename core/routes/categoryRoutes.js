@@ -139,6 +139,15 @@ export function createCategoryRoutes(db) {
       const { name, color, icon } = req.body;
       if (!name || !name.trim()) return res.status(400).json({ error: 'Nama Bidang diperlukan.' });
       const reg = await CategoryRegistry.activateCategory(db, name, color, icon);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'aktifkan-bidang-baharu',
+        targetType: 'bidang',
+        targetId: reg?.id,
+        detail: name,
+      }).catch(() => {});
       res.json({ success: true, category: reg });
     } catch (err) {
       console.error('Activate category error:', err);
@@ -195,6 +204,15 @@ export function createCategoryRoutes(db) {
       const { id, newName } = req.body;
       if (!id || !newName || !newName.trim()) return res.status(400).json({ error: 'id dan newName diperlukan.' });
       await CategoryRegistry.renameActiveCategory(db, id, newName);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'namakan-semula-bidang-aktif',
+        targetType: 'bidang',
+        targetId: id,
+        detail: newName,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Rename active category error:', err);
@@ -365,6 +383,15 @@ export function createCategoryRoutes(db) {
       const { id, icon } = req.body;
       if (!id || !icon) return res.status(400).json({ error: 'id dan icon diperlukan.' });
       await CategoryRegistry.setIcon(db, id, icon);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'tetapkan-ikon-bidang',
+        targetType: 'bidang',
+        targetId: id,
+        detail: icon,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Set icon error:', err);
@@ -380,6 +407,15 @@ export function createCategoryRoutes(db) {
       if (!id || !svg) return res.status(400).json({ error: 'id dan svg diperlukan.' });
       const cleaned = sanitizeSvgIcon(svg);
       await CategoryRegistry.setIconSvg(db, id, cleaned);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'muat-naik-ikon-svg-bidang',
+        targetType: 'bidang',
+        targetId: id,
+        detail: `${cleaned.length} aksara SVG`,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Set icon SVG error:', err);
@@ -397,6 +433,15 @@ export function createCategoryRoutes(db) {
       const { id, color } = req.body;
       if (!id || !color) return res.status(400).json({ error: 'id dan color diperlukan.' });
       await CategoryRegistry.setColor(db, id, color);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRunAdapter, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'tetapkan-warna-bidang',
+        targetType: 'bidang',
+        targetId: id,
+        detail: color,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Set colour error:', err);

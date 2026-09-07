@@ -1,6 +1,7 @@
 import express from 'express';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { safeJsonParse } from '../utils/jsonUtils.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Rupa Editorium (2026-08-08, permintaan pemilik projek — "buat satu tempat di mana pentadbir
 // boleh laraskan saiz font dan UI lain di editorium supaya tak perlu bantuan awak selalu untuk
@@ -36,6 +37,15 @@ export function createEditoriumUiPrefsRoutes(dbRun, dbGet) {
          ON CONFLICT(id) DO UPDATE SET json = excluded.json, updatedAt = excluded.updatedAt`,
         [JSON.stringify(gabung), new Date().toISOString()]
       );
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-rupa-editorium',
+        targetType: 'editorium_ui_prefs',
+        targetId: 'global',
+        detail: 'Tetapan rupa Editorium (saiz teks/kepadatan/lebar) dikemas kini',
+      }).catch(() => {});
       res.json({ success: true, prefs: gabung });
     } catch (err) {
       console.error('POST editorium-ui-prefs error:', err);

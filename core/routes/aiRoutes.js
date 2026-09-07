@@ -58,6 +58,15 @@ export function createAIRoutes(dbAll, dbRun, dbGet) {
       const lastTest = new Date().toISOString();
 
       await dbRun("UPDATE ai_providers SET status = ?, lastTest = ? WHERE id = ?", [statusText, lastTest, id]);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'uji-sambungan-penyedia-ai',
+        targetType: 'ai-provider',
+        targetId: id,
+        detail: `${prov.name}: ${statusText}`,
+      }).catch(() => {});
       res.json({ success, status: statusText, lastTest });
     } catch (err) {
       console.error('Test provider error:', err);

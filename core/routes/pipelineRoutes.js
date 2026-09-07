@@ -4,6 +4,7 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requirePermission } from '../middleware/auth.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots — those stay defined in
 // server.js since the internal 5-minute scheduler also calls them directly, so they're passed in
@@ -226,6 +227,18 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
         }
         throw e;
       }
+
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni, walaupun ia
+      // saluran TERUS TERBIT (setiap item ditulis 'approved' terus). Ringkasan sahaja (bukan
+      // senarai penuh) — batch boleh ada berpuluh item.
+      const slotSenarai = [...new Set(results.map(r => r.slotIndex + 1))].sort((a, b) => a - b);
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'tampal-pukal-kandungan',
+        targetType: 'editorial_batch',
+        detail: `${results.length} kandungan ditampal ke slot ${slotSenarai.join(', ')}`,
+      }).catch(() => {});
 
       res.json({ success: true, count: results.length, items: parsedItems });
     } catch (err) {

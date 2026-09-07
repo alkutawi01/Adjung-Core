@@ -1,5 +1,6 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
+import { logAudit } from '../audit/AuditLog.js';
 
 export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
@@ -194,6 +195,14 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
           VALUES (?, ?, ?, ?, 'USD', ?)
         `, [item.providerId, item.modelName, parseFloat(item.inputCostPerMillion || 0), parseFloat(item.outputCostPerMillion || 0), new Date().toISOString()]);
       }
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-harga-model-ai',
+        targetType: 'ai_model_pricing',
+        detail: `${list.length} rekod harga model: ${list.map(i => i.modelName).filter(Boolean).slice(0, 5).join(', ')}`,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Save pricing error:', err);

@@ -113,6 +113,15 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
     try {
       const { checkAllSourceLinks } = await import('../editorial/LinkChecker.js');
       const hasil = await checkAllSourceLinks(dbAll, dbRun);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni. Dicetuskan
+      // editor klik "Jalankan Sekarang", jadi actorId sesi disertakan (bukan event automasi).
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cetus-semakan-pautan-manual',
+        targetType: 'link_check',
+        detail: `${hasil?.diperiksa ?? hasil?.checked ?? 0} pautan diperiksa, ${hasil?.mati ?? hasil?.broken ?? 0} mati`,
+      }).catch(() => {});
       res.json({ success: true, ...hasil });
     } catch (err) {
       console.error('POST link-checks/run-now error:', err);

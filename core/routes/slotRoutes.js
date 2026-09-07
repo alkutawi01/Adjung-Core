@@ -222,6 +222,15 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         INSERT OR REPLACE INTO rss_sources_registry (id, sourceName, rssUrl, language, trustScore, edition, categoryMapping, enabled, createdAt)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
       `, [sourceId, sourceName, rssUrl, language || 'ms-MY', Math.round(trustScoreNum), edition || 'Malaysia', categoryMapping || 'BERITA', enabledVal, new Date().toISOString()]);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'daftar-sumber-rss',
+        targetType: 'rss_source',
+        targetId: sourceId,
+        detail: sourceName || rssUrl,
+      }).catch(() => {});
       res.json({ success: true, id: sourceId });
     } catch (err) {
       console.error('Save RSS source error:', err);
@@ -233,8 +242,19 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/rss-sources/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
+      // Baca nama DULU (sebelum DELETE) semata-mata untuk `detail` logAudit bermakna.
+      const itemSediaAda = await dbGet("SELECT sourceName FROM rss_sources_registry WHERE id = ?", [id]);
       const h = await dbRun("DELETE FROM rss_sources_registry WHERE id = ?", [id]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Sumber RSS tidak dijumpai.' });
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-sumber-rss',
+        targetType: 'rss_source',
+        targetId: id,
+        detail: itemSediaAda?.sourceName || id,
+      }).catch(() => {});
       res.json({ success: true, id });
     } catch (err) {
       console.error('Delete RSS source error:', err);
@@ -481,6 +501,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       // kunci bersarang akan membuntukan permintaan ni (kunci tu bukan re-entrant).
       await janaSemulaTickerRssDirect(dbAll, dbGet, dbRun);
 
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'kemas-kini-tetapan-rss',
+        targetType: 'rss_editorial_settings',
+        targetId: 'main',
+        detail: `ambang auto-live=${Math.round(autoLiveVal)}, semakan=${Math.round(reviewVal)}, had usia=${Math.round(ageVal)}j`,
+      }).catch(() => {});
+
       res.json({ success: true });
     } catch (err) {
       console.error('Save RSS settings error:', err);
@@ -524,6 +554,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         Number(orderIndex) || 10,
         createdAt
       ]);
+
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-peraturan-teks-rss',
+        targetType: 'rss_text_rule',
+        targetId: id,
+        detail: ruleName || 'Peraturan Baharu',
+      }).catch(() => {});
 
       res.json({ success: true, id });
     } catch (err) {
@@ -585,6 +625,15 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       }
 
       await dbRun("DELETE FROM rss_text_rules WHERE id = ?", [id]);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-peraturan-teks-rss',
+        targetType: 'rss_text_rule',
+        targetId: id,
+        detail: existing.ruleName || id,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Delete RSS text rule error:', err);
@@ -638,6 +687,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         VALUES (?, ?, ?, ?, 1, 0, ?)
       `, [id, deskName.trim(), description || '', Number(displayOrder) || 10, createdAt]);
 
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-desk-adjung',
+        targetType: 'adjung_desk',
+        targetId: id,
+        detail: deskName.trim(),
+      }).catch(() => {});
+
       res.json({ success: true, id });
     } catch (err) {
       console.error('Create adjung desk error:', err);
@@ -685,6 +744,15 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       await dbRun("DELETE FROM adjung_desks WHERE id = ?", [id]);
       // Delete associated desk rules
       await dbRun("DELETE FROM rss_desk_rules WHERE deskId = ?", [id]);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-desk-adjung',
+        targetType: 'adjung_desk',
+        targetId: id,
+        detail: existing.deskName || id,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Delete adjung desk error:', err);
@@ -732,6 +800,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         createdAt
       ]);
 
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-peraturan-desk-rss',
+        targetType: 'rss_desk_rule',
+        targetId: id,
+        detail: `${keyword.trim()} -> ${deskId}`,
+      }).catch(() => {});
+
       res.json({ success: true, id });
     } catch (err) {
       console.error('Create RSS desk rule error:', err);
@@ -777,8 +855,19 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/rss-desk-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
+      // Baca keyword DULU (sebelum DELETE) semata-mata untuk `detail` logAudit bermakna.
+      const itemSediaAda = await dbGet("SELECT keyword, deskId FROM rss_desk_rules WHERE id = ?", [id]);
       const h = await dbRun("DELETE FROM rss_desk_rules WHERE id = ?", [id]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Peraturan Bidang RSS tidak dijumpai.' });
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-peraturan-desk-rss',
+        targetType: 'rss_desk_rule',
+        targetId: id,
+        detail: itemSediaAda ? `${itemSediaAda.keyword} -> ${itemSediaAda.deskId}` : id,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Delete RSS desk rule error:', err);
@@ -879,6 +968,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const h = await dbRun("UPDATE rss_editorial_memory SET status = 'promoted' WHERE id = ?", [memoryId]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Cadangan memori tidak dijumpai.' });
 
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'naik-taraf-memori-editorial',
+        targetType: 'rss_desk_rule',
+        targetId: ruleId,
+        detail: `"${phrase.trim()}" -> ${deskName}`,
+      }).catch(() => {});
+
       res.json({ success: true, ruleId });
     } catch (err) {
       console.error('Promote memory error:', err);
@@ -917,6 +1016,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         VALUES (?, ?, 1, ?)
       `, [id, categoryName.trim(), now]);
 
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'sekat-kategori-rss',
+        targetType: 'rss_blocked_category',
+        targetId: id,
+        detail: categoryName.trim(),
+      }).catch(() => {});
+
       res.json({ success: true, id });
     } catch (err) {
       console.error('Add blocked category error:', err);
@@ -928,8 +1037,19 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/rss-blocked-categories/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
+      // Baca nama DULU (sebelum DELETE) semata-mata untuk `detail` logAudit bermakna.
+      const itemSediaAda = await dbGet("SELECT categoryName FROM rss_blocked_categories WHERE id = ?", [id]);
       const h = await dbRun("DELETE FROM rss_blocked_categories WHERE id = ?", [id]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Kategori disekat tidak dijumpai.' });
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'nyahsekat-kategori-rss',
+        targetType: 'rss_blocked_category',
+        targetId: id,
+        detail: itemSediaAda?.categoryName || id,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Delete blocked category error:', err);
@@ -986,6 +1106,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         exclStr, now, now
       ]);
 
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cipta-peraturan-tipografi',
+        targetType: 'adjung_typography_rule',
+        targetId: id,
+        detail: term.trim(),
+      }).catch(() => {});
+
       res.json({ success: true, id });
     } catch (err) {
       console.error('Create typography rule error:', err);
@@ -1037,8 +1167,19 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.delete('/adjung-typography-rules/:id', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const { id } = req.params;
+      // Baca istilah DULU (sebelum DELETE) semata-mata untuk `detail` logAudit bermakna.
+      const itemSediaAda = await dbGet("SELECT term FROM adjung_typography_rules WHERE id = ?", [id]);
       const h = await dbRun("DELETE FROM adjung_typography_rules WHERE id = ?", [id]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Peraturan tipografi tidak dijumpai.' });
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'padam-peraturan-tipografi',
+        targetType: 'adjung_typography_rule',
+        targetId: id,
+        detail: itemSediaAda?.term || id,
+      }).catch(() => {});
       res.json({ success: true });
     } catch (err) {
       console.error('Delete typography rule error:', err);
@@ -1063,6 +1204,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
   router.post('/ticker/fetch-direct', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const result = await executeDirectRssFetch(dbAll, dbGet, dbRun);
+      // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni. Ambilan RSS
+      // AUTOMATIK (penjadual) sengaja TIADA actorId (lihat CLAUDE.md "Log Audit"); laluan ni pula
+      // dicetuskan editor klik butang secara MANUAL, jadi actorId sesi KEKAL disertakan.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: 'cetus-ambilan-rss-manual',
+        targetType: 'rss',
+        detail: `${result?.totalFetchedCount ?? 0} item ditemui, ${result?.autoLiveCount ?? 0} auto-live, ${result?.pendingReviewCount ?? 0} menunggu semakan`,
+      }).catch(() => {});
       res.json(result);
     } catch (err) {
       console.error('Fetch direct RSS ticker error:', err);
