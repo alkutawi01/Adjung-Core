@@ -2,7 +2,7 @@ import express from 'express';
 import crypto from 'crypto';
 import { requireAuth, requirePermission } from '../middleware/auth.js';
 import { notify } from '../notifications/Notify.js';
-import { hantarEmel } from '../email/MailSender.js';
+import { hantarEmel, escapeHtmlEmel } from '../email/MailSender.js';
 import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN, perluTetapkanIdentiti } from '../auth/TokenLaluan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { baseUrlEmel } from '../utils/baseUrl.js';
@@ -352,7 +352,7 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         await hantarEmel({
           to: userRow.email,
           subject: 'Set Semula Kata Laluan · Adjung Brief',
-          html: `<p>Salam ${userRow.penName || userRow.username},</p>` +
+          html: `<p>Salam ${escapeHtmlEmel(userRow.penName || userRow.username)},</p>` +
             `<p>Kami menerima permohonan untuk menetapkan semula kata laluan akaun Adjung Brief anda. ` +
             `Klik pautan berikut (sah selama 2 jam):</p>` +
             `<p><a href="${pautan}">${pautan}</a></p>` +
