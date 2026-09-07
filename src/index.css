@@ -204,6 +204,16 @@ html, body {
   -webkit-font-smoothing: antialiased;
   scrollbar-color: #802334 #FDFDFD;
   scrollbar-width: thin;
+  /* Scrollbar mendatar hantu (2026-09-07, aduan Izzat — "kenapa ada scroll bar di bottom?")
+     — punca: FrontpageView.tsx bekas full-bleed guna `width: 100vw; margin-left: calc(50% -
+     50vw)` (teknik "pecah keluar" 2026-09-04) untuk buat seluruh lebar viewport boleh diklik.
+     `100vw` MERANGKUMI lebar bar skrol menegak, sedangkan `50%` dikira drpd lebar susun atur
+     SEBENAR (TAK termasuk bar skrol) — percanggahan ni sentiasa hasilkan overflow mendatar
+     tepat selebar bar skrol (~5-17px ikut OS/pelayar), walau kandungan sebenar (dalam
+     max-w-5xl/6xl) jauh di dalam viewport, tak pernah terpotong. `overflow-x: hidden` di sini
+     sorok jaluran hantu tu sahaja — BUKAN pelanggaran falsafah "kad tak boleh overflow"
+     (CLAUDE.md), yang tentang kandungan EDITORIAL terpotong, bukan bekas struktur/hiasan ni. */
+  overflow-x: hidden;
 }
 
 /* Ensure all buttons use Inter font */
