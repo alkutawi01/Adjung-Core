@@ -417,8 +417,23 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
 
   router.delete('/glosari/sense/:senseId', requirePermission('manageEditorial'), async (req, res) => {
     try {
-      const sedia = await dbGet('SELECT id FROM glosari_sense WHERE id = ?', [req.params.senseId]);
+      const sedia = await dbGet('SELECT id, istilahId FROM glosari_sense WHERE id = ?', [req.params.senseId]);
       if (!sedia) return res.status(404).json({ error: 'Sense tidak dijumpai.' });
+      // Kuatkuasakan invariant "sekurang-kurangnya SATU sumber definisi" (nota kepala fail,
+      // sama syarat POST/PATCH /glosari) di sini juga — sebelum ni cuma disahkan semasa
+      // CIPTA/SUNTING istilah, terlepas semasa PADAM Sense. Padam Sense TERAKHIR sesuatu
+      // istilah yang `maksud` (fallback warisan) turut kosong akan tinggalkan istilah tanpa
+      // sebarang definisi langsung — binaPetaGlosari() (IstilahGlosari.tsx) melangkau entri
+      // begini terus, jadi istilah senyap-senyap jadi data mati (bukan tooltip pembaca, bukan
+      // ralat kelihatan kepada editor). Ditemui semasa bug-hunt 8/9 — dulu 100% boleh reproduce
+      // (cipta istilah tanpa maksud + SATU Sense, buka semula "Urus Sense", padam Sense tu).
+      const istilahRow = await dbGet('SELECT maksud FROM glosari_istilah WHERE id = ?', [sedia.istilahId]);
+      const bilanganSense = await dbGet('SELECT COUNT(*) AS n FROM glosari_sense WHERE istilahId = ?', [sedia.istilahId]);
+      if (istilahRow && !(istilahRow.maksud || '').trim() && Number(bilanganSense?.n) <= 1) {
+        return res.status(400).json({
+          error: 'Tidak boleh memadam Sense terakhir istilah ini kerana medan "Maksud" turut kosong — istilah akan hilang definisi sepenuhnya. Isi medan Maksud dahulu, atau tambah Sense lain sebelum memadam ini.',
+        });
+      }
       // ON DELETE CASCADE (server.js) padam baris glosari_sense_bidang berkaitan serentak.
       await dbRun('DELETE FROM glosari_sense WHERE id = ?', [req.params.senseId]);
       await logAudit(dbRun, {
