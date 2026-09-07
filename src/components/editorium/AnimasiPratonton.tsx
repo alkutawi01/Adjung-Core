@@ -72,6 +72,14 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
   const [aktif, setAktif] = useState(0);
   const [tayang, setTayang] = useState(false);
   const [fasaGerak, setFasaGerak] = useState<'diam' | 'gerak'>('diam');
+  // Pudar keluar SWIPE sahaja (2026-09-08, bug-hunt) — lihat nota fasaGerak/main() di bawah:
+  // FrontpageView.tsx (tempohPudarSwipeMs, ~baris 1239) tak terus buang overlay swipe sebaik
+  // gelongsoran (tempohSwipeMs) selesai — ia pudar opacity->0 dulu (200ms*kelajuan) SEBELUM
+  // overlay ditanggalkan, fasa visual sebenar carousel. Pratonton ni terlepas fasa ni sepenuhnya
+  // (overlay terus lenyap sebaik gelongsoran tamat), jadi "Main pratonton" utk Swipe sentiasa
+  // tamat ~220ms*kelajuan lebih awal drpd animasi sebenar DAN tak pernah tunjuk kesan pudar
+  // keluar yang pembaca portal sebenar nampak.
+  const [swipeMemudar, setSwipeMemudar] = useState(false);
   const lain = 1 - aktif;
 
   // Segerak drpd prop bila LITERAL (bukan mod Rawak) — editor tukar dropdown jenis, pratonton
@@ -100,15 +108,34 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
       window.setTimeout(() => setTayang(false), tempohPudarMsJ + 50);
       return;
     }
-    if (j === 'gerak_susun' || j === 'swipe') {
+    if (j === 'gerak_susun') {
       setTayang(true);
       setFasaGerak('gerak');
-      const tempoh = j === 'swipe' ? Math.round(640 * kelajuan) : tempohGerakMsJ;
       window.setTimeout(() => {
         setAktif(lain);
         setFasaGerak('diam');
         setTayang(false);
-      }, tempoh);
+      }, tempohGerakMsJ);
+      return;
+    }
+    if (j === 'swipe') {
+      // Dua fasa, sama urutan FrontpageView.tsx (~baris 1236-1252): gelongsor (tempohSwipeJ)
+      // -> pudar keluar (tempohPudarSwipeJ) -> baru overlay ditanggalkan. Sebelum ni laluan ni
+      // langkau terus ke `setTayang(false)` lepas gelongsor, tiada fasa pudar langsung.
+      setTayang(true);
+      setFasaGerak('gerak');
+      setSwipeMemudar(false);
+      const tempohSwipeJ = Math.round(640 * kelajuan);
+      const tempohPudarSwipeJ = Math.round(200 * kelajuan);
+      window.setTimeout(() => {
+        setAktif(lain);
+        setFasaGerak('diam');
+        setSwipeMemudar(true);
+      }, tempohSwipeJ);
+      window.setTimeout(() => {
+        setSwipeMemudar(false);
+        setTayang(false);
+      }, tempohSwipeJ + tempohPudarSwipeJ);
       return;
     }
     // Colophon / Sapuan Lajur — sama formula FrontpageView.tsx (masukMasa/tahanMasa/jumlahMasa).
@@ -125,6 +152,7 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
   const tempohGerakMs = Math.round(900 * kelajuan);
   const tempohPudarMs = Math.round(1000 * kelajuan);
   const tempohSwipeMs = Math.round(640 * kelajuan);
+  const tempohPudarSwipeMs = Math.round(200 * kelajuan);
 
   return (
     <div className="space-y-1.5">
@@ -206,7 +234,15 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
           </div>
         )}
         {tayang && jenisSemasa === 'swipe' && (
-          <div className="absolute inset-0 z-10 overflow-hidden pointer-events-none">
+          <div
+            className="absolute inset-0 z-10 overflow-hidden pointer-events-none"
+            style={{
+              // Pudar keluar (swipeMemudar, lihat nota deklarasi state) — sama corak
+              // FrontpageView.tsx: opacity->0 SELEPAS gelongsoran selesai, sebelum overlay hilang.
+              opacity: swipeMemudar ? 0 : 1,
+              transition: swipeMemudar ? `opacity ${tempohPudarSwipeMs}ms ease-out` : 'none',
+            }}
+          >
             <div
               className="absolute inset-0 bg-[#FDFDFD]"
               style={{
