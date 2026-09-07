@@ -930,7 +930,21 @@ const CarouselStableBlock: React.FC<{
     if (list.length <= 1) return;
     let maxSeen = 0;
     const recompute = () => {
-      const heights = itemRefs.current.map((el) => (el ? el.scrollHeight : 0));
+      // Pengesahan lebar sebelum terima ketinggian (dapatan bug-hunt 8/9) — "max tak pernah
+      // mengecil" di atas ADALAH niat (elak kes kad sebenar tinggi tapi ResizeObserver terlepas
+      // tercetus), tapi itu juga bermakna SATU bacaan sampah dikunci SELAMANYA, tiada peluang
+      // pulih. Bacaan sampah sebenar ditangkap hidup: laluan pertama `recompute()` (useLayoutEffect
+      // segerak, sebelum lajur flex/grid induk selesai berunding lebar — sama isu flex-basis yang
+      // susulan 350ms di bawah cuba tampung) boleh ukur elemen semasa lebarnya runtuh ke ~0px,
+      // teks terlipat jadi hampir satu aksara sebaris, scrollHeight melambung ribuan piksel (kes
+      // sebenar: kad AUTOMOTIF Slot 3 terkunci minHeight 4712px drpd kad ~200px sepatutnya).
+      // Bacaan pada lebar runtuh macam ni BUKAN "ketinggian sah item yang tinggi", ia sampah
+      // pengukuran — tapis SEBELUM masuk gelanggang max, jangan biar ia pernah jadi maxSeen.
+      const heights = itemRefs.current.map((el) => {
+        if (!el) return 0;
+        if (el.getBoundingClientRect().width < 40) return 0;
+        return el.scrollHeight;
+      });
       const max = Math.max(0, ...heights);
       if (max > maxSeen) {
         maxSeen = max;
