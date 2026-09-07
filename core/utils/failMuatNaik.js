@@ -70,6 +70,16 @@ const TAPAK_RUJUKAN = [
   { jadual: 'sponsors', lajur: 'logoUrl' },
   { jadual: 'static_pages', lajur: 'content' },
   { jadual: 'system_settings', lajur: 'inTheNewsText' },
+  // `permohonan_penaja` (dapatan bug-hunt 2026-09-08) — TERLEPAS drpd senarai ni sejak jadual ni
+  // dicipta. Laluan awam token "Lengkapkan Penajaan" (permohonanPenajaRoutes.js) muat naik bukti
+  // bayaran DAN logo organisasi ke folder /uploads/ SAMA guna simpanFailMuatNaik() dikongsi —
+  // fail-fail ni sebenar wujud di cakera dan dirujuk baris permohonan sepanjang tempoh semakan
+  // (baharu -> diluluskan -> dibayar -> aktif), bukan cuma sebentar. Tanpa dua baris ni, semakan
+  // "masih dirujuk" untuk fail yang KEBETULAN URL sama juga dipakai semula dalam kandungan
+  // editorial (cth pentadbir salin URL bukti bayaran/logo penaja ke medan imej artikel) akan
+  // silap anggap fail tu yatim dan padamkannya walaupun permohonan penaja masih merujuknya.
+  { jadual: 'permohonan_penaja', lajur: 'buktiBayaranUrl' },
+  { jadual: 'permohonan_penaja', lajur: 'logoUrl' },
 ];
 
 /**
