@@ -1731,7 +1731,24 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // semuanya DAH dikunci). Dua Tolak berselang-seli pada slot SAMA (dua kandungan ditolak hampir
   // serentak) baca manualSummary lama yang SAMA, tulis draf masing-masing berasingan — draf yang
   // ditulis dulu HILANG terus, ditimpa draf kedua (bukan kedua-duanya tergabung).
-  router.post('/content/:id/reject-to-draft', requirePermission('reject'), (req, res) => denganKunciKandungan(async () => {
+  // PEMBETULAN (2026-09-08, bug-hunt) — laluan ni dahulu digerbang requirePermission('reject')
+  // SAHAJA, terlepas pengecualian `manageEditorial` yang semua gerbang penerbitan lain dalam
+  // fail ni guna (lihat komen "manageEditorial sepatutnya KEKAL penuh macam semua gerbang
+  // penerbitan lain" di laluan restore-versi ~baris 1526). `reject` dan `manageEditorial` ialah
+  // DUA togol BERASINGAN dalam matriks RBAC (TetapanConsole.tsx) — lalai kebetulan sentiasa
+  // hidupkan kedua-duanya bersama utk ketua_editor/penolong_ketua_editor, jadi pepijat ni tak
+  // pernah terdedah dalam ujian biasa, tapi Pentadbir boleh nyahaktifkan `reject` untuk peranan
+  // Ketua Editor/Penolong (togol Kawalan Akses) tanpa niat menyekat mereka drpd Tolak-ke-Draf,
+  // sama seperti pepijat publish/manageEditorial yang dibaiki di laluan restore-versi.
+  router.post('/content/:id/reject-to-draft', (req, res, next) => {
+    if (!req.session || !req.session.user) {
+      return res.status(401).json({ error: 'Sesi anda telah tamat. Sila log masuk semula.', message: 'Log masuk diperlukan.' });
+    }
+    if (!hasPermission(req.session.user.roles, 'manageEditorial') && !hasPermission(req.session.user.roles, 'reject')) {
+      return res.status(403).json({ error: 'Anda tiada kebenaran untuk tindakan ini.', message: 'Tiada kebenaran untuk tindakan ini.' });
+    }
+    next();
+  }, (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
       if (id.startsWith('ticker-')) {
