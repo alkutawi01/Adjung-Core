@@ -166,6 +166,14 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   const [drafTetapan, setDrafTetapan] = useState<DrafTetapan | null>(null);
   // Nilai draf SEMASA modal dibuka (§B2) — sama tujuan seperti drafEditorAwal di atas.
   const [drafTetapanAwal, setDrafTetapanAwal] = useState<DrafTetapan | null>(null);
+  // Token kawalan serentak (2026-09-08, dapatan bug-hunt) — `updatedAt` DIBACA SEMASA BUKA modal
+  // (bukan dibaca semula semasa simpan). Server (slotsConfigRoutes.js) sengaja banding nilai ni
+  // dengan DB SEMASA untuk kesan editor lain dah simpan slot ni sejak modal dibuka ("kalau tak
+  // sepadan nilai SEMASA, seseorang lain dah simpan dulu"). Simpan dalam state BERASINGAN drpd
+  // drafTetapan (yang tak pernah simpan updatedAt) supaya token ni KEKAL nilai ASAL walau
+  // simpanTetapan() bawah baca semula baris `semasa` (utk elak menimpa medan lain yang mungkin
+  // berubah) sebelum POST.
+  const [updatedAtAwalTetapan, setUpdatedAtAwalTetapan] = useState<string | null>(null);
   const [menyimpanTetapan, setMenyimpanTetapan] = useState(false);
 
   // Nilai Tetapan Am semasa (2026-08-07, Pelan 03) — dipapar dalam label kawalan per-slot supaya
@@ -253,6 +261,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       };
       setDrafTetapan(nilaiAwal);
       setDrafTetapanAwal(nilaiAwal);
+      setUpdatedAtAwalTetapan(baris.updatedAt || null);
       setSlotTetapan(slotIndex);
     } catch (e: any) {
       // Modal Tetapan Kad TAK PERNAH mount (perlukan slotTetapan+drafTetapan kedua-duanya),
@@ -267,6 +276,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
     setSlotTetapan(null);
     setDrafTetapan(null);
     setDrafTetapanAwal(null);
+    setUpdatedAtAwalTetapan(null);
     setRalatTetapan(null);
     setRalatTetapanKonflik(false);
   };
@@ -287,7 +297,17 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       if (!semasaRes.ok) throw new Error(semasaData?.error || 'Gagal memuat semula tetapan slot semasa.');
       const semasa = Array.isArray(semasaData) ? semasaData.find((s: any) => s.slotIndex === slotTetapan) : null;
       if (!semasa) throw new Error('Slot tidak dijumpai.');
-      const gabungan = { ...semasa, ...drafTetapan };
+      // PEMBETULAN (2026-09-08, dapatan bug-hunt) — `semasa.updatedAt` di atas ialah nilai
+      // BARU DIBACA saat-saat sebelum POST ni (muat semula sengaja, elak menimpa medan LAIN
+      // yang mungkin berubah — lihat komen di atas). Tapi kalau token ni turut dihantar sebagai
+      // `updatedAt` kepada pelayan, semakan kawalan serentak (slotsConfigRoutes.js, "Fasa 6")
+      // SENTIASA lulus walau editor lain SEBENARNYA dah simpan slot ni sejak modal ni dibuka —
+      // pelayan banding nilai yang DIHANTAR client dengan DB SEMASA, dan client baru sahaja
+      // membaca DB SEMASA tu sendiri, jadi ia sentiasa sepadan dirinya sendiri. Overwrite
+      // dengan `updatedAtAwalTetapan` (dibaca di bukaTetapan(), SEBELUM sebarang suntingan
+      // dibuat) supaya semakan 409 sebenar-benarnya kesan perubahan SEJAK modal dibuka, bukan
+      // sejak saat POST — jangan buang overwrite ni walau nampak berlebihan.
+      const gabungan = { ...semasa, ...drafTetapan, updatedAt: updatedAtAwalTetapan };
       const res = await fetch('/api/system/slots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -303,6 +323,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       setSlotTetapan(null);
       setDrafTetapan(null);
       setDrafTetapanAwal(null);
+      setUpdatedAtAwalTetapan(null);
     } catch (e: any) {
       setRalatTetapan(e.message || 'Gagal menyimpan tetapan slot.');
     } finally {
