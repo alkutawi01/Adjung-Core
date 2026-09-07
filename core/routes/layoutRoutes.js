@@ -17,7 +17,24 @@ export function createLayoutRoutes(db, dbAll, resolveSlotContent) {
       const resolvedSlots = [];
 
       for (const slot of slots) {
-        const resolved = await resolveSlotContent(slot, lang);
+        // 2026-09-08 (dapatan bug-hunt, corak sama pepijat pubDate RSS) — dahulu `await
+        // resolveSlotContent(slot, lang)` dipanggil terus dalam gelung TANPA try/catch
+        // sendiri, dalam satu try/catch BESAR yang membalut KESELURUHAN 38 slot serta
+        // pemetaan warna kategori. Satu slot dengan data rosak/luar-jangka (cth JSON tak
+        // sah dalam editorial_attribute_values, blok manualSummary yang cacat, dsb — mana-
+        // mana lontaran tak dijangka dalam resolveSlotContent()/PresentationComposer)
+        // menggugurkan SELURUH respons GET /layout/active (500), iaitu laman awam
+        // KESELURUHANNYA (bukan cuma satu kad) untuk SEMUA pelawat, sehingga data rosak tu
+        // dibetulkan secara manual. Kini setiap slot diselesaikan dalam try/catch sendiri —
+        // satu slot bermasalah dilangkau senyap (dicatat ke console), 37 slot LAIN yang sah
+        // tetap terbit seperti biasa.
+        let resolved;
+        try {
+          resolved = await resolveSlotContent(slot, lang);
+        } catch (slotErr) {
+          console.error(`[layout/active] Slot ${slot.slotIndex} gagal diselesaikan:`, slotErr);
+          continue;
+        }
         if (resolved) {
           // Map category colors & public category fallback to items
           if (resolved.items && Array.isArray(resolved.items)) {
