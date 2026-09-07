@@ -1079,7 +1079,20 @@ const initializeSchema = () => {
                 createdBy TEXT,
                 createdAt TEXT
               )
-            `, () => {});
+            `, () => {
+              // Invariant "satu perkataan satu entri" (komen pemenggalanRoutes.js baris ~64)
+              // dahulu HANYA disemak SELECT-then-INSERT peringkat aplikasi (TOCTOU) — dua
+              // POST /pemenggalan-pengecualian serentak dengan perkataan sama (cth dua tab
+              // editor terbuka serentak) kedua-duanya lulus semakan "sedia" (sama-sama nampak
+              // kosong) sebelum salah satu sempat INSERT, menghasilkan DUA baris bercanggah
+              // bagi SATU perkataan — melanggar invariant yang komen kod sendiri nyatakan
+              // ("dua corak bercanggah untuk perkataan sama tak bermakna"), dan
+              // `corakKepadaOffset()` (PemenggalSukuKata.js) jadi bergantung kepada baris MANA
+              // yang kebetulan dimuat dahulu bila dua wujud. Index unik (case-insensitive, ikut
+              // pemadanan LOWER() sedia ada di laluan GET/POST/PATCH) kuatkuasakan invariant ni
+              // di peringkat DB — corak sama seperti CategoryRegistry.slug/glosari_sense amSense.
+              db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_pemenggalan_perkataan_unik ON pemenggalan_pengecualian (LOWER(perkataan))`, () => {});
+            });
 
             // Dasar Aktif Editorial — tempoh boleh laras (2026-08-16, permintaan Izzat). Satu baris
             // id='main', sama corak slot_am_settings. Lihat core/routes/dasarAktifRoutes.js.

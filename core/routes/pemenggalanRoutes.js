@@ -66,10 +66,20 @@ export function createPemenggalanRoutes(dbAll, dbRun, dbGet) {
       if (sedia) return res.status(400).json({ error: `Perkataan "${perkataan}" sudah ada dalam senarai pengecualian.` });
 
       const id = `pmg-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      await dbRun(
-        'INSERT INTO pemenggalan_pengecualian (id, perkataan, corak, createdBy, createdAt) VALUES (?, ?, ?, ?, ?)',
-        [id, perkataan, corak, req.session?.user?.username || null, new Date().toISOString()]
-      );
+      try {
+        await dbRun(
+          'INSERT INTO pemenggalan_pengecualian (id, perkataan, corak, createdBy, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [id, perkataan, corak, req.session?.user?.username || null, new Date().toISOString()]
+        );
+      } catch (insertErr) {
+        // Index unik idx_pemenggalan_perkataan_unik (server.js) menangkap race dua POST
+        // serentak perkataan sama yang kedua-duanya terlepas semakan "sedia" di atas (TOCTOU) —
+        // pemadanan SAMA seperti mesej 400 sedia ada, bukan 500 mentah.
+        if (/UNIQUE constraint failed/i.test(insertErr.message || '')) {
+          return res.status(400).json({ error: `Perkataan "${perkataan}" sudah ada dalam senarai pengecualian.` });
+        }
+        throw insertErr;
+      }
       const baris = await dbGet('SELECT * FROM pemenggalan_pengecualian WHERE id = ?', [id]);
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -105,10 +115,17 @@ export function createPemenggalanRoutes(dbAll, dbRun, dbGet) {
       const pertindihan = await dbGet('SELECT id FROM pemenggalan_pengecualian WHERE LOWER(perkataan) = LOWER(?) AND id != ?', [perkataan, req.params.id]);
       if (pertindihan) return res.status(400).json({ error: `Perkataan "${perkataan}" sudah ada dalam senarai pengecualian.` });
 
-      await dbRun(
-        'UPDATE pemenggalan_pengecualian SET perkataan = ?, corak = ? WHERE id = ?',
-        [perkataan, corak, req.params.id]
-      );
+      try {
+        await dbRun(
+          'UPDATE pemenggalan_pengecualian SET perkataan = ?, corak = ? WHERE id = ?',
+          [perkataan, corak, req.params.id]
+        );
+      } catch (updateErr) {
+        if (/UNIQUE constraint failed/i.test(updateErr.message || '')) {
+          return res.status(400).json({ error: `Perkataan "${perkataan}" sudah ada dalam senarai pengecualian.` });
+        }
+        throw updateErr;
+      }
       const baris = await dbGet('SELECT * FROM pemenggalan_pengecualian WHERE id = ?', [req.params.id]);
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
