@@ -520,11 +520,20 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   };
 
   // Buka terus sasaran notifikasi kandungan/draf (2026-09-01, Izzat: "susah nak cari kandungan
-  // apa yg ditolak... pautan utk edit pun tak diberi"). `sasaranId` daripada Notify.js kini
-  // berformat "slotIndex:id" untuk semua jenis notifikasi kandungan (lihat contentRoutes.js/
-  // server.js) — parse dahulu sebelum guna. Kandungan lama sebelum ciri ni (targetId lama = id
-  // mentah tanpa ":") gagal senyap (parseInt NaN) — butang "Buka"/"Lihat" tak dipapar langsung
-  // sebab MaklumanDrawer dah semak sasaranId wujud, jadi kes ni jarang berlaku dalam amalan.
+  // apa yg ditolak... pautan utk edit pun tak diberi"). `sasaranId` daripada Notify.js berformat
+  // "slotIndex:id" untuk KEBANYAKAN jenis notifikasi kandungan (lihat contentRoutes.js/server.js)
+  // — parse dahulu sebelum guna.
+  //
+  // Pengecualian (2026-09-08, dapatan bug-hunt susulan) — 'kandungan_menunggu_kelulusan' KINI
+  // sengaja objectId TELANJANG (bukan format komposit), sejak pembetulan padanan
+  // selesaikanMenungguKelulusan() (Notify.js: WHERE targetId = ? padan terus dgn objectId, format
+  // komposit lama TAK PERNAH sepadan, notis "menunggu kelulusan" tak pernah tertutup automatik).
+  // Komen asal di sini anggap "targetId tanpa ':'" hanya kes LAMA/jarang (kandungan sebelum ciri
+  // ni) — sebenarnya kini ITULAH format BAHARU, SETIAP notis menunggu-kelulusan akan datang. Guard
+  // `kolon === -1 -> return` yang asal akan senyap matikan butang "Buka" bagi jenis notis ni
+  // SELAMANYA selepas pembetulan itu. Tanpa slotIndex terkandung dalam sasaranId, tak boleh buka
+  // slot spesifik — jatuh balik buka Indeks tapis status sahaja (semua slot) supaya butang tetap
+  // berguna, bukan senyap tak buat apa-apa.
   const STATUS_IKUT_JENIS: Record<string, string> = {
     kandungan_disiar: 'Live',
     kandungan_menunggu_kelulusan: 'Pending',
@@ -536,7 +545,13 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   };
   const bukaSasaranNotifikasi = (sasaranJenis: string, sasaranId: string, jenisNotifikasi?: string) => {
     const kolon = sasaranId.indexOf(':');
-    if (kolon === -1) return;
+    if (kolon === -1) {
+      // Format objectId telanjang (lihat komen di atas) — tiada slotIndex utk ditapis, buka
+      // Indeks ikut status sahaja merentasi semua slot.
+      setMaklumanTerbuka(false);
+      lihatDiIndeks({ status: (jenisNotifikasi && STATUS_IKUT_JENIS[jenisNotifikasi]) || 'Semua' });
+      return;
+    }
     const slotIndex = parseInt(sasaranId.slice(0, kolon), 10);
     const sisa = sasaranId.slice(kolon + 1);
     if (Number.isNaN(slotIndex)) return;
