@@ -2433,7 +2433,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       }
 
       if (TIER_SLOTS.BAR.includes(i)) {
-        itemToPush.source = itemToPush.source || '19 Jul 2026';
+        // Jangan fallback ke tarikh palsu "19 Jul 2026" (pepijat sama kelas dibaiki di
+        // server.js/parseManualSummaryTemplate 2026-07-25, tercicir di sini sebab laluan
+        // paparan client ni tak diaudit sekali — rentetan rekaan tu terus papar sebagai
+        // atribusi Tarikh/Tempoh Acara pada kad BAR sebenar). Kosong sebenar konsisten
+        // dgn fix asal.
+        itemToPush.source = itemToPush.source || '';
         if (itemToPush.source.length > 25) {
           itemToPush.source = itemToPush.source.substring(0, 25);
         }
@@ -3069,7 +3074,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       resolvedItem.briefString = originalBrief;
 
       if (TIER_SLOTS.BAR.includes(actualSlotIdx)) {
-        resolvedItem.source = resolvedItem.source || '19 Jul 2026';
+        // Sama pembetulan seperti di atas (fallbacks/BENTO_FALLBACKS) — jangan reka tarikh.
+        resolvedItem.source = resolvedItem.source || '';
         if (resolvedItem.source.length > 25) {
           resolvedItem.source = resolvedItem.source.substring(0, 25);
         }

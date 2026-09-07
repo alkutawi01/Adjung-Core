@@ -524,7 +524,12 @@ ${slot.sourcesList.trim()}
       const claimedUrl = groundingUrls[0] || parsedJson.source_url || aiSourceUrl || '#';
       finalSourceUrl = await verifyUrlReachable(claimedUrl) ? claimedUrl : '#';
     }
-    const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '19 Jul 2026') : provider.name;
+    // Jangan fallback ke tarikh palsu bila AI tak sertakan Tarikh/Tempoh Acara (2026-07-25
+    // pepijat "19 Jul 2026" sama kelas dibaiki di server.js/parseManualSummaryTemplate --
+    // tercicir di sini, laluan pipeline AI, sebab ia tak sedia semasa audit asal itu. Rentetan
+    // tarikh rekaan terus terpapar sebagai atribusi/citation kad BAR sebenar tanpa syarat,
+    // sama seperti bug asal — kosong sebenar konsisten dgn fix asal, bukan reka tarikh.
+    const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '') : provider.name;
 
     // Tarikh Sumber (2026-09-04, dasar "Format + kewajipan Tarikh Sumber" — lihat CLAUDE.md)
     // sebelum ni TIDAK PERNAH disimpan untuk kandungan laluan pipeline AI ni — attributesToSave
