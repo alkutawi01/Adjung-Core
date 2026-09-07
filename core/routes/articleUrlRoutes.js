@@ -17,33 +17,57 @@ import { janaOgImagePng } from '../editorial/OgImageRenderer.js';
 //      Pengguna biasa dapat SPA seperti biasa (index.html); laluan client React Router
 //      (src/App.tsx) yang uruskan buka Focus View selepas JS dimuatkan.
 
+// Kunci per-objectId (dapatan bug-hunt, 2026-09-08) — baca-jana-tulis TOCTOU klasik. Tanpa kunci
+// ni, dua permintaan serentak untuk OBJEK SAMA (cth Focus View dibuka client SAMBIL bot crawler
+// cecah og.png untuk artikel yang sama, kedua-dua panggil getOrCreateUrlKod sebelum urlKod wujud)
+// masing-masing baca urlKod=NULL, jana DUA kod BERBEZA (kedua-dua lulus semakan pelanggaran sebab
+// belum ada yang tersimpan lagi), dan tulis UPDATE berasingan — permintaan yang menang cursor DB
+// terakhir "menang" dalam jadual, tapi kod YANG PERTAMA (sudah pun dipulangkan/dipaparkan kepada
+// pemanggil pertama itu, cth dikongsi sebagai pautan/tersimpan dalam cache OG Facebook) tak lagi
+// sepadan apa-apa baris — pautan itu 404 selama-lamanya. Peta kunci per-kekunci (corak sama
+// denganKunciNotifikasi, Notify.js) memastikan hanya SATU baca-jana-tulis berjalan pada satu masa
+// bagi objectId yang sama, dibersihkan selepas siap supaya peta tak membesar tanpa had.
+const kunciUrlKod = new Map();
+function denganKunciUrlKod(objectId, tugas) {
+  const sebelum = kunciUrlKod.get(objectId) || Promise.resolve();
+  const giliranIni = sebelum.then(tugas, tugas);
+  const dijagaGiliran = giliranIni.catch(() => {});
+  kunciUrlKod.set(objectId, dijagaGiliran);
+  dijagaGiliran.finally(() => {
+    if (kunciUrlKod.get(objectId) === dijagaGiliran) kunciUrlKod.delete(objectId);
+  });
+  return giliranIni;
+}
+
 /** Dapatkan (atau jana kalau belum wujud) kod pendek kanonikal untuk SATU objek editorial.
  *  Jana MALAS (lazy) — bukan setiap kandungan perlu kod serta-merta semasa dicipta, cuma bila
  *  buat kali pertama diminta (Focus View dibuka / bot cecah URL lama sebelum kod wujud lagi). */
 export async function getOrCreateUrlKod(dbGet, dbRun, objectId) {
-  const obj = await dbGet('SELECT id, urlKod FROM editorial_objects WHERE id = ?', [objectId]);
-  if (!obj) return null;
-  if (obj.urlKod) return obj.urlKod;
+  return denganKunciUrlKod(objectId, async () => {
+    const obj = await dbGet('SELECT id, urlKod FROM editorial_objects WHERE id = ?', [objectId]);
+    if (!obj) return null;
+    if (obj.urlKod) return obj.urlKod;
 
-  let kod = null;
-  for (let cubaan = 0; cubaan < 20; cubaan += 1) {
-    const calon = janaKodPendek();
-    // eslint-disable-next-line no-await-in-loop
-    const berlanggar = await dbGet('SELECT 1 FROM editorial_objects WHERE urlKod = ?', [calon]);
-    if (!berlanggar) { kod = calon; break; }
-  }
-  if (!kod) {
-    // Amat tak berkemungkinan (36^6 ≈ 2.2 bilion kombinasi) — jaring keselamatan sahaja.
-    throw new Error('Gagal jana kod URL unik selepas 20 percubaan.');
-  }
-  // Semak `changes` (2026-08-06, audit "kegagalan senyap") — objek boleh dipadam antara SELECT di
-  // atas dan tulisan ni. Tanpa semakan, kita pulangkan kod URL yang tak pernah tersimpan: pautan
-  // dikongsi keluar, kemudian membawa ke halaman tiada.
-  const hasil = await dbRun('UPDATE editorial_objects SET urlKod = ? WHERE id = ?', [kod, objectId]);
-  if (!hasil || hasil.changes === 0) {
-    throw new Error('Kandungan tidak dijumpai, kod URL tidak dapat disimpan.');
-  }
-  return kod;
+    let kod = null;
+    for (let cubaan = 0; cubaan < 20; cubaan += 1) {
+      const calon = janaKodPendek();
+      // eslint-disable-next-line no-await-in-loop
+      const berlanggar = await dbGet('SELECT 1 FROM editorial_objects WHERE urlKod = ?', [calon]);
+      if (!berlanggar) { kod = calon; break; }
+    }
+    if (!kod) {
+      // Amat tak berkemungkinan (36^6 ≈ 2.2 bilion kombinasi) — jaring keselamatan sahaja.
+      throw new Error('Gagal jana kod URL unik selepas 20 percubaan.');
+    }
+    // Semak `changes` (2026-08-06, audit "kegagalan senyap") — objek boleh dipadam antara SELECT di
+    // atas dan tulisan ni. Tanpa semakan, kita pulangkan kod URL yang tak pernah tersimpan: pautan
+    // dikongsi keluar, kemudian membawa ke halaman tiada.
+    const hasil = await dbRun('UPDATE editorial_objects SET urlKod = ? WHERE id = ?', [kod, objectId]);
+    if (!hasil || hasil.changes === 0) {
+      throw new Error('Kandungan tidak dijumpai, kod URL tidak dapat disimpan.');
+    }
+    return kod;
+  });
 }
 
 /** Ambil data kandungan (tajuk/huraian/sumber/imej/tarikh/bidang) untuk SATU objectId — versi
