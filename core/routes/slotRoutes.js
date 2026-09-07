@@ -517,7 +517,20 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
           const masaItem = new Date(item.publishedAt).getTime();
           if (isNaN(masaItem)) continue;
           if ((kiniMs - masaItem) / (1000 * 60 * 60) > ageVal) {
-            await dbRun("UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ?", [item.id]);
+            // `AND decision NOT IN (...)` diulang di SINI (bukan cuma di SELECT di atas,
+            // 2026-09-08 susulan bug-hunt) — SELECT dan gelung UPDATE ni dipisahkan oleh
+            // banyak `await` (satu setiap baris lapuk), jadi ada tingkap masa nyata antara
+            // baris tu dibaca dan baris tu ditulis. Kalau Ketua Editor/Penolong meluluskan
+            // item ni SECARA MANUAL (/ticker/review-action, tak dikunci langsung — lihat nota
+            // kunci di situ) SEMASA gelung ni sedang berjalan, UPDATE buta ni tetap menulis
+            // status='rejected' atas baris yang BARU SAHAJA diluluskan, membiarkan
+            // decision='MANUAL_APPROVED' tapi status='rejected' — keadaan bercampur, sama
+            // kelas pepijat SELECT-then-UPDATE (promosikanMenungguSlotKosong, commit
+            // 4f865c6). Semakan semula pada TITIK TULIS, bukan cuma titik baca.
+            await dbRun(
+              "UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ? AND status IN ('approved', 'pending') AND decision NOT IN ('MANUAL_APPROVED', 'MANUAL_REJECTED')",
+              [item.id]
+            );
           }
         }
       }
@@ -1468,7 +1481,15 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
       return (kiniMs - masaItem) / (1000 * 60 * 60) > maxAgeHoursSemasa;
     });
     for (const item of lapuk) {
-      await dbRun("UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ?", [item.id]);
+      // `AND decision NOT IN (...)` diulang di titik TULIS (sama pembetulan/rasional
+      // seperti tapak kembar POST /rss-settings di atas fail ni, 2026-09-08) — SELECT
+      // `semuaApproved` di atas dan UPDATE ni dipisahkan oleh gelung `await`, jadi kelulusan
+      // manual (/ticker/review-action) yang berlaku SEMASA gelung ni jalan boleh senyap
+      // ditulis-ganti kalau UPDATE tak semak semula decision semasa.
+      await dbRun(
+        "UPDATE rss_ticker_items SET status = 'rejected' WHERE id = ? AND status IN ('approved', 'pending') AND decision NOT IN ('MANUAL_APPROVED', 'MANUAL_REJECTED')",
+        [item.id]
+      );
     }
   }
 
