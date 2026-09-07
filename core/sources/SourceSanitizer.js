@@ -32,6 +32,14 @@ export function sanitizeHtmlText(rawText) {
     .replace(/&rdquo;/g, '"')
     .replace(/&mdash;/g, '—')
     .replace(/&ndash;/g, '–')
+    // Buang SEMULA sebarang tag yang baru terdedah selepas nyahkod entiti di atas (cth suapan
+    // RSS jahat/rosak yang hantar "&lt;script&gt;...&lt;/script&gt;" — regex buang-tag PERTAMA
+    // di atas tak jumpa apa-apa sebab tiada '<'/'>' literal lagi pada peringkat tu, nyahkod
+    // entiti BARU mendedahkan tag sebenar. Tanpa pas kedua ni, teks RSS luaran yang disimpan ke
+    // DB (title/description) boleh mengandungi tag HTML/script sebenar walaupun fungsi ni
+    // sepatutnya "strip semua tag" — punca berpotensi stored-XSS kalau medan ni pernah
+    // dipaparkan via dangerouslySetInnerHTML di mana-mana masa depan.
+    .replace(/<[^>]*>/g, ' ')
     // Completely remove all copyright symbols (&copy;, ©, (c), (C))
     .replace(/&(?:copy);?/gi, '')
     .replace(/©/g, '')
