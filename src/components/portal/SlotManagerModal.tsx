@@ -390,14 +390,32 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     'Berikan output dalam format berikut sahaja, satu blok bagi setiap kandungan, dipisahkan dengan baris "____":',
     '(Tarikh sumber MESTI format YYYY-MM-DD, contoh 2026-08-08 — format lain tidak dikenali oleh borang)',
     'Topik:', 'Tajuk:', 'Huraian ringkas:', 'Huraian panjang:', 'Sumber:', 'URL:', 'Tarikh sumber:', '',
+    // Contoh format ikut mod (2026-09-07, dapatan Izzat — contoh "Dasar Data Awam"/portal data
+    // kerajaan tunggal dikongsi SEMUA mod, termasuk "Dengan Artikel Jurnal" — nada bahasa rasmi/
+    // dokumentasi-portal contoh tu bercanggah terus dengan arahan [Gaya penulisan] tepat di atas
+    // yang tegas larang gaya ulasan/laporan formal, minta "gaya editorial terus" sebaliknya.
+    // Contoh yang bercanggah nada dengan arahannya sendiri berisiko "menular" ke output walau
+    // label eksplisit kata "struktur sahaja" — model bahasa cenderung meniru nada contoh diberi,
+    // bukan hanya bentuknya. Contoh mod Artikel Jurnal kini bertema ilmiah/Syariah, sepadan nada
+    // "gaya editorial terus, bukan ulasan jurnal" yang diminta seksyen di atas.
     '[Contoh format (rujukan struktur SAHAJA — jangan salin isi atau fakta di bawah, ganti dengan kandungan sebenar anda)]',
-    'Topik: Dasar Data Awam',
-    'Tajuk: Portal data terbuka kerajaan tambah 200 set data baharu bulan ini',
-    'Huraian ringkas: Kerajaan memperluas portal data terbuka dengan 200 set data baharu merangkumi sektor kesihatan dan pengangkutan bagi galak penyelidikan awam.',
-    'Huraian panjang: (contoh dipendekkan) ... huraian penuh mengalir tanpa subtajuk, jelaskan apa berlaku dan kenapa ia penting ...',
-    'Sumber: (nama sebenar sumber anda)',
-    'URL: (pautan sebenar yang anda sahkan wujud)',
-    'Tarikh sumber: YYYY-MM-DD',
+    ...(isJournalMode ? [
+      'Topik: Pentadbiran Fatwa',
+      'Tajuk: Penyelarasan fatwa kebangsaan perkukuh kedudukan institusi agama',
+      'Huraian ringkas: Perkembangan pentadbiran fatwa di Malaysia berkait rapat dengan usaha penyelarasan struktur institusi agama di peringkat kebangsaan.',
+      'Huraian panjang: (contoh dipendekkan) ... huraian penuh mengalir tanpa subtajuk, terangkan perkembangan/dapatan seolah-olah penulis sendiri memahaminya, bukan melaporkan kewujudan kajian ...',
+      'Sumber: (nama jurnal ringkas, cth "Jurnal Syariah")',
+      'URL: (kosongkan jika PDF tiada pautan berkaitan)',
+      'Tarikh sumber: YYYY-MM-DD',
+    ] : [
+      'Topik: Dasar Data Awam',
+      'Tajuk: Portal data terbuka kerajaan tambah 200 set data baharu bulan ini',
+      'Huraian ringkas: Kerajaan memperluas portal data terbuka dengan 200 set data baharu merangkumi sektor kesihatan dan pengangkutan bagi galak penyelidikan awam.',
+      'Huraian panjang: (contoh dipendekkan) ... huraian penuh mengalir tanpa subtajuk, jelaskan apa berlaku dan kenapa ia penting ...',
+      'Sumber: (nama sebenar sumber anda)',
+      'URL: (pautan sebenar yang anda sahkan wujud)',
+      'Tarikh sumber: YYYY-MM-DD',
+    ]),
   ];
   return lines.join('\n');
 }
