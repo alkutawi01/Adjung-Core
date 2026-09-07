@@ -3854,7 +3854,15 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       } else if (finalStatus === 'approved') {
         anyApprovedNow = true;
       }
-      publishOutcomes.push({ objectId, title: item.title || '', status: finalStatus });
+      // slotPenuh (2026-09-07, Izzat — "kenapa keluar toast 'Menunggu Semakan'? siapa nak semak
+      // artikel Ketua Editor? saya sendiri?") — sebabMenungguNi dikira BETUL di atas ('slot_penuh'
+      // bila keputusan terbit dah dibuat, cuma tunggu ruang; 'semakan' bila keputusan MANUSIA
+      // belum dibuat), tapi medan ni tak pernah dihantar balik ke publishOutcomes — klien
+      // (SlotManagerModal.tsx publishOne) baca `hasil?.slotPenuh` untuk pilih mesej toast yang
+      // betul, SENTIASA undefined/palsu di sini, jadi toast SENTIASA papar "Menunggu Semakan"
+      // generik walau kandungan sebenarnya dah lulus (Ketua Editor sendiri terbitkan) dan cuma
+      // tunggu slot kosong — mengelirukan teruk (nampak macam perlukan kelulusan manusia lagi).
+      publishOutcomes.push({ objectId, title: item.title || '', status: finalStatus, slotPenuh: sebabMenungguNi === 'slot_penuh' });
       const rev = await dbRun(
         `INSERT INTO editorial_revisions (objectId, version, language, title, summary, status, createdBy, createdAt, updatedAt)
          VALUES (?, 1.0, 'ms', ?, ?, ?, 'manual-slot-save', ?, ?)`,
