@@ -3990,7 +3990,14 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       title: 'Kandungan menunggu kelulusan anda',
       detail: `Slot ${slotIndex + 1}: ${menunggu.title}`.slice(0, 150),
       targetType: 'kandungan',
-      targetId: `${slotIndex}:${menunggu.objectId}`,
+      // objectId TELANJANG (bukan `${slotIndex}:${objectId}`) — selesaikanMenungguKelulusan()
+      // (Notify.js, dipanggil contentRoutes.js selepas Tolak/Arkib/Padam/Pulihkan) padan
+      // WHERE targetId = ? terus dgn objectId sahaja. targetId komposit "slotIndex:objectId"
+      // (2026-08-08 asal) TAK PERNAH sepadan carian tu — notis "menunggu kelulusan" jadi
+      // TAK PERNAH ditutup automatik walau kandungan dah lama tinggalkan status pending,
+      // sepatutnya tersembunyi bila kandungan diluluskan/ditolak (dapatan bug-hunt 2026-09-08).
+      // Slot dikekalkan dalam `detail` (baris atas) untuk konteks paparan, cuma bukan targetId.
+      targetId: menunggu.objectId,
     }, actorIdSesi).catch(async (e) => {
       // LIFE-03 (audit ChatGPT 2026-08-08) — kegagalan notifikasi TETAP tak boleh menjejaskan
       // penerbitan (prinsip sedia ada dikekalkan), tapi dahulu cuma console.warn — hilang bila
