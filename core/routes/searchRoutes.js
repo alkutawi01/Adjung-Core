@@ -16,7 +16,13 @@ export function createSearchRoutes(dbAll) {
       if (q.length < 2) {
         return res.json({ results: [] });
       }
-      const like = `%${q}%`;
+      // Escape aksara khas LIKE (%, _, dan escape char \ itu sendiri) SEBELUM bina corak carian
+      // — tanpa ni, carian literal pembaca (cth "50%" diskaun, atau nombor bersambung "90_9")
+      // ditafsir sebagai wildcard SQL (% = mana-mana jujukan, _ = mana-mana SATU aksara),
+      // memulangkan padanan terlalu luas/salah yang tak berkaitan langsung dgn teks ditaip.
+      // ESCAPE '\' eksplisit diperlukan sebab SQLite LIKE tiada escape char lalai.
+      const qTerlepas = q.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
+      const like = `%${qTerlepas}%`;
       // `latest` mesti dikira daripada MAX(version) MERENTASI SEMUA status (bukan hanya di
       // kalangan revisi 'approved') — join tadi (sebelum 2026-08-13) cari revisi berversi
       // tertinggi DALAM KALANGAN yang approved sahaja, jadi bila kandungan diedit lagi lepas
@@ -39,10 +45,10 @@ export function createSearchRoutes(dbAll) {
         WHERE eo.slotIndex >= 0
           AND er.status = 'approved'
           AND (
-            er.title LIKE ? OR er.summary LIKE ?
+            er.title LIKE ? ESCAPE '\' OR er.summary LIKE ? ESCAPE '\'
             OR EXISTS (
               SELECT 1 FROM editorial_attribute_values av
-              WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'topik' AND av.valueText LIKE ?
+              WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'topik' AND av.valueText LIKE ? ESCAPE '\'
             )
           )
         ORDER BY er.createdAt DESC
