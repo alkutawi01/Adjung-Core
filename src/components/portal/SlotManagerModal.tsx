@@ -1920,9 +1920,9 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     Jenis sumber) — lebar biasa (bukan grid) supaya tak nampak janggal separuh
                     lebar sekarang. */}
                 <ImageField label="Imej" value={current.image || ''} note={imageNote} uploading={uploadingImage} onChange={(v) => patch(activeIndex, 'image', v)} onUploadFile={(f) => uploadImage(activeIndex, f)} />
-                {/* Sumber Akademik (2026-09-07, permintaan Izzat) — checkbox BERASINGAN, TAK
+                {/* Artikel Jurnal (2026-09-07, permintaan Izzat) — checkbox BERASINGAN, TAK
                     terikat Mod Janaan "Dengan Artikel Jurnal" (editor boleh taip manual terus
-                    tanpa pipeline AI dan tetap tandakan ni). Papar badge "Sumber Akademik" di
+                    tanpa pipeline AI dan tetap tandakan ni). Papar badge "Artikel Jurnal" di
                     bucu kanan-atas kad Halaman Bidang (bidangRoutes.js/HalamanBidang.tsx) —
                     label disahkan ChatGPT lebih tepat drpd "Akademik"/"Artikel Jurnal" sahaja
                     (merangkumi kertas kerja/tesis/prosiding, bukan cuma artikel jurnal). */}
@@ -1933,7 +1933,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     onChange={(e) => patch(activeIndex, 'sumberAkademik', e.target.checked)}
                     className="cursor-pointer"
                   />
-                  Kandungan ini berdasarkan artikel jurnal/dokumen akademik (papar label "Sumber Akademik" di Halaman Bidang)
+                  Kandungan ini berdasarkan artikel jurnal/dokumen akademik (papar label "Artikel Jurnal" di Halaman Bidang)
                 </label>
                 {/* Sebab Penolakan (2026-08-31, dapatan Izzat — nota Tolak hampir terbit ke Focus
                     View) — DALAMAN SAHAJA, medan berasingan sepenuhnya drpd "Nota" di bawah (yang

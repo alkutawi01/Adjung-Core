@@ -104,6 +104,32 @@ export function createBidangRoutes(dbAll, dbGet) {
 
       const totalRow = await dbGet(`SELECT COUNT(*) as total ${whereClause}`, [cat.name]);
       const total = totalRow ? Number(totalRow.total) || 0 : 0;
+      // totalKeseluruhan (2026-09-07, regresi ditemui Izzat — "kenapa kandungan arkib tak keluar
+      // di Halaman Bidang?!"). Punca: `total` di atas dikira ikut `statusScope` semasa (TERKINI =
+      // approved SAHAJA, sejak pembetulan 2026-09-04 di atas). Klien (HalamanBidang.tsx) guna
+      // NILAI `total` daripada permintaan TERKINI SAHAJA untuk putuskan sama ada nak papar/muat
+      // seksyen "Koleksi Terdahulu" langsung (`totalKeseluruhan > PER_PAGE`) — bila Bidang ada
+      // TEPAT 10 kandungan approved (cth "Buku"), `total` TERKINI = 10, `10 > 10` palsu, seksyen
+      // Koleksi (dan SEMUA kandungan arkib di dalamnya) tak pernah dipaparkan/dimuat LANGSUNG,
+      // walau kandungan arkib itu wujud sebenar dalam DB. Kira SATU lagi kiraan, TANPA syarat
+      // iniTerkini (approved+archived SENTIASA), khas untuk keputusan "ada Koleksi Terdahulu ke
+      // tidak" — bukan gantikan `total` sedia ada (yang masih betul untuk skop paginasi masing2).
+      const totalKeseluruhanRow = await dbGet(`
+        SELECT COUNT(*) as total
+        FROM editorial_objects eo
+        INNER JOIN editorial_revisions er ON er.objectId = eo.id
+        INNER JOIN (
+          SELECT objectId, MAX(version) as maxVersion FROM editorial_revisions GROUP BY objectId
+        ) latest ON latest.objectId = er.objectId AND latest.maxVersion = er.version
+        WHERE eo.slotIndex >= 0
+          AND er.status IN ('approved', 'archived')
+          AND EXISTS (
+            SELECT 1 FROM editorial_attribute_values av
+            WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk'
+              AND LOWER(av.valueText) = LOWER(?)
+          )
+      `, [cat.name]);
+      const totalKeseluruhan = totalKeseluruhanRow ? Number(totalKeseluruhanRow.total) || 0 : 0;
 
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
@@ -141,7 +167,7 @@ export function createBidangRoutes(dbAll, dbGet) {
           sources,
           editorName: r.editorName || '',
           image: r.image || '',
-          // Sumber Akademik (2026-09-07) — bendera checkbox editor, badge di bucu kanan-atas kad
+          // Artikel Jurnal (2026-09-07) — bendera checkbox editor, badge di bucu kanan-atas kad
           // Halaman Bidang SAHAJA (lihat HalamanBidang.tsx). Nilai tersimpan '1'/kosong, tukar
           // ke boolean sebenar di sini (corak sama medan lain di laluan ni).
           sumberAkademik: r.sumberAkademik === '1',
@@ -166,6 +192,7 @@ export function createBidangRoutes(dbAll, dbGet) {
         page,
         perPage,
         total,
+        totalKeseluruhan,
       });
     } catch (err) {
       console.error('GET /bidang/:slug/artikel error:', err);

@@ -62,7 +62,7 @@ const LABEL_DIKENALI = [
   'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
   'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
   'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Sebab Penolakan:', 'Imej:', 'Penganjur:',
-  'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:', 'Sumber Akademik:',
+  'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:', 'Artikel Jurnal:',
 ];
 const ADA_LABEL_DIKENALI = (trimmed) =>
   LABEL_DIKENALI.some((label) => trimmed.toLowerCase().startsWith(label.toLowerCase()));
@@ -117,7 +117,7 @@ export function parseManualBlockFields(block) {
     // capnya sendiri di dalam blok teks ni. Blok lama tiada baris ni; "Draf Saya" jatuh balik pada
     // penugasan slot (jadual slot_editors) untuk blok tanpa nama, bukan menekanya kepada sesiapa.
     penulis: '',
-    // Sumber Akademik (2026-09-07) — bendera checkbox editor, papar badge "Sumber Akademik" di
+    // Artikel Jurnal (2026-09-07) — bendera checkbox editor, papar badge "Artikel Jurnal" di
     // bucu kanan-atas kad Halaman Bidang. Nilai '1'/'' teks mentah dalam blok (sama corak
     // pernahDitolak di server.js), ditukar ke boolean sebenar bila item.push() ke `items`.
     sumberAkademik: '',
@@ -322,8 +322,8 @@ export function parseManualBlockFields(block) {
     } else if (trimmed.startsWith('Tarikh:')) {
       const nilai = trimmed.replace(/^Tarikh:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'tarikh'; else terapkanLabelTunggal('tarikh', nilai);
-    } else if (trimmed.startsWith('Sumber Akademik:')) {
-      fields.sumberAkademik = trimmed.replace(/^Sumber Akademik:\s*/i, '').trim();
+    } else if (trimmed.startsWith('Artikel Jurnal:')) {
+      fields.sumberAkademik = trimmed.replace(/^Artikel Jurnal:\s*/i, '').trim();
       medanSemasa = null;
       continue;
     } else if (trimmed.startsWith('Penulis:')) {
@@ -472,7 +472,7 @@ export function serializeManualBentoItem(item) {
     // untuk Terbit semula.
     `Sebab Penolakan: ${item.rejectionNote || ''}`,
     `Penulis: ${item.penulis || ''}`,
-    `Sumber Akademik: ${item.sumberAkademik ? '1' : ''}`,
+    `Artikel Jurnal: ${item.sumberAkademik ? '1' : ''}`,
   ].join('\n');
 }
 

@@ -135,8 +135,8 @@ type Artikel = {
   status: string;
   originalDate: string;
   publishedDate: string;
-  // Sumber Akademik (2026-09-07) — bendera checkbox editor (bukan Mod Janaan), papar badge
-  // "Sumber Akademik" di bucu kanan-atas kad Halaman Bidang SAHAJA (ikut arahan skop Izzat —
+  // Artikel Jurnal (2026-09-07) — bendera checkbox editor (bukan Mod Janaan), papar badge
+  // "Artikel Jurnal" di bucu kanan-atas kad Halaman Bidang SAHAJA (ikut arahan skop Izzat —
   // frontpage bento/Focus View tak berubah).
   sumberAkademik: boolean;
 };
@@ -230,7 +230,12 @@ export function HalamanBidang() {
       .then((data) => {
         if (dibatal || !data) return;
         setTerkini(data.artikel || []);
-        setTotalKeseluruhan(data.total || 0);
+        // totalKeseluruhan (2026-09-07, regresi ditemui Izzat) — WAJIB baca `data.totalKeseluruhan`
+        // (kiraan approved+archived tanpa syarat, ditambah bidangRoutes.js), BUKAN `data.total`
+        // (kini skop TERKINI sahaja — approved SAHAJA, sejak pembetulan 2026-09-04). Guna `total`
+        // di sini punca sebenar seksyen "Koleksi Terdahulu" (dan SEMUA kandungan arkib) tak
+        // pernah papar/muat langsung bila Bidang ada tepat >=10 kandungan approved.
+        setTotalKeseluruhan(data.totalKeseluruhan ?? data.total ?? 0);
       })
       .catch(() => {});
     return () => { dibatal = true; };
@@ -432,13 +437,13 @@ export function HalamanBidang() {
                           bukan nested button (HTML tak benarkan <button> dalam <button>). `li`
                           relative jadi sauh kedudukan `absolute` EditPensil sendiri. */}
                       <EditPensil objectId={a.objectId} role={currentEditoriumRole} posisi="top-1/2 -translate-y-1/2 right-0" />
-                      {/* Sumber Akademik (2026-09-07) — badge bucu kanan-atas, Halaman Bidang
+                      {/* Artikel Jurnal (2026-09-07) — badge bucu kanan-atas, Halaman Bidang
                           SAHAJA (ikut skop diminta Izzat). Teks/pill sengaja tanpa ikon (keputusan
-                          Izzat semasa reka bentuk), label disahkan ChatGPT ("Sumber Akademik"
+                          Izzat semasa reka bentuk), label disahkan ChatGPT ("Artikel Jurnal"
                           lebih tepat drpd "Akademik"/"Artikel Jurnal" sahaja). */}
                       {a.sumberAkademik && (
                         <span className="absolute top-0 right-0 font-mono text-[8px] uppercase tracking-wider text-Adjung-maroon border border-Adjung-maroon/30 rounded px-1.5 py-0.5 bg-Adjung-maroon/5 whitespace-nowrap">
-                          Sumber Akademik
+                          Artikel Jurnal
                         </span>
                       )}
                       <button
@@ -513,7 +518,7 @@ export function HalamanBidang() {
                           <EditPensil objectId={a.objectId} role={currentEditoriumRole} posisi="top-1/2 -translate-y-1/2 right-0" />
                           {a.sumberAkademik && (
                             <span className="absolute top-0 right-0 font-mono text-[8px] uppercase tracking-wider text-Adjung-maroon border border-Adjung-maroon/30 rounded px-1.5 py-0.5 bg-Adjung-maroon/5 whitespace-nowrap">
-                              Sumber Akademik
+                              Artikel Jurnal
                             </span>
                           )}
                           <button type="button" onClick={() => bukaArtikel(a.objectId)} className="w-full text-left group pr-10">
