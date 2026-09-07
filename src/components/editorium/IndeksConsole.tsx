@@ -275,7 +275,19 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
     `adjung-indeks-tapisan-${currentUserRole}`, sesiTanda, DEFAULT_FILTERS
   );
   const [draftFilters, setDraftFilters] = useState<FilterState>(appliedFilters);
-  useEffect(() => { setDraftFilters(appliedFilters); }, [sesiTanda]);
+  // BUKAN `[sesiTanda]` sahaja (pepijat closure-lapuk sebenar, 8/9) — `useTapisanSesi` (dipanggil
+  // di atas) sendiri ada useEffect [sesiTanda] yang muat semula `appliedFilters` bila sesi
+  // bertukar, TAPI kedua-dua effect ni jalan dlm urutan pendaftaran hook yg SAMA (bukan tunggu
+  // render baharu antara satu sama lain) — effect di sini dulu terbaca `appliedFilters` LAPUK
+  // (nilai SEBELUM sesi bertukar) sebab setNilaiState dalam useTapisanSesi cuma DIJADUALKAN,
+  // bukan segerak. Kesan sebenar: log masuk semula (akaun/peranan lain) tanpa pemasangan semula
+  // komponen (senario didokumenkan di useTapisanSesi.ts) buat panel Tapis (draf, belum tekan
+  // "Tapis") tersekat papar tapisan sesi LAMA walau `appliedFilters` sendiri dah betul. Depend
+  // pada `appliedFilters` terus (bukan cuma pencetusnya) — selamat drpd gelung: handleApplyFilters/
+  // handleResetFilters kedua-duanya set draftFilters & appliedFilters kepada RUJUKAN OBJEK SAMA,
+  // jadi setDraftFilters(appliedFilters) di sini jadi no-op (React langkau render bila rujukan
+  // sama) apabila dicetuskan oleh laluan tu.
+  useEffect(() => { setDraftFilters(appliedFilters); }, [sesiTanda, appliedFilters]);
   // Terapkan penapis awal terarah (WF-01/WF-06) — timpa draf DAN applied sekali gus supaya
   // pembaca nampak senarai TERUS ditapis, bukan penapis diisi tetapi belum "Tapis" ditekan.
   useEffect(() => {
