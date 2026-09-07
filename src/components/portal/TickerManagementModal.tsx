@@ -1204,7 +1204,23 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider shadow-sm cursor-pointer flex items-center gap-1.5"
+                // Gerbang had aksara (2026-09-08, dapatan bug-hunt) — meter bajet di atas (blockStatusList/
+                // failedCount) sudah KIRA dan PAPAR blok yang melebihi bajet kad TICKER (badge merah
+                // "GAGAL HAD AKSARA"), tapi butang Simpan ni sebelum ni TAK PERNAH disekat oleh pengiraan
+                // tu — editor boleh terus klik Simpan walau ada blok gagal, dan pelayan (slotsConfigRoutes.js
+                // POST /slots) turut tak panggil validateContentBudget() untuk slotIndex -1 (Ticker dilangkau
+                // ekspilisit drpd syncManualObjectsForSlot — laluannya tulis terus ke inTheNewsText tanpa
+                // gerbang). Kesan sebenar: SATU-SATUNYA tier (drpd 8) yang had aksara boleh dilangkau bulat-
+                // bulat semasa simpan, bercanggah falsafah "kad tak boleh overflow, dikuatkuasakan di
+                // peringkat simpan, tanpa pengecualian" (CLAUDE.md) — sepatutnya dilayan sama macam
+                // SlotManagerModal.tsx (butang Terbitkan disekat `!semakanTerbit.isValid`). Dibetulkan di sini
+                // (gerbang klien, sepadan corak sedia ada) — pembetulan pelayan penuh utk teks bebas-format
+                // Ticker ditinggalkan berasingan (parser blok tu sendiri sudah rapuh, lihat nota
+                // stampManualModeOnTickerBlocks/parseTickerText, risiko regresi lebih tinggi drpd faedah
+                // dalam pembetulan kecil ni).
+                disabled={formConfig.contentMode === 'Manual' && failedCount > 0}
+                title={formConfig.contentMode === 'Manual' && failedCount > 0 ? `${failedCount} blok melebihi had aksara kad Ticker — betulkan dahulu sebelum simpan.` : undefined}
+                className="px-5 py-2 bg-[var(--color-Adjung-maroon)] hover:bg-[var(--color-Adjung-maroon-dark)] text-white rounded text-xs font-mono font-bold uppercase tracking-wider shadow-sm cursor-pointer flex items-center gap-1.5 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Save size={13} /> Simpan Kandungan Ticker
               </button>
