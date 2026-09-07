@@ -686,7 +686,18 @@ const FooterHeightLock: React.FC<{
     let maxSeen = 0;
     let dibatal = false;
     const kira = () => {
-      const heights = refs.current.map((el) => (el ? el.scrollHeight : 0));
+      // Pengesahan lebar sebelum terima ketinggian (corak sama CarouselStableBlock, dapatan
+      // bug-hunt 8/9) — bekas ni `position:absolute` `width:100%` DALAM BentoInner yang
+      // `position:relative`; kalau useLayoutEffect ni jalan SEBELUM lajur flex-column induk
+      // selesai berunding lebar (race sama macam CarouselStableBlock), `el` boleh runtuh ke
+      // ~0px lebar pada bacaan pertama — teks footer terlipat jadi hampir satu aksara sebaris,
+      // scrollHeight melambung. "max tak pernah mengecil" di bawah ni bermakna bacaan sampah
+      // macam tu akan terkunci SELAMANYA (minHeight footer gergasi) kalau tak ditapis di sini.
+      const heights = refs.current.map((el) => {
+        if (!el) return 0;
+        if (el.getBoundingClientRect().width < 40) return 0;
+        return el.scrollHeight;
+      });
       const max = Math.max(0, ...heights);
       if (max > maxSeen) {
         maxSeen = max;
