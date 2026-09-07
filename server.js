@@ -3473,7 +3473,7 @@ const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n'
 //     dicipta/dikemas kini sebagai baris rasmi editorial_objects/editorial_revisions, dan
 //     DIKELUARKAN daripada manualSummary — ia sekarang rekod Indeks rasmi, bukan draf lagi.
 //   - Slot Bar dikecualikan (belum disokong ciri ni — kekal 100% tingkah laku lama).
-const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles, namaSayaSesi) => {
+const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles, namaSayaSesi, actorIdSesi) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
   const isBar = TIER_SLOTS.BAR.includes(slotIndex);
 
@@ -3957,7 +3957,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       detail: `Slot ${slotIndex + 1}: ${menunggu.title}`.slice(0, 150),
       targetType: 'kandungan',
       targetId: `${slotIndex}:${menunggu.objectId}`,
-    }).catch(async (e) => {
+    }, actorIdSesi).catch(async (e) => {
       // LIFE-03 (audit ChatGPT 2026-08-08) — kegagalan notifikasi TETAP tak boleh menjejaskan
       // penerbitan (prinsip sedia ada dikekalkan), tapi dahulu cuma console.warn — hilang bila
       // proses restart, Ketua Editor tiada cara tahu kandungan ni "senyap" tanpa isyarat. Rekod

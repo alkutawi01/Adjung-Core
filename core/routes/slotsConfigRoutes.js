@@ -334,7 +334,7 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
         if (slot.contentMode === 'Manual' && slot.slotIndex >= 0) {
           try {
             const namaSayaSesi = (req.session?.user?.penName || req.session?.user?.username || '').trim();
-            const syncResult = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot, req.session?.user?.roles, namaSayaSesi);
+            const syncResult = await syncManualObjectsForSlot(slot.slotIndex, slot.manualSummary, slot, req.session?.user?.roles, namaSayaSesi, req.session?.user?.id);
             persistedManualSummary = syncResult.manualSummary;
             if (Array.isArray(syncResult.publishOutcomes)) publishOutcomes.push(...syncResult.publishOutcomes);
           } catch (e) {

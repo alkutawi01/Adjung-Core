@@ -150,11 +150,21 @@ export async function notifyMany(dbRun, userIds, payload, dbGet) {
 // Sebelum ni notifikasi kandungan HANYA pergi kepada editor slot dan penulis asal, jadi kandungan
 // boleh duduk dalam giliran Menunggu tanpa had sehingga Ketua Editor terfikir untuk semak Indeks
 // sendiri — tiada isyarat langsung yang ada kerja menunggu keputusan dia.
-export async function beritahuPelulusKandungan(dbAll, dbRun, payload) {
+// excludeUserId (2026-09-08, dapatan bug-hunt) — "Notifikasi BUKAN rekod tindakan sendiri"
+// (CLAUDE.md, Peti Makluman) dilanggar di sini: Ketua Editor/Penolong Ketua Editor SENDIRI
+// boleh menulis & menyerahkan kandungan (Tulis Kandungan Baharu, server.js
+// syncManualObjectsForSlot), yang jatuh ke status 'pending' menunggu kelulusan MEREKA SENDIRI.
+// Tanpa penapisan ni, pelulus yang sama menerima "Kandungan menunggu kelulusan anda" pasal
+// penyerahan dia sendiri — bunyi macam kerja orang lain menunggu dia, padahal ia giliran dia
+// sendiri yang dia baru sahaja cipta. Corak sama seperti penapisan `penerimaBukanDiri`/
+// `penerimaIds` sedia ada di contentRoutes.js (Terbit/Tolak) — dipusatkan di sini supaya
+// laluan Tulis Kandungan Baharu (satu-satunya pemanggil fungsi ni) turut ikut kontrak sama.
+export async function beritahuPelulusKandungan(dbAll, dbRun, payload, excludeUserId) {
   const rows = await dbAll(
     "SELECT DISTINCT userId FROM user_roles WHERE roleId IN ('ketua_editor', 'penolong_ketua_editor')"
   );
-  await notifyMany(dbRun, (rows || []).map((r) => r.userId), payload);
+  const penerima = (rows || []).map((r) => r.userId).filter((uid) => uid !== excludeUserId);
+  await notifyMany(dbRun, penerima, payload);
 }
 
 // Selesaikan notifikasi "kandungan menunggu kelulusan" sebaik kandungan tu tinggalkan status
