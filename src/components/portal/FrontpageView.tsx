@@ -1841,7 +1841,16 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   // ditimbun — ulangan cuma menyegarkan yang sedia ada (id baharu = pemasa 3 saat bermula semula),
   // dan paling banyak 3 toast kelihatan serentak tanpa mengira berapa banyak dicetuskan.
   const MAKS_TOAST = 3;
-  const addToast = (type: 'success' | 'error' | 'info', message: string) => {
+  // Dibungkus useCallback (dapatan audit langsung di browser, 8/9) — dahulu fungsi biasa
+  // dicipta semula SETIAP render FrontpageView (komponen besar, kerap re-render). Modal anak
+  // seperti TickerManagementModal terima `addToast` sebagai prop dan menjadikannya dependency
+  // `useEffect`/`useCallback` pemuat data-mula (loadBlockedCategories, muat tetapan RSS) —
+  // identiti tak stabil ni memaksa effect tersebut jalan semula pada SETIAP render induk,
+  // bukan sekali sahaja semasa mount. Disahkan hidup: buka "Urus Ticker", `/api/system/
+  // rss-settings` & `/api/system/rss-blocked-categories` masing-masing dipanggil 6 kali
+  // berturut-turut walhal effect sepatutnya jalan sekali. Dependency array kosong `[]` selamat
+  // di sini kerana `setToasts` (functional updater) tidak bergantung pada `toasts` semasa.
+  const addToast = useCallback((type: 'success' | 'error' | 'info', message: string) => {
     setToasts((prev) => {
       // Mesej serupa yang MASIH kelihatan diabaikan terus, bukan diganti dengan yang baharu:
       // menggantinya bermakna satu toast keluar sementara satu lagi masuk, jadi pembaca nampak
@@ -1851,10 +1860,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
       const id = Math.random().toString(36).substring(2, 9);
       return [...prev, { id, type, message }].slice(-MAKS_TOAST);
     });
-  };
-  const dismissToast = (id: string) => {
+  }, []);
+  const dismissToast = useCallback((id: string) => {
     setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string | null>(null);
   const [articleFontSize, setArticleFontSize] = useState<'normal' | 'large' | 'xlarge'>('normal');
   const [showScrollToTop, setShowScrollToTop] = useState<boolean>(false);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Lock, Rss, Clock, CalendarDays, Handshake, Quote, X } from 'lucide-react';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
@@ -326,7 +326,17 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // (Kandungan, Urus Slot) boleh papar toast SEBENAR selepas tindakan (Terbit/Arkib/Tolak), bukan
   // cuma mesej dalaman modal yang hilang lepas beberapa saat.
   const [editoriumToasts, setEditoriumToasts] = useState<ToastMessage[]>([]);
-  const pushToast = (
+  // Dibungkus useCallback (dapatan audit langsung di browser, 8/9) — dahulu fungsi biasa
+  // dicipta semula SETIAP render EditoriumView (komponen besar, kerap re-render — cth setiap
+  // kali kiraan notifikasi/tab lain berubah). `pushToast` dihantar sebagai prop `addToast` ke
+  // TickerManagementModal, yang menjadikannya dependency `useEffect`/`useCallback` pemuat
+  // data-mula (tetapan RSS, senarai kategori tersekat) — identiti tak stabil ni memaksa effect
+  // tersebut jalan semula pada SETIAP render EditoriumView, bukan sekali sahaja semasa modal
+  // dibuka. Disahkan hidup: buka "Urus Ticker", `/api/system/rss-settings` &
+  // `/api/system/rss-blocked-categories` masing-masing dipanggil berulang kali (5-6x) walhal
+  // sepatutnya sekali. Dependency array kosong `[]` selamat kerana `setEditoriumToasts`
+  // (functional updater) tidak bergantung pada `editoriumToasts` semasa.
+  const pushToast = useCallback((
     type: 'success' | 'error' | 'info',
     message: string,
     action?: { label: string; onClick: () => void },
@@ -334,10 +344,10 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   ) => {
     const id = Math.random().toString(36).substring(2, 9);
     setEditoriumToasts((prev) => [...prev, { id, type, message, action, bolehSalinAI: opts?.bolehSalinAI }]);
-  };
-  const dismissToast = (id: string) => {
+  }, []);
+  const dismissToast = useCallback((id: string) => {
     setEditoriumToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  }, []);
   // Navigasi terarah ke Indeks yang SUDAH ditapis (WF-01/WF-06, Pusingan 5, audit ChatGPT
   // 2026-08-09) — gantikan corak lama "keluar dari sini, tukar tab sendiri, cari semula secara
   // manual". `generasi` bertambah setiap panggilan supaya klik kedua pada slot/status SAMA
