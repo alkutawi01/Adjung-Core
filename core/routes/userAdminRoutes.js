@@ -11,7 +11,7 @@ import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
-import { getDasarAktifAmbangMs, PERANAN_TERPAKAI_DASAR_AKTIF } from './dasarAktifRoutes.js';
+import { getDasarAktifAmbangMs, loadDasarAktifSettings, PERANAN_TERPAKAI_DASAR_AKTIF } from './dasarAktifRoutes.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
 // "+ Tambah Anggota" hiasan, tindakan status hanya state React (hilang bila muat semula). Laluan
@@ -92,6 +92,17 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // server.js (lastPublishedAt jatuh balik ke createdAt), Pentadbir DIKECUALIKAN sama sebab
       // (struktur RBAC tak boleh terbit kandungan) — satu neraca dikongsi, dua tempat (Direktori
       // paparkan, server.js kuatkuasakan) tak boleh terpesong tentang siapa/berapa hari.
+      //
+      // Muat semula LIVE sebelum baca (2026-09-08, gap didokumentasikan CLAUDE.md ditutup) —
+      // dahulu laluan ni baca cache dalam-memori TERUS tanpa muat semula, tak macam
+      // runSemakanTakAktif() (server.js) yang sudah dibaiki panggil loadDasarAktifSettings()
+      // segar pada SETIAP jalanan. Kesan sebenar: tempoh custom yang Pentadbir simpan sebelum
+      // restart pelayan terakhir akan papar nombor LALAI 7/14/21 (bukan nombor tersimpan) pada
+      // lajur "Tak Aktif" Direktori sepanjang tempoh antara restart dan jalanan job harian
+      // pertama, ATAU sesiapa buka panel Tetapan Dasar Aktif dan simpan semula (yang muat semula
+      // cache secara tak sengaja). Kos baca DB tambahan boleh diabaikan (satu baris, dipanggil
+      // sekerap laluan ni sahaja dipanggil — bukan job kerap).
+      await loadDasarAktifSettings(dbGet);
       const ambangMs = getDasarAktifAmbangMs();
       const HARI_MS_LOKAL = 24 * 60 * 60 * 1000;
 
