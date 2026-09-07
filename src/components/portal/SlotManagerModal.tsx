@@ -1189,12 +1189,22 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
       setManualSummaryTersimpanTerakhir(serializeManualBentoQueue(remainingDrafts));
       buangDrafTempatan(kunciDrafTempatan);
       setRingkasanTerbitSemua({ berjaya, pendingSemakan, pendingSlotPenuh, gagal: itemsGagal });
+      // Toast guna pecahan `berjaya`/pending TEPAT yang dah dikira di atas (2026-09-07, audit
+      // toast menyeluruh) — dahulu guna `hasil.length` (JUMLAH dihantar, termasuk item yang
+      // mendarat 'pending') sebagai bilangan "diterbitkan", jadi editor yang tak perasan modal
+      // ringkasan di belakang toast percaya SEMUA item terus siar walhal sebahagian masih
+      // menunggu (semakan ATAU slot penuh). Sama kelas silap seperti toast "Menunggu Semakan"
+      // palsu yang dibaiki lebih awal hari ni — angka tepat dah wujud, cuma tak disalurkan.
+      const pendingJumlah = pendingSemakan + pendingSlotPenuh;
+      const mesejTerbitSemua = pendingJumlah === 0
+        ? `${berjaya} kandungan diterbitkan.`
+        : `${berjaya} kandungan diterbitkan, ${pendingJumlah} lagi menunggu${pendingSlotPenuh > 0 ? ' (slot penuh, naik taraf automatik)' : ' semakan'}.`;
       onLihatIndeks && onToast?.(
         'success',
-        `${hasil.length} kandungan diterbitkan.`,
+        mesejTerbitSemua,
         { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}` }) }
       );
-      if (!onLihatIndeks) onToast?.('success', `${hasil.length} kandungan diterbitkan.`);
+      if (!onLihatIndeks) onToast?.('success', mesejTerbitSemua);
     } catch (err: any) {
       const mesej = err?.message || labelUi('toast.gagal_terbit');
       onToast?.('error', mesej, undefined, { bolehSalinAI: !!err?.bolehSalinAI });

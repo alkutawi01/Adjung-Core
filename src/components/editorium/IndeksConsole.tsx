@@ -984,9 +984,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       });
       const body = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(body.error || 'Gagal menyiarkan semula kandungan. Cuba lagi.');
+      // Sama pembetulan LIFE-02 macam handleUpdateStatus di atas (bug-hunt 2026-09-07, audit
+      // toast menyeluruh) — laluan PATCH SAMA boleh pulangkan slotPenuh (slot sasaran penuh,
+      // kandungan kekal 'pending' menunggu ruang) walau kandungan ni "Siarkan Semula", bukan
+      // Terbit biasa. Dahulu diabaikan terus: status tempatan dipaksa 'Live' dan toast kata
+      // "disiarkan semula" walaupun rekod sebenar server masih Menunggu — sama kelas silap
+      // seperti toast "Menunggu Semakan" palsu yang dibaiki lebih awal hari ni.
+      const statusSebenar = body.slotPenuh ? 'Pending' : 'Live';
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
-        status: 'Live',
+        status: statusSebenar,
         // reactivateDesk sumber terus daripada activeBidangList (dropdown) — sudah betul kes
         // hurufnya, formatTitleCase() di sini dulu SILAP tekabalik nama yang dah pun betul.
         desk: reactivateDesk,
@@ -994,7 +1001,9 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         slotIndex: Number(reactivateSlotIndex),
         slot: `Slot ${Number(reactivateSlotIndex) + 1}`,
       } : i));
-      onToast?.('success', 'Kandungan disiarkan semula.');
+      onToast?.('success', body.slotPenuh
+        ? 'Kandungan dihantar dan dah lulus — cuma menunggu slot kosong (naik taraf automatik).'
+        : 'Kandungan disiarkan semula.');
       setActiveItemModal(null);
     } catch (err: any) {
       setActionError(err.message || 'Gagal siarkan semula.');
