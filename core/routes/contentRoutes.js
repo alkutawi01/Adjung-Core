@@ -147,7 +147,22 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     if (!calon) return; // tiada calon menunggu slot kosong
 
     const kini = new Date().toISOString();
-    await dbRun("UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ?", [kini, calon.revisionId]);
+    // Pengawal `AND status = 'pending'` (2026-09-08, dapatan bug-hunt) — dahulu UPDATE ni
+    // TIADA pengawal langsung (bandingkan dengan (1)/(2)/(4) runSchedulingTick yang semuanya
+    // ada `AND status = 'scheduled'`/`'approved'`). Fungsi ni dipanggil dari BANYAK tapak
+    // (contentRoutes.js: selepas Tolak/Arkib/Padam/Pulihkan, bukan hanya dalam kunci tik
+    // berjadual) selepas SELECT `calon` di atas — antara SELECT dan UPDATE ni, editor lain
+    // boleh menolak/mengarkib/memadam/menyunting kandungan PENDING yang sama (cth PATCH
+    // /content/:id, atau Tolak, semasa jurang async ni). Tanpa pengawal, UPDATE tetap paksa
+    // status jadi 'approved' walau status sebenar sudah berubah — kandungan yang BARU SAHAJA
+    // ditolak/dipadam editor "dihidupkan semula" secara senyap oleh sistem, sama persis corak
+    // "background job menimpa keputusan editorial manual" yang sudah dibaiki berulang kali
+    // dalam projek ni (Semakan Tak Aktif, purge usia RSS, dll — lihat CLAUDE.md).
+    const hasilPromosi = await dbRun(
+      "UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ? AND status = 'pending'",
+      [kini, calon.revisionId]
+    );
+    if (!hasilPromosi || hasilPromosi.changes === 0) continue; // status berubah sejak SELECT — langkau, gelung cuba calon lain
     await tetapkanSebabMenunggu(dbGet, dbRun, calon.objectId, calon.revisionId, '');
     await selesaikanMenungguKelulusan(dbRun, calon.objectId);
     await logAudit(dbRun, {
