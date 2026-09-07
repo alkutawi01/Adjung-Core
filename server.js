@@ -4478,9 +4478,17 @@ app.use((err, req, res, next) => {
   console.error('Ralat tidak dijangka pada', req.method, req.originalUrl, ':', err);
   // Log Audit (Fasa 4) — catat ralat pelayan yang tak ditangkap supaya boleh disemak dari Log
   // Sistem, bukan cuma konsol proses (yang hilang bila server dimulakan semula/PM2 pusing log).
+  // actorId SENTIASA null (2026-09-07, bug-hunt Izzat) — ralat pelayan tak dijangka ialah
+  // KEGAGALAN INFRASTRUKTUR, bukan tindakan editor, walau kebetulan ada sesi log masuk aktif
+  // semasa permintaan tu gagal. Konvensyen CLAUDE.md (Log Audit) tegas: event automasi/sistem
+  // JANGAN sertakan actorId — sebelum ni baris ni lampirkan req.session.user.id/penName secara
+  // membuta, jadi ralat 500/502 infra (cth deployment ENOENT) tersalah papar sebagai "tindakan
+  // editor" (nama sesi semasa) dalam widget "Aktiviti Editor" (DashboardConsole.tsx, tapis
+  // actorId != null), dan tak konsisten dgn kejadian JENIS SAMA yang kebetulan tiada sesi aktif
+  // (betul-betul actorId=null, papar "Automasi Sistem"). Ralat server ialah SATU jenis event,
+  // patut SENTIASA sama tak kira siapa (jika ada) yang mencetuskan permintaan tu.
   logAudit(dbRun, {
-    actorId: req.session?.user?.id,
-    actorName: req.session?.user?.penName || req.session?.user?.username,
+    actorId: null,
     action: 'ralat-pelayan',
     targetType: 'server',
     detail: `${req.method} ${req.originalUrl}: ${err.message || err}`,
