@@ -292,8 +292,25 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         return res.status(400).json({ error: `Tindakan tidak sah: "${action}". Guna 'approve' atau 'reject'.` });
       }
       const newStatus = action === 'approve' ? 'approved' : 'rejected';
+      // Baca tajuk DULU (sebelum UPDATE) semata-mata untuk `detail` logAudit bermakna — bukan
+      // gerbang kebenaran (itu kekal requirePermission di atas).
+      const itemSediaAda = await dbGet("SELECT title FROM rss_ticker_items WHERE id = ?", [itemId]);
       const h = await dbRun("UPDATE rss_ticker_items SET status = ? WHERE id = ?", [newStatus, itemId]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Item Ticker tidak dijumpai.' });
+      // Log Audit (2026-09-07, bug-hunt Izzat) — laluan ni LANGSUNG tiada panggilan logAudit()
+      // sebelum ni, walaupun ia tindakan editor SEBENAR (requirePermission('manageEditorial'),
+      // seseorang klik Lulus/Tolak dalam Editor Review Queue). Kesan: kelulusan/penolakan berita
+      // RSS — fungsi teras kawalan editorial Ticker — hilang sepenuhnya drpd Log Sistem DAN
+      // widget "Aktiviti Editor" (DashboardConsole.tsx, tapis actorId != null), bukan sekadar
+      // silap actorId macam kes ralat-pelayan yang dibaiki sebelum ni — tiada jejak LANGSUNG.
+      await logAudit(dbRun, {
+        actorId: req.session?.user?.id,
+        actorName: req.session?.user?.penName || req.session?.user?.username,
+        action: action === 'approve' ? 'lulus-item-rss-review' : 'tolak-item-rss-review',
+        targetType: 'rss_ticker_item',
+        targetId: itemId,
+        detail: (itemSediaAda?.title || '').slice(0, 150),
+      }).catch(() => {});
 
       // Jana semula ticker SERTA-MERTA (2026-08-20, dapatan audit) — dahulu laluan ni cuma
       // menukar `status` dalam DB dan berhenti di situ. Editor yang meluluskan berita dalam
