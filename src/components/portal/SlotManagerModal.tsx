@@ -2264,7 +2264,11 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                               {isTerkini && (
                                 <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-emerald-700">· Semasa</span>
                               )}
-                              <span className="font-sans text-[10px] text-stone-400">{new Date(r.updatedAt || r.createdAt).toLocaleString('ms-MY')}</span>
+                              {/* createdAt, bukan updatedAt — sama pembetulan 2026-09-07 macam
+                                  IndeksConsole.tsx tab Sejarah Versi (bug-hunt Izzat, lihat nota
+                                  penuh di situ). Tab ni jejak bila versi DICIPTA, bukan bila baris
+                                  DB terakhir disentuh (cth Pulih Versi UPDATE baris lama). */}
+                              <span className="font-sans text-[10px] text-stone-400">{new Date(r.createdAt).toLocaleString('ms-MY')}</span>
                             </span>
                             <span className="font-serif text-[13px] text-stone-800 truncate">{r.title || <span className="text-stone-400">(tiada tajuk)</span>}</span>
                             <span className="font-sans text-[11px] text-stone-500 truncate">{r.summary || ''}</span>

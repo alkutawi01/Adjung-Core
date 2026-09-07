@@ -1888,7 +1888,16 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                             <span className="flex items-center gap-2 flex-wrap">
                               <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-500">Versi {r.version}</span>
                               {isTerkini && <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-emerald-700">· Semasa</span>}
-                              <span className="font-sans text-[10px] text-stone-400">{new Date(r.updatedAt || r.createdAt).toLocaleString('ms-MY')}</span>
+                              {/* createdAt (BUKAN updatedAt) — bug-hunt 2026-09-07 dapatan Izzat.
+                                  updatedAt naik bila baris revisi SEDIA ADA disentuh semula tanpa
+                                  version baharu (cth laluan Pulih Versi, handlePulihVersi di bawah,
+                                  UPDATE baris lama) — papar ia di sini buat "bila versi ni dicipta"
+                                  jadi salah untuk versi yang pernah disentuh begitu (disahkan sebenar:
+                                  Versi 1 createdAt 27/8, updatedAt 31/8 selepas disentuh — UI dahulu
+                                  papar 31/8, seolah-olah versi tu wujud LEPAS tarikh sebenar). Tab ni
+                                  fungsinya jejak KRONOLOGI PENCIPTAAN setiap versi, bukan bila baris
+                                  DB terakhir disentuh — createdAt sahaja yang betul untuk maksud tu. */}
+                              <span className="font-sans text-[10px] text-stone-400">{new Date(r.createdAt).toLocaleString('ms-MY')}</span>
                             </span>
                             <span className="font-serif text-[13px] text-stone-800 truncate">{r.title || <span className="text-stone-400">(tiada tajuk)</span>}</span>
                             <span className="font-sans text-[11px] text-stone-500 truncate">{r.summary || ''}</span>
