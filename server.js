@@ -3150,6 +3150,22 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
+    // Nyahbungkus pautan gaya Markdown "[teks](url)" (2026-09-08, dapatan drift semasa bug-hunt
+    // Scheduling/ManualBlockFormat) — salinan client (ManualBlockFormat.js nyahBungkusMarkdownLink,
+    // ditambah 2026-08-16 selepas pepijat kandungan sebenar Izzat) sudah lakukan ini pada case
+    // 'url', tapi salinan server ni (parseManualSummaryTemplate, LALUAN TERBIT SEBENAR via
+    // syncManualObjectsForSlot) tertinggal — dua penghurai ni didokumenkan "MESTI kekal segerak"
+    // (nota atas fail ni), tapi tak. Kesan sebenar: AI luaran bungkus URL panjang sebagai
+    // "[https://x.com/...](https://x.com/...)" (biasa bila teks paparan & sasaran pautan sama),
+    // client preview/queue editor nyahbungkus betul, tapi bila kandungan tu benar-benar DITERBITKAN
+    // (parseManualSummaryTemplate di sini), keseluruhan rentetan Markdown mentah tersimpan sebagai
+    // URL, gagal validateSourceUrl (ContentBudget.js, minta skema http(s):// di AWAL rentetan).
+    const nyahBungkusMarkdownLinkSrv = (raw) => {
+      const t = (raw || '').trim();
+      const m = t.match(/^\[([^\]]*)\]\(([^)]*)\)$/);
+      return m ? m[2].trim() : t;
+    };
+
     // Medan berbilang baris/perenggan (2026-08-12, pepijat #21 — SALINAN KEDUA). Nilai kekal
     // dalam pemboleh ubah tempatan di sini (bukan objek `fields` seperti ManualBlockFormat.js),
     // jadi guna penyetel bernama supaya baris sambungan tahu ke mana hendak ditambah.
@@ -3214,15 +3230,17 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
           if (sources.length === 0) source = nilai;
           sources.push({ name: nilai, url: '', date: '' });
           break;
-        case 'url':
+        case 'url': {
+          const nilaiUrl = nyahBungkusMarkdownLinkSrv(nilaiMentah || '');
           if (sources.length === 0) {
-            sources.push({ name: '', url: nilai, date: '' });
+            sources.push({ name: '', url: nilaiUrl, date: '' });
           } else {
-            sources[sources.length - 1].url = nilai;
+            sources[sources.length - 1].url = nilaiUrl;
           }
-          if (sources.length === 1) url = nilai;
+          if (sources.length === 1) url = nilaiUrl;
           sumberDateArmed = true;
           break;
+        }
         default: break;
       }
     };
