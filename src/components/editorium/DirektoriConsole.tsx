@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { bacaJsonSelamat } from '../../utils/bacaJson';
 import { Search, Plus } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
@@ -239,14 +239,29 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
   const [tapisanPermohonan, setTapisanPermohonan] = useState<'baharu' | 'diterima' | 'ditolak' | ''>('baharu');
   const [permohonanDipilih, setPermohonanDipilih] = useState<Permohonan | null>(null);
 
+  // Ref (bukan state) jejak status TAPISAN permintaan terkini — corak sama fetchRevisions()
+  // (SlotManagerModal.tsx) — bila Pentadbir klik pantas antara tab "Baharu"/"Diterima"/"Ditolak",
+  // dua fetch boleh terbang serentak; kalau fetch tab LAMA (lebih lambat) selesai SELEPAS fetch
+  // tab BAHARU (lebih laju) sudah papar, jawapan lapuk tu akan menimpa senarai tab baharu yang
+  // betul dengan senarai tab lama yang salah (tajuk tab tetap betul sebab setTapisanPermohonan
+  // segerak, cuma KANDUNGAN senarai lapuk). Bandingkan status permintaan dgn ref semasa respons
+  // tiba — abaikan jawapan lapuk senyap.
+  const permohonanRequestStatusRef = useRef<string>('');
   const muatPermohonan = (status = tapisanPermohonan) => {
+    permohonanRequestStatusRef.current = status;
     setMemuatPermohonan(true);
     fetch(`/api/system/permohonan-editor${status ? `?status=${status}` : ''}`)
       // Sama pembetulan seperti muatSemula() di atas — baca ralat sebenar sebelum lempar.
       .then(async r => { if (!r.ok) { const d = await bacaJsonSelamat(r).catch(() => ({} as any)); throw new Error(d?.error || `HTTP ${r.status}`); } return r.json(); })
-      .then(d => { setPermohonanList(Array.isArray(d) ? d : []); setRalatPermohonan(''); })
-      .catch((e) => setRalatPermohonan(e?.message ? `Gagal memuatkan senarai permohonan: ${e.message}` : 'Gagal memuatkan senarai permohonan.'))
-      .finally(() => setMemuatPermohonan(false));
+      .then(d => {
+        if (permohonanRequestStatusRef.current !== status) return; // jawapan lapuk, abaikan
+        setPermohonanList(Array.isArray(d) ? d : []); setRalatPermohonan('');
+      })
+      .catch((e) => {
+        if (permohonanRequestStatusRef.current !== status) return;
+        setRalatPermohonan(e?.message ? `Gagal memuatkan senarai permohonan: ${e.message}` : 'Gagal memuatkan senarai permohonan.');
+      })
+      .finally(() => { if (permohonanRequestStatusRef.current === status) setMemuatPermohonan(false); });
   };
   useEffect(() => { if (isPentadbir) muatPermohonan('baharu'); }, [isPentadbir]);
 
