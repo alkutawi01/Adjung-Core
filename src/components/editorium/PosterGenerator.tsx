@@ -39,20 +39,43 @@ function bungkusTeks(ctx: CanvasRenderingContext2D, teks: string, lebarMaks: num
   const perkataan = teks.split(' ');
   const baris: string[] = [];
   let semasa = '';
-  for (const p of perkataan) {
+  // `baki` (bukan lagi perbandingan panjang aksara `habisDilukis < teks.length` versi asal) —
+  // dapatan bug-hunt 2026-09-08, susulan: perbandingan panjang aksara tu andaikan setiap
+  // perkataan dilukis PENUH tanpa pernah dipangkas sendiri, jadi bila perkataan TUNGGAL
+  // dipangkas (di bawah) panjang gabungan `baris` jadi lebih pendek drpd `teks` asal walaupun
+  // SEMUA perkataan sudah selesai diproses — elipsis tambahan tersalah lekat pada baris
+  // TERAKHIR yang sebenarnya sudah lengkap. `baki` jejak fakta SEBENAR (ada perkataan yang
+  // tertinggal tak sempat diproses langsung akibat had baris dicapai), bukan anggaran aksara.
+  let baki = false;
+  for (let i = 0; i < perkataan.length; i++) {
+    const p = perkataan[i];
     const cuba = semasa ? `${semasa} ${p}` : p;
     if (ctx.measureText(cuba).width > lebarMaks && semasa) {
       baris.push(semasa);
       semasa = p;
-      if (baris.length === barisMaks) break;
     } else {
       semasa = cuba;
     }
+    // Perkataan TUNGGAL yang sendirinya lebih lebar drpd lebarMaks (cth istilah/nombor/URL
+    // panjang tanpa ruang) — dapatan bug-hunt 2026-09-08: cabang overflow di atas cuma pindah
+    // perkataan tu ke baris baharu (`semasa = p`) tanpa pernah menyemak semula lebarnya sendiri,
+    // jadi ia terus dilukis melepasi lebarInden (overflow kanvas SEBENAR, bukan cuma teori,
+    // disahkan suntik perkataan panjang tiruan ke fungsi ni — lebar 1039px vs had 800px sebelum
+    // pembetulan). `pangkasSatuBaris` (fungsi kongsi sedia ada, dipakai konteks satu-baris di
+    // bawah) sudah betul kendalikan kes ni watak-demi-watak, jadi guna semula di sini juga.
+    if (semasa === p && ctx.measureText(semasa).width > lebarMaks) {
+      semasa = pangkasSatuBaris(ctx, semasa, lebarMaks);
+    }
+    if (baris.length === barisMaks) {
+      if (i < perkataan.length - 1) baki = true;
+      break;
+    }
   }
   if (baris.length < barisMaks && semasa) baris.push(semasa);
-  // Pangkas + elipsis kalau masih ada perkataan tertinggal selepas had baris dicapai.
-  const habisDilukis = baris.join(' ').length;
-  if (habisDilukis < teks.length && baris.length > 0) {
+  // Pangkas + elipsis kalau masih ada perkataan tertinggal selepas had baris dicapai — dilangkau
+  // kalau baris terakhir SUDAH berakhir dgn elipsis (pemangkasan perkataan tunggal di atas sudah
+  // uruskan, elak elipsis berganda "…​…").
+  if (baki && baris.length > 0 && !baris[baris.length - 1].endsWith('…')) {
     let terakhir = baris[baris.length - 1];
     while (ctx.measureText(terakhir + '…').width > lebarMaks && terakhir.length > 1) {
       terakhir = terakhir.slice(0, -1);
