@@ -265,11 +265,15 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
           <div className="font-serif text-4xl md:text-5xl font-normal" style={{ color: 'var(--color-warning)' }}>{gagalMuatKandungan ? '—' : statusKandungan.menunggu}</div>
           {/* Pecahan sebab (2026-09-04, audit Izzat) — "Menunggu semakan" generik sebelum ni
               membayangkan SEMUA kandungan pending perlu keputusan Ketua Editor, walhal sebahagian
-              cuma beratur slot (dah lulus). */}
+              cuma beratur slot (dah lulus).
+              2026-09-08 (teguran Izzat, "double standard"): "semakan" dahulu SENTIASA dipaparkan
+              (walau 0) tapi "slot kosong" cuma dipaparkan bila >0 — dua kategori sepatutnya
+              dilayan sama rata. Kini kedua-dua SENTIASA dipaparkan, wording tepat arahan Izzat:
+              "N menunggu semakan, N menunggu kekosongan". */}
           <div className="text-[11px] text-stone-500 mt-2">
             {gagalMuatKandungan ? 'Gagal dimuatkan' : (
               <>
-                {statusKandungan.menungguSemakan} semakan{statusKandungan.menungguSlotPenuh > 0 ? ` · ${statusKandungan.menungguSlotPenuh} slot kosong` : ''}{statusKandungan.dijadualkan > 0 ? ` · ${statusKandungan.dijadualkan} dijadualkan` : ''}
+                {statusKandungan.menungguSemakan} menunggu semakan, {statusKandungan.menungguSlotPenuh} menunggu kekosongan{statusKandungan.dijadualkan > 0 ? ` · ${statusKandungan.dijadualkan} dijadualkan` : ''}
               </>
             )}
           </div>

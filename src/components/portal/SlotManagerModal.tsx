@@ -1977,7 +1977,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                     onChange={(e) => patch(activeIndex, 'sumberAkademik', e.target.checked)}
                     className="cursor-pointer"
                   />
-                  Kandungan ini berdasarkan artikel jurnal/dokumen akademik (papar label "Artikel Jurnal" di Halaman Bidang)
+                  Artikel Jurnal / Dokumen Akademik
                 </label>
                 {/* Sebab Penolakan (2026-08-31, dapatan Izzat — nota Tolak hampir terbit ke Focus
                     View) — DALAMAN SAHAJA, medan berasingan sepenuhnya drpd "Nota" di bawah (yang
