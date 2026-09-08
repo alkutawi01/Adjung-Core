@@ -349,7 +349,17 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         // seperti sitemapRoutes.js punya baseUrl.
         const baseUrl = baseUrlEmel();
         const pautan = `${baseUrl}/tetapkan-kata-laluan?token=${token}`;
-        await hantarEmel({
+        // TIDAK ditunggu (2026-09-08, bug-hunt) — dahulu `await hantarEmel(...)` di sini
+        // sebelum res.json() bermakna cabang "emel wujud" mesti tunggu satu panggilan HTTPS
+        // keluar sebenar (Resend, lihat MailSender.js) siap dulu, manakala cabang "emel tidak
+        // wujud" terus pulang lepas satu SELECT tempatan pantas. Respons BADAN memang sama
+        // (mesejGeneric, komen anti-enumerasi di atas), tapi MASA respons jelas berbeza —
+        // penyerang boleh sahkan kewujudan akaun semata-mata dgn ukur latency, walaupun badan
+        // respons tak pernah bocorkan apa-apa. hantarEmel() sendiri tak sekali-kali baling
+        // (tangkap ralatnya sendiri, pulangkan { berjaya:false }), jadi selamat dipanggil tanpa
+        // await/try-catch tambahan di sini — kegagalan hantar emel senyap sama seperti dahulu,
+        // cuma respons ke pelanggan tak lagi menunggu keputusannya.
+        hantarEmel({
           to: userRow.email,
           subject: 'Set Semula Kata Laluan · Adjung Brief',
           html: `<p>Salam ${escapeHtmlEmel(userRow.penName || userRow.username)},</p>` +
