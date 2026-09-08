@@ -970,9 +970,18 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const { testTitle, testBrief, testCategory } = req.body;
       const desks = await dbAll("SELECT * FROM adjung_desks WHERE enabled = 1 ORDER BY displayOrder ASC");
       const rules = await dbAll("SELECT * FROM rss_desk_rules WHERE enabled = 1 ORDER BY orderIndex ASC");
+      // Peraturan Pengecualian Global (2026-09-09, dapatan bug-hunt) — tercicir di sini sebelum
+      // ni, sedangkan laluan klasifikasi SEBENAR (RSS Direct, ~baris 1321/1427) sentiasa hantar
+      // `rss_global_exclusion_rules` ke calculateDeskScores/classifyDesk. "Live Tester" ni memang
+      // dibina untuk pratonton keputusan klasifikasi SEBENAR kepada editor sebelum simpan
+      // peraturan baharu — tanpa senarai ni, penalti/resolusi konflik domain (imigresen vs Sains
+      // & Teknologi, sukan vs Ekonomi, dll.) tak pernah terpakai dalam pratonton, jadi editor
+      // nampak Desk kemenangan/skor yang BERBEZA daripada apa yang akan berlaku sebenarnya bila
+      // RSS Direct jalan — pratonton tak jujur pada tujuan asalnya.
+      const globalExclusions = await dbAll("SELECT * FROM rss_global_exclusion_rules WHERE enabled = 1");
 
       const combinedText = `${testTitle || ''} ${testBrief || ''}`;
-      const classificationResult = calculateDeskScores(combinedText, testCategory || '', rules, desks);
+      const classificationResult = calculateDeskScores(combinedText, testCategory || '', rules, desks, globalExclusions);
       res.json({ success: true, ...classificationResult });
     } catch (err) {
       console.error('Test RSS desk rules error:', err);
