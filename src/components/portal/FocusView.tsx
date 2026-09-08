@@ -931,9 +931,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
           position: 'relative', flex: '0 0 auto', display: 'grid', gridTemplateColumns: '1fr auto 1fr',
           alignItems: 'center', padding: '10px 16px', borderBottom: '1px solid var(--stone-300)',
         }}>
-          <span style={{ justifySelf: 'start', position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
-            <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
-          </span>
+          {/* Butang sunting DIPINDAHKAN keluar dari masthead ni (2026-09-08, arahan Izzat, susulan
+              pembetulan versi desktop) — sekarang terapung di atas pill Main/Jeda pada jalur
+              navigasi kaki di bawah, bukan di sini. Lajur kiri masthead ni kekal kosong (grid
+              1fr/auto/1fr masih perlu 3 lajur supaya wordmark tengah kekal tengah). */}
+          <span aria-hidden="true" />
           {/* `<button>` bukan `<span>` sengaja DIELAK di sini walau boleh klik — src/index.css:196
               paksa `font-family: 'Inter'... !important` pada SEMUA elemen <button> (peraturan
               global sengaja utk butang lain di seluruh apl), yang mengalahkan inline
@@ -1174,6 +1176,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
             betul di tengah masthead. */}
         {(onPrev || onNext) && (
           <div style={{ position: 'relative', flex: '0 0 auto' }}>
+            {/* Butang sunting (2026-09-08, arahan Izzat — dipindah dari masthead ke sini, terapung
+                betul-betul di ATAS pill Main/Jeda di bawah, sama kedudukan kanan (right:10px) —
+                selaras dgn versi desktop yang kini letak pensel di atas lajur "Editor"). */}
+            {onNext && role && objectId && (
+              <span style={{
+                position: 'absolute', bottom: 'calc(100% + 46px)', right: '10px', zIndex: 5,
+                display: 'inline-flex', width: 20, height: 20,
+              }}>
+                <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
+              </span>
+            )}
             {(onToggleNavMode || onNext) && (
               <div style={{
                 position: 'absolute', bottom: '100%', right: '10px', marginBottom: '8px',
