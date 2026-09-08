@@ -304,6 +304,13 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       const data = await bacaJsonSelamat(res).catch(() => ({} as any));
       if (!res.ok) throw new Error(data?.error || 'Gagal mengemas kini status.');
       kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
+      // Muat semula senarai penuh (2026-09-09, dapatan bug-hunt) — lihat nota panjang di
+      // ubahStatus() (ProfilAnggotaModal) di bawah: kemaskiniStaff() cuma tampal `status` baharu
+      // ke atas rekod staf LAMA, medan pengiraan Dasar Aktif (tertaklukDasarAktif/hariTakAktif/
+      // tahapAmaran) kekal nilai SEBELUM ditamatkan sehingga muat semula sebenar berlaku. Tanpa
+      // ni, akaun yang baru ditamatkan (dipindah ke kumpulan "Akaun Ditamatkan" di bawah jadual)
+      // terus papar lencana amaran/hari tak aktif LAPUK kepunyaan status Aktif sebelumnya.
+      muatSemula();
       setKonfirmasiTamat(null);
       onToast?.('success', 'Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
     } catch (e: any) {
@@ -327,6 +334,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       const dataStatus = await bacaJsonSelamat(resStatus).catch(() => ({} as any));
       if (!resStatus.ok) throw new Error(dataStatus?.error || 'Gagal mengemas kini status.');
       kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
+      muatSemula(); // sama sebab seperti tamatkanSahaja() di atas — segarkan medan Dasar Aktif lapuk.
       const res = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/kandungan-belum-terbit/padam`, { method: 'POST' });
       const data = await bacaJsonSelamat(res);
       if (!res.ok) throw new Error(data.error || 'Gagal memadam kandungan.');
@@ -584,6 +592,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
           isPentadbir={isPentadbir}
           onTutup={() => setSelectedStaff(null)}
           onUpdated={kemaskiniStaff}
+          onSegarkanSenarai={muatSemula}
           onSiapUntukTamat={setKonfirmasiTamat}
           onBerjaya={(mesej) => onToast?.('success', mesej)}
           onUrusPenugasanSlot={onTukarTab ? () => {
@@ -692,12 +701,17 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
 // konsol induk). ubahStatus/klikTamatkan/togolPeranan turut dipindahkan ke sini kerana
 // kesemuanya cuma dicetuskan daripada dalam modal ni.
 function ProfilAnggotaModal({
-  staff, isPentadbir, onTutup, onUpdated, onSiapUntukTamat, onBerjaya, onUrusPenugasanSlot,
+  staff, isPentadbir, onTutup, onUpdated, onSegarkanSenarai, onSiapUntukTamat, onBerjaya, onUrusPenugasanSlot,
 }: {
   staff: Staff;
   isPentadbir: boolean;
   onTutup: () => void;
   onUpdated: (updated: Staff) => void;
+  // Segarkan senarai penuh selepas tukar status (2026-09-09, dapatan bug-hunt) — lihat nota
+  // panjang di ubahStatus() di bawah: onUpdated() sahaja cuma tampal `status` baharu ke atas
+  // rekod LAMA, medan pengiraan Dasar Aktif (tertaklukDasarAktif/hariTakAktif/tahapAmaran) —
+  // yang bergantung terus pada `status` (userAdminRoutes.js GET /users) — kekal nilai LAPUK.
+  onSegarkanSenarai: () => void;
   onSiapUntukTamat: (payload: { staff: Staff; draf: any[]; menunggu: any[] }) => void;
   // 2026-08-08, Izzat: "byk tempat yg ada kotak tick... takde makluman sama ada berjaya atau tak"
   // — togolPeranan() auto-simpan tiap kali diklik; sebelum ni SENYAP bila berjaya (cuma ralat
@@ -720,7 +734,17 @@ function ProfilAnggotaModal({
       });
       const data = await bacaJsonSelamat(res).catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status.');
+      // Kemas kini optimistik `status` sahaja di sini (respons UI segera), TAPI
+      // tertaklukDasarAktif/hariTakAktif/tahapAmaran (GET /users, userAdminRoutes.js) bergantung
+      // terus pada `status` baharu (dan pelayan turut RESET amaranTakAktifTahap/lastPublishedAt
+      // secara senyap bila status pulih ke 'Aktif' drpd digantung — lihat komen
+      // patutResetDasarAktif di userAdminRoutes.js) — tanpa segarkan senarai penuh, medan ni
+      // kekal LAPUK sehingga Direktori dimuat semula secara manual (2026-09-09, dapatan bug-hunt:
+      // akaun 'Aktif' ditukar ke 'Cuti' terus papar lencana "Amaran"/hari tak aktif yang sepatutnya
+      // disembunyikan bagi status Cuti, atau akaun baru diaktifkan semula kekal papar
+      // "Digantung (tidak aktif)").
       onUpdated({ ...staff, status });
+      onSegarkanSenarai();
     } catch (e: any) {
       setRalatStatus(mesejRalat(e, 'Gagal mengemas kini status.'));
     }
