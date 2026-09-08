@@ -752,6 +752,8 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const existing = await dbGet("SELECT * FROM adjung_desks WHERE id = ?", [id]);
       if (!existing) return res.status(404).json({ error: 'Desk not found' });
 
+      const newDeskName = deskName !== undefined ? deskName.trim() : existing.deskName;
+
       await dbRun(`
         UPDATE adjung_desks SET
           deskName = ?,
@@ -760,12 +762,40 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
           enabled = ?
         WHERE id = ?
       `, [
-        deskName !== undefined ? deskName.trim() : existing.deskName,
+        newDeskName,
         description !== undefined ? description : existing.description,
         displayOrder !== undefined ? Number(displayOrder) : existing.displayOrder,
         enabled !== undefined ? (enabled ? 1 : 0) : existing.enabled,
         id
       ]);
+
+      // PEMBETULAN (2026-09-08, dapatan bug-hunt, corak SAMA renameActiveCategory/manualDesk) —
+      // dahulu HANYA lajur adjung_desks.deskName ditukar; rss_global_exclusion_rules.
+      // targetDesksExcluded (senarai nama desk bersempang koma, dipadan LIVE ikut deskName di
+      // DeskClassifierEngine.resolveDeskConflict() -> `targetExcludedNames.includes(deskObj.
+      // deskName)`) dibiarkan menyimpan nama LAMA. Kesan: selepas namakan-semula desk (cth
+      // "Ekonomi" -> "Ekonomi & Kewangan"), peraturan pengecualian global yang sepatutnya
+      // menghukum desk tu bagi kata kunci tertentu senyap BERHENTI terpakai — deskObj.deskName
+      // sekarang "Ekonomi & Kewangan" tapi targetDesksExcluded terus sebut "Ekonomi", tiada
+      // padanan, tiada ralat. `targetDesksExcluded` bukan rekod sejarah, ia peruntukan AKTIF
+      // (macam manualDesk), jadi mesti ikut nama baharu supaya peraturan terus berfungsi.
+      if (newDeskName && existing.deskName && newDeskName.toLowerCase() !== existing.deskName.toLowerCase()) {
+        const rules = await dbAll("SELECT id, targetDesksExcluded FROM rss_global_exclusion_rules WHERE targetDesksExcluded IS NOT NULL");
+        for (const rule of (rules || [])) {
+          const names = (rule.targetDesksExcluded || '').split(',').map(s => s.trim()).filter(Boolean);
+          let ubah = false;
+          const namesBaharu = names.map((n) => {
+            if (n.toLowerCase() === existing.deskName.trim().toLowerCase()) {
+              ubah = true;
+              return newDeskName;
+            }
+            return n;
+          });
+          if (ubah) {
+            await dbRun("UPDATE rss_global_exclusion_rules SET targetDesksExcluded = ? WHERE id = ?", [namesBaharu.join(','), rule.id]);
+          }
+        }
+      }
 
       res.json({ success: true });
     } catch (err) {
