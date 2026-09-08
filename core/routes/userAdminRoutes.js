@@ -439,11 +439,28 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
 
       // Notifikasi Sistem (Fasa 6b) — akaun digantung/diaktifkan semula. Keputusan Izzat: setiap
       // editor terima notis akaun-SENDIRI, Ketua Editor/Pentadbir terima notis akaun-LAIN.
+      //
+      // Tajuk notis kini ikut STATUS SEBENAR (2026-09-09, dapatan bug-hunt), bukan cuma
+      // `digantung` (binari isSuspended) — STATUS_SAH ada EMPAT nilai (Aktif/Cuti/Tidak
+      // Aktif/Ditamatkan) tapi isSuspended cuma 0/1 (Cuti dikira SAMA seperti Aktif, lihat
+      // pengiraan `isSuspended` di atas). Bila `digantung` binari tu dipakai terus untuk pilih
+      // tajuk, peralihan Aktif->Cuti (isSuspended kekal 0, `digantung`=false) papar tajuk
+      // "Akaun anda telah diaktifkan semula" — SALAH, akaun tu bukan sedang "diaktifkan
+      // semula", ia BARU sahaja ditukar ke Cuti. Peralihan Tidak Aktif->Cuti (isSuspended
+      // 1->0) ada masalah sama. Tajuk kini dipetakan terus daripada `status` baharu supaya
+      // keempat-empat nilai dilayan tepat, `digantung` (binari) kekal cuma untuk `type` notis
+      // (dibaca MaklumanDrawer.tsx sekadar pilih ikon/label kumpulan, bukan teks).
       const digantung = isSuspended === 1;
+      const tajukStatusAkaun = {
+        'Aktif': 'Akaun anda telah diaktifkan semula',
+        'Cuti': 'Akaun anda kini berstatus Cuti',
+        'Tidak Aktif': 'Akaun anda telah digantung',
+        'Ditamatkan': 'Akaun anda telah ditamatkan',
+      }[status] || `Status akaun anda kini: ${status}`;
       await notify(dbRun, {
         userId: id,
         type: digantung ? 'sistem_akaun_digantung' : 'sistem_akaun_diaktifkan',
-        title: digantung ? 'Akaun anda telah digantung' : 'Akaun anda telah diaktifkan semula',
+        title: tajukStatusAkaun,
         detail: `Status akaun kini: ${status}`,
         targetType: 'akaun',
         targetId: id,
