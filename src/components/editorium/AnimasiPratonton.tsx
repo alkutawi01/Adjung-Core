@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Play } from 'lucide-react';
 import { vektorArahOverlay, LogoTransisiAdjung, VEKTOR_ARAH } from '../portal/FrontpageView';
 
@@ -82,6 +82,24 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
   const [swipeMemudar, setSwipeMemudar] = useState(false);
   const lain = 1 - aktif;
 
+  // Senarai timeout tertunda (2026-09-09, bug-hunt) — main() jadualkan sehingga 2 window.setTimeout
+  // yang panggil setState (setAktif/setTayang/setFasaGerak/setSwipeMemudar) selang beberapa RATUS ms
+  // (sehingga ~1000ms bagi jenis Pudar). Kalau editor tutup modal "Tetapan Kad"/navigasi keluar
+  // SEMASA animasi tengah main (tayang===true), komponen ni unmount tapi timeout yg dah dijadualkan
+  // TETAP jalan lepas tu — panggil setState pada komponen yang dah unmount (amaran React, kebocoran
+  // memori). Rujukan disimpan di sini supaya effect cleanup di bawah boleh batalkan semuanya semasa
+  // unmount.
+  const timeoutRef = useRef<number[]>([]);
+  const jadualTimeout = (fn: () => void, ms: number) => {
+    const id = window.setTimeout(fn, ms);
+    timeoutRef.current.push(id);
+    return id;
+  };
+  useEffect(() => () => {
+    timeoutRef.current.forEach((id) => window.clearTimeout(id));
+    timeoutRef.current = [];
+  }, []);
+
   // Segerak drpd prop bila LITERAL (bukan mod Rawak) — editor tukar dropdown jenis, pratonton
   // patut ikut serta-merta tanpa perlu klik Main dulu (kelakuan asal, tak berubah).
   useEffect(() => {
@@ -104,14 +122,14 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
     if (j === 'pudar') {
       setTayang(true);
       // Timeout kosong (1 bingkai) supaya opacity 0 render dahulu sebelum transition CSS tercetus.
-      window.setTimeout(() => setAktif(lain), 20);
-      window.setTimeout(() => setTayang(false), tempohPudarMsJ + 50);
+      jadualTimeout(() => setAktif(lain), 20);
+      jadualTimeout(() => setTayang(false), tempohPudarMsJ + 50);
       return;
     }
     if (j === 'gerak_susun') {
       setTayang(true);
       setFasaGerak('gerak');
-      window.setTimeout(() => {
+      jadualTimeout(() => {
         setAktif(lain);
         setFasaGerak('diam');
         setTayang(false);
@@ -127,12 +145,12 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
       setSwipeMemudar(false);
       const tempohSwipeJ = Math.round(640 * kelajuan);
       const tempohPudarSwipeJ = Math.round(200 * kelajuan);
-      window.setTimeout(() => {
+      jadualTimeout(() => {
         setAktif(lain);
         setFasaGerak('diam');
         setSwipeMemudar(true);
       }, tempohSwipeJ);
-      window.setTimeout(() => {
+      jadualTimeout(() => {
         setSwipeMemudar(false);
         setTayang(false);
       }, tempohSwipeJ + tempohPudarSwipeJ);
@@ -140,8 +158,8 @@ export const AnimasiPratonton: React.FC<AnimasiPratontonProps> = ({ jenis, arah,
     }
     // Colophon / Sapuan Lajur — sama formula FrontpageView.tsx (masukMasa/tahanMasa/jumlahMasa).
     setTayang(true);
-    window.setTimeout(() => setAktif(lain), masukMasaJ);
-    window.setTimeout(() => setTayang(false), jumlahMasaJ);
+    jadualTimeout(() => setAktif(lain), masukMasaJ);
+    jadualTimeout(() => setTayang(false), jumlahMasaJ);
   };
 
   // Formula masa SAMA seperti FrontpageView.tsx — dikira dari jenisSemasa (jenis literal RESOLVED
