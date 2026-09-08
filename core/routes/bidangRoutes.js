@@ -131,11 +131,23 @@ export function createBidangRoutes(dbAll, dbGet) {
       `, [cat.name]);
       const totalKeseluruhan = totalKeseluruhanRow ? Number(totalKeseluruhanRow.total) || 0 : 0;
 
+      // ORDER BY dipulihkan ke createdAt DESC TULEN (2026-09-08, dapatan bug-hunt) — `(er.status
+      // = 'approved') DESC` di sini ialah SISA daripada seni bina LAMA (commit 7e218ee, 3/9) masa
+      // TERKINI dan Koleksi Terdahulu datang dari SATU query digabung dipotong ikut KEDUDUKAN di
+      // klien, jadi susunan approved-dahulu ketika itu perlu untuk elak arkib bocor ke TERKINI.
+      // Refactor SUSULAN (a3aa965, 0447ef5 — lihat `statusScope` di atas) dah asingkan TERKINI
+      // (WHERE status='approved' SAHAJA, tiada fallback archived langsung) drpd Koleksi Terdahulu
+      // (query offset berasingan) di peringkat WHERE — kerja yang dulu disandarkan pada ORDER BY
+      // ni sudah dilakukan skop lain, tapi baris ORDER BY tak pernah dibuang balik. Kesannya:
+      // untuk Koleksi Terdahulu (statusScope campur approved+archived), kandungan approved yang
+      // BARU sahaja diputar balik aktif (tarikh siaran lebih lama) melonjak ke atas kandungan
+      // archived yang sebenarnya lebih BAHARU tarikh siarannya — melanggar janji "kronologi MESTI
+      // ikut BILA Adjung sebenarnya menerbitkan" (nota `publishedDate` di bawah, fail SAMA).
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, er.title, er.summary, er.createdAt, er.status,
                ${attrSelects}
         ${whereClause}
-        ORDER BY (er.status = 'approved') DESC, er.createdAt DESC
+        ORDER BY er.createdAt DESC
         LIMIT ? OFFSET ?
       `, [cat.name, perPage, offset]);
 
