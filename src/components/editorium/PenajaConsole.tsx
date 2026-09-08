@@ -100,7 +100,20 @@ const bulanRingkas = (bulan: string) => {
   return d.toLocaleDateString('ms-MY', { month: 'long', year: 'numeric' });
 };
 
-const bulanSemasaInput = () => new Date().toISOString().slice(0, 7);
+// bulanSemasaInput (2026-09-09, bug-hunt) — dahulu `new Date().toISOString().slice(0, 7)`,
+// yang ambil BULAN UTC, bukan bulan Waktu Malaysia (+08:00, konvensyen tetap borang ni — lihat
+// isoDariInputTempatan di bawah). Kesan sebenar: sepanjang ~8 jam PERTAMA setiap bulan (00:00-
+// 07:59 MYT pada 1hb), UTC masih tarikh AKHIR bulan lepas, jadi medan "Bulan Tajaan" borang
+// Tambah Penaja (dan reset selepas "Batal Sunting") pra-isi BULAN LEPAS, bukan bulan semasa
+// sebenar — Pentadbir yang tak perasan/tak tukar manual akan cipta rekod tajaan tersalah bulan.
+// Dibetulkan: kira bulan dalam offset +08:00 tetap, bukan UTC atau zon masa pelayan/pelayar.
+const bulanSemasaInput = () => {
+  const mytMs = Date.now() + 8 * 3600 * 1000;
+  const kiniMyt = new Date(mytMs);
+  const tahun = kiniMyt.getUTCFullYear();
+  const bulan = String(kiniMyt.getUTCMonth() + 1).padStart(2, '0');
+  return `${tahun}-${bulan}`;
+};
 
 // Tarikh julat tajaan (mulaTajaan/tamatTajaan) disimpan ISO 8601 + offset +08:00 (Waktu
 // Malaysia, konvensyen sama seperti Jadual Terbit kandungan). Medan input HTML
