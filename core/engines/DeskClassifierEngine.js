@@ -37,6 +37,20 @@ export function resolveDeskConflict(sortedDesks, normalizedText, globalExclusion
     }
   }
 
+  // PEMBETULAN (2026-09-09, dapatan bug-hunt): gelung Peraturan Konflik Global di atas
+  // mengurangkan `deskObj.score` desk tertentu SECARA MENDALAM (in-place, sehingga -45+),
+  // tapi susunan `sortedDesks` yang diterima daripada pemanggil kekal tak berubah (ia
+  // susunan skor SEBELUM penalti pengecualian tu terpakai). `topDesk = sortedDesks[0]`
+  // di bawah ni dahulu dibaca terus daripada susunan STALE tu — jika penalti pengecualian
+  // menjatuhkan desk yang ASALNYA tertinggi ke bawah desk lain (cth Sains & Teknologi kena
+  // -45 sebab kata kunci pengecualian, manakala Ekonomi tanpa penalti kekal skor asal lebih
+  // tinggi), resolusi konflik domain (2) di bawah tetap terpakai pada desk LAMA yang bukan
+  // lagi juara sebenar — konflik sukan-vs-ekonomi/perundangan-vs-teknologi terlepas terus
+  // untuk kandungan tu. Disahkan: skor akhir (reSorted di penghujung fungsi) memang betul,
+  // tapi keputusan resolverTag/conflictNote (dikira SEBELUM reSorted) silap desk sasaran.
+  // Pembetulan: susun semula ikut skor SEBELUM tentukan topDesk untuk resolusi domain.
+  sortedDesks.sort((a, b) => b.score - a.score);
+
   // 2. Domain Signal Resolution
   const hasLegalSecuritySignal = /\b(pasport|polis|mahkamah|imigresen|jenayah|tahan|dakwa|saman|penjara|seksyen|warant|siasatan|serbuan|tangkapan|pdrm|kdn)\b/.test(text);
   const hasTechHardwareSignal = /\b(ai|robot|satelit|angkasa|perisian|cip|biometrik|kecerdasan buatan)\b/.test(text);
