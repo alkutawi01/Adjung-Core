@@ -2,6 +2,7 @@ import express from 'express';
 import { BRAND } from '../../src/config/brand.ts';
 import { getOrCreateUrlKod } from './articleUrlRoutes.js';
 import { binaLaluanKandungan, slugBidang } from '../editorial/UrlSlug.js';
+import { stripMarkdownEsm } from '../editorial/stripMarkdown.js';
 
 // Fasa 10 — Suapan RSS KELUAR (bukan ingest). Adjung sudah ada mesin ingest RSS penuh
 // (core/sources/RssDirectEngine.js membaca suapan LUAR masuk ke rss_ticker_items), tapi tiada
@@ -16,20 +17,10 @@ import { binaLaluanKandungan, slugBidang } from '../editorial/UrlSlug.js';
 // (safeParseInline, src/utils.tsx) tukar `*teks*` -> <em> untuk paparan skrin. Suapan RSS ni
 // sebelum ni hantar teks MENTAH (cuma escapeXml, tiada strip markdown) terus ke pembaca RSS luar
 // — disahkan bocor sebenar dgn kandungan approved sebenar dlm DB (cth "Instagram memperkenalkan
-// *wordmark* baharu..." terbit dgn asterisk mentah kekal dlm <description>). Salinan ringkas
-// stripMarkdown() (src/utils.tsx) — fail ni laluan Node ESM tulen, tak boleh import terus modul
-// TSX yang bawa React/JSX sebagai kebergantungan transitif.
-const stripMarkdownRss = (text) => {
-  if (!text) return '';
-  return String(text)
-    .replace(/(\*\*\*|___)(.*?)\1/g, '$2')
-    .replace(/(\*\*|__)(.*?)\1/g, '$2')
-    .replace(/(\*|_)(.*?)\1/g, '$2')
-    .replace(/`(.*?)`/g, '$1')
-    .replace(/\+\+(.*?)\+\+/g, '$1')
-    .replace(/<u>(.*?)<\/u>/g, '$1')
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
-};
+// *wordmark* baharu..." terbit dgn asterisk mentah kekal dlm <description>). Fungsi kongsi kini
+// diekstrak ke ../editorial/stripMarkdown.js (2026-09-08, kali KEDUA laluan Node ESM ni perlukan
+// logik sama — articleUrlRoutes.js/binaHtmlBot() ada bug identik) — elak salinan KETIGA menyimpang.
+const stripMarkdownRss = stripMarkdownEsm;
 
 // Elak XML pecah bila tajuk/huraian sebenar ada aksara istimewa (&, <, >, kuasa dua, kuasa
 // tunggal) — templat-string mentah TIDAK selamat untuk kandungan editorial sebenar.

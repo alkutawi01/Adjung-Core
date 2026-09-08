@@ -3,6 +3,7 @@ import {
   janaKodPendek, slugBidang, adalahUserAgentBot, binaLaluanKandungan, kodDaripadaParamLaluan,
 } from '../editorial/UrlSlug.js';
 import { janaOgImagePng } from '../editorial/OgImageRenderer.js';
+import { stripMarkdownEsm } from '../editorial/stripMarkdown.js';
 
 // Skema URL per-kandungan (2026-08-05, Fasa 9 — SEO & penemuan, keputusan Izzat):
 //   brief.adjung.com/<bidang-slug>/kandungan/<kod-pendek>
@@ -122,9 +123,22 @@ function potongIkutPerkataan(teks, had) {
 /** Bina HTML pra-terap ringkas untuk bot — tajuk, meta description, OG, JSON-LD NewsArticle,
  *  teks kandungan boleh dibaca terus (tanpa perlu jalankan JavaScript langsung). Bukan replika
  *  penuh SPA — cukup untuk crawler faham & indeks kandungan sebenar. */
-function binaHtmlBot({ kandungan, url, objectId }) {
-  const tajuk = escapeHtml(kandungan.title);
-  const huraian = escapeHtml(potongIkutPerkataan(kandungan.summary, 155));
+// Diekspot (2026-09-08) supaya boleh diuji terus (lihat tests/articleUrlBot.test.js) tanpa perlu
+// akses DB/laluan Express sebenar — corak sama seperti buildRssXml() (rssFeedRoutes.js).
+export function binaHtmlBot({ kandungan, url, objectId }) {
+  // Buang sintaks markdown (2026-09-08, dapatan bug-hunt — corak SAMA yang dibaiki di
+  // FocusView.tsx meta SEO dan rssFeedRoutes.js/buildRssXml()) — Ctrl/Cmd+I (SlotManagerModal.tsx)
+  // benarkan editor tanda *condong*/`[label](gloss:id)` terus dalam Tajuk/Huraian, dan
+  // safeParseInline (src/utils.tsx) parse sintaks tu untuk paparan SKRIN sahaja. HTML pra-terap
+  // bot ni PALING TERUK antara ketiga-tiga tapak bug ini — ia yang crawler Googlebot/Facebook/
+  // Twitter SEBENAR baca (tiada JS dijalankan), jadi sintaks mentah di sini bocor terus ke
+  // hasil carian sebenar DAN pratonton perkongsian sosial sebenar, bukan cuma satu suapan RSS.
+  // escapeHtml() (sedia ada) buat kerja BERBEZA — ia keluarkan aksara HTML tak selamat (&, <, >),
+  // BUKAN sintaks markdown; medan boleh HTML-selamat dan MASIH papar asterisk literal serentak.
+  const tajukBersih = stripMarkdownEsm(kandungan.title);
+  const ringkasanBersih = stripMarkdownEsm(kandungan.summary);
+  const tajuk = escapeHtml(tajukBersih);
+  const huraian = escapeHtml(potongIkutPerkataan(ringkasanBersih, 155));
   // Fallback ke kad OG DINAMIK per-artikel (2026-08-27, OgImageRenderer.js) bila kandungan sendiri
   // tiada imej terlampir — kebanyakan kandungan Adjung Brief memang tiada imej (portal berasaskan
   // teks). Kad ni papar TAJUK sebenar artikel (bukan kad jenama generik og-image.png lama yang
@@ -143,8 +157,8 @@ function binaHtmlBot({ kandungan, url, objectId }) {
   const jsonLd = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
-    headline: kandungan.title,
-    description: kandungan.summary,
+    headline: tajukBersih,
+    description: ringkasanBersih,
     datePublished: kandungan.publishedAt,
     dateModified: kandungan.modifiedAt || kandungan.publishedAt,
     mainEntityOfPage: { '@type': 'WebPage', '@id': url },
@@ -179,7 +193,7 @@ ${gambar ? `<meta property="og:image" content="${gambar}" />` : ''}
 <body>
 <article>
 <h1>${tajuk}</h1>
-<p>${escapeHtml(kandungan.summary)}</p>
+<p>${escapeHtml(ringkasanBersih)}</p>
 ${kandungan.source ? `<p>Sumber: ${escapeHtml(kandungan.source)}</p>` : ''}
 </article>
 </body>
