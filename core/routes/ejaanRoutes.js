@@ -57,10 +57,21 @@ export function createEjaanRoutes(dbAll, dbRun, dbGet) {
       if (sedia) return res.status(400).json({ error: `Bentuk "${betul}" sudah ada dalam senarai ejaan.` });
 
       const id = `ejn-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      await dbRun(
-        'INSERT INTO ejaan_piawai (id, betul, elakkan, catatan, createdAt) VALUES (?, ?, ?, ?, ?)',
-        [id, betul, elakkan, catatan, new Date().toISOString()]
-      );
+      try {
+        await dbRun(
+          'INSERT INTO ejaan_piawai (id, betul, elakkan, catatan, createdAt) VALUES (?, ?, ?, ?, ?)',
+          [id, betul, elakkan, catatan, new Date().toISOString()]
+        );
+      } catch (insertErr) {
+        // Index unik idx_ejaan_betul_unik (server.js, 2026-09-09) menangkap race dua POST
+        // serentak bentuk "betul" sama yang kedua-duanya terlepas semakan "sedia" di atas
+        // (TOCTOU) — pemadanan SAMA seperti mesej 400 sedia ada, bukan 500 mentah. Corak sama
+        // pemenggalanRoutes.js.
+        if (/UNIQUE constraint failed/i.test(insertErr.message || '')) {
+          return res.status(400).json({ error: `Bentuk "${betul}" sudah ada dalam senarai ejaan.` });
+        }
+        throw insertErr;
+      }
       const baris = await dbGet('SELECT * FROM ejaan_piawai WHERE id = ?', [id]);
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
@@ -94,10 +105,17 @@ export function createEjaanRoutes(dbAll, dbRun, dbGet) {
       const pertindihan = await dbGet('SELECT id FROM ejaan_piawai WHERE LOWER(betul) = LOWER(?) AND id != ?', [betul, req.params.id]);
       if (pertindihan) return res.status(400).json({ error: `Bentuk "${betul}" sudah ada dalam senarai ejaan.` });
 
-      await dbRun(
-        'UPDATE ejaan_piawai SET betul = ?, elakkan = ?, catatan = ? WHERE id = ?',
-        [betul, elakkan, catatan, req.params.id]
-      );
+      try {
+        await dbRun(
+          'UPDATE ejaan_piawai SET betul = ?, elakkan = ?, catatan = ? WHERE id = ?',
+          [betul, elakkan, catatan, req.params.id]
+        );
+      } catch (updateErr) {
+        if (/UNIQUE constraint failed/i.test(updateErr.message || '')) {
+          return res.status(400).json({ error: `Bentuk "${betul}" sudah ada dalam senarai ejaan.` });
+        }
+        throw updateErr;
+      }
       const baris = await dbGet('SELECT * FROM ejaan_piawai WHERE id = ?', [req.params.id]);
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,

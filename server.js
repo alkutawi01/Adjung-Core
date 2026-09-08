@@ -1113,6 +1113,23 @@ const initializeSchema = () => {
                 createdAt TEXT
               )
             `, () => {
+              // Kunci unik ejaan (2026-09-09, dapatan bug-hunt) — corak IDENTIK
+              // idx_pemenggalan_perkataan_unik (pemenggalan_pengecualian, di bawah) tapi
+              // TERLEPAS di ejaan_piawai walaupun laluan (ejaanRoutes.js POST/PATCH) guna
+              // corak baca-semak-tulis SAMA PERSIS (dua hantaran serentak bentuk "betul" yang
+              // sama, cth double-click butang, kedua-dua baca `sedia`=NULL sebelum sempat
+              // INSERT — dua baris bercanggah tercipta, senarai ejaan yang sepatutnya rujukan
+              // SATU bentuk betul setiap perkataan jadi tak boleh dipercayai). DALAM callback
+              // CREATE TABLE ni (bukan statement `sibling` selepasnya) — db.serialize() TIDAK
+              // menjamin urutan strict untuk db.run() yang dijadualkan daripada callback
+              // bersarang berbeza (nota sama di seksyen migrasi `sponsors.anonymousNo` atas),
+              // disahkan sebenar semasa ujian sim52: diletak sebagai statement berasingan
+              // selepas blok ni pernah cuba jalan SEBELUM CREATE TABLE ejaan_piawai sendiri
+              // sempat commit ("no such table: main.ejaan_piawai"). IF NOT EXISTS + gagal
+              // senyap kalau data lama kebetulan sudah ada pendua case-insensitive — sama
+              // ketahanan seperti kunci pemenggalan, tak pernah gagalkan boot pelayan.
+              db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_ejaan_betul_unik ON ejaan_piawai (LOWER(betul))`, () => {});
+
               // Migrasi data lama: mana-mana baris glosari_istilah yang ada nilai `elakkan` bukan
               // kosong disalin (bukan dipindah — glosari_istilah tak diubah) ke ejaan_piawai supaya
               // tiada data hilang. id baharu berasaskan id lama supaya migrasi ni idempoten
