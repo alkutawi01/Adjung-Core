@@ -903,6 +903,13 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
   const nisbahEfektifSlot = amPaksaTetapanAmSemuaSlot
     ? amNisbahPenajaTransisi
     : (draf.nisbahPenajaTransisiOverride !== '' ? Number(draf.nisbahPenajaTransisiOverride) : amNisbahPenajaTransisi);
+  // Logo EFEKTIF (2026-09-09, audit susulan #167/#168) — neraca SAMA PERSIS FrontpageView.tsx
+  // `logoModeUntukSlot()`: paksa tetapan am mengabaikan `logoTransisiMode` per-slot TANPA SYARAT
+  // (jatuh balik ke 'adjung', wordmark Adjung lalai), tak kira override tersimpan apa. Baris ni
+  // dahulu baca `draf.logoTransisiMode || 'adjung'` membuta tanpa semak `amPaksaTetapanAmSemuaSlot`
+  // langsung — corak SAMA PERSIS pepijat #167/#168 yang terlepas keenam-enam medan, cuma medan
+  // logo ni tak disenaraikan dalam audit asal sebab tak ditandai `EfektifSlot` macam lima yang lain.
+  const logoModeEfektifSlot = amPaksaTetapanAmSemuaSlot ? 'adjung' : (draf.logoTransisiMode || 'adjung');
   const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
   const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
@@ -1202,7 +1209,7 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
             arah={arahEfektifSlot}
             kelajuan={kelajuanEfektifSlot}
             warnaPanel={warnaEfektifSlot}
-            logoMode={draf.logoTransisiMode || 'adjung'}
+            logoMode={logoModeEfektifSlot}
           />
           {/* AnimasiPratonton SENGAJA tak render logo penaja sebenar (lihat CLAUDE.md — cuma
               placeholder "Ruang Logo Penaja"/wordmark Adjung), jadi nisbah efektif dipaparkan
