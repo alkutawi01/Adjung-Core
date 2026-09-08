@@ -1,6 +1,7 @@
 import express from 'express';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 
 export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   const router = express.Router();
@@ -12,9 +13,14 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   // ai_usage_logs.promptText/responseText PENUH bagi 10 panggilan terkini.
   router.get('/statistics', requirePermission('manageSettings'), async (req, res) => {
     try {
-      const todayStart = new Date();
-      todayStart.setHours(0,0,0,0);
-      const todayStartIso = todayStart.toISOString();
+      // PEMBETULAN (2026-09-09, dapatan bug-hunt) — dahulu `new Date(); setHours(0,0,0,0)`,
+      // iaitu waktu tempatan PROSES PELAYAN (UTC pada pengeluaran, bukan waktu Malaysia).
+      // Sama kelas pepijat yang dibaiki di sponsorRoutes.js/viewStatsRoutes.js (2026-08-07,
+      // rujuk komen waktuMalaysia.js) — antara 12:00 tengah malam dan 8:00 pagi MYT, "hari ini"
+      // di sini masih dikira sebagai HARI SEMALAM (UTC belum ganti hari), jadi statistik
+      // "Hari Ini" (kos AI, panggilan dilangkau cache/penjadual) hilang lapan jam pertama
+      // setiap hari dan tersalah kira ke hari sebelumnya. Guna sempadan tengah malam MYT.
+      const todayStartIso = new Date(`${tarikhMalaysia()}T00:00:00+08:00`).toISOString();
 
       const usageStats = await dbGet(`
         SELECT
