@@ -4,6 +4,7 @@ import { logAudit } from '../audit/AuditLog.js';
 import { bulanMalaysia } from '../utils/waktuMalaysia.js';
 import { sponsorAktifPadaMasa } from '../editorial/PenajaEligibility.js';
 import { angkaRom } from './permohonanPenajaRoutes.js';
+import { isSafeHttpUrl } from '../sources/SourceSanitizer.js';
 
 // Penaja (2026-08-05, Fasa 12 — permintaan Izzat; dikemas kini 2026-08-30, audit mendalam
 // modul Penaja). Tajaan BULANAN (lama) ATAU julat ISO 7-hari/tempoh bebas (baharu), boleh
@@ -154,6 +155,10 @@ async function tulisSlotUntukSponsor(dbRun, sponsorId, slotIndexes) {
   }
 }
 
+// logoUrl boleh jadi laluan muat naik relatif (/uploads/xxx daripada /api/media/upload) ATAU
+// URL luaran penuh — dikongsi POST dan PATCH /system/sponsors di bawah.
+const laluanMuatNaikSah = (v) => /^\/uploads\/[A-Za-z0-9._-]+$/.test(v);
+
 export function createSponsorRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
 
@@ -191,6 +196,18 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
       if (adaMula && new Date(mulaTajaan).getTime() > new Date(tamatTajaan).getTime()) return res.status(400).json({ error: 'Tarikh mula tajaan mesti sebelum tarikh tamat.' });
 
       if (slotIndexes !== undefined && !sahSenaraiSlot(slotIndexes)) return res.status(400).json({ error: 'Senarai slot tidak sah.' });
+
+      // isSafeHttpUrl (2026-09-09, sama kelas pepijat kritikal dgn RssDirectEngine.js/
+      // EditorialPipeline.js) — `url` (laman rasmi penaja) dipaparkan terus `<a href>` di
+      // HalamanPenaja.tsx (awam) dan `logoUrl` dipaparkan terus `<img src>` di FrontpageView.tsx/
+      // HalamanPenaja.tsx (awam). Laluan ni (borang Editorium admin, medan teks bebas "Nama
+      // fail / URL logo") TAK PERNAH gerbang skema URL macam laluan buktiBayaranUrl/logoUrl di
+      // permohonanPenajaRoutes.js (laluanMuatNaikSah) — admin taip terus, jadi `javascript:`/
+      // `data:` boleh tersimpan tanpa disekat. `logoUrl` boleh jadi laluan muat naik relatif
+      // (/uploads/xxx daripada /api/media/upload) ATAU URL luaran penuh — benarkan KEDUA-DUA
+      // bentuk sah, sekat skema berbahaya.
+      if (url && !isSafeHttpUrl(url)) return res.status(400).json({ error: 'URL laman rasmi penaja tidak sah (mesti http:// atau https://).' });
+      if (logoUrl && !laluanMuatNaikSah(logoUrl) && !isSafeHttpUrl(logoUrl)) return res.status(400).json({ error: 'URL logo penaja tidak sah.' });
 
       const id = `penaja-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const now = new Date().toISOString();
@@ -231,8 +248,14 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
         if (namaBersih.length > HAD_NAMA) return res.status(400).json({ error: `Nama penaja melebihi had ${HAD_NAMA} aksara.` });
         sets.push('name = ?'); params.push(namaBersih);
       }
-      if (logoUrl !== undefined) { sets.push('logoUrl = ?'); params.push(logoUrl); }
-      if (url !== undefined) { sets.push('url = ?'); params.push(url); }
+      if (logoUrl !== undefined) {
+        if (logoUrl && !laluanMuatNaikSah(logoUrl) && !isSafeHttpUrl(logoUrl)) return res.status(400).json({ error: 'URL logo penaja tidak sah.' });
+        sets.push('logoUrl = ?'); params.push(logoUrl);
+      }
+      if (url !== undefined) {
+        if (url && !isSafeHttpUrl(url)) return res.status(400).json({ error: 'URL laman rasmi penaja tidak sah (mesti http:// atau https://).' });
+        sets.push('url = ?'); params.push(url);
+      }
       if (bulan !== undefined) {
         if (!sahBulan(bulan)) return res.status(400).json({ error: 'Bulan mesti format YYYY-MM dengan bulan 01-12.' });
         sets.push('bulan = ?'); params.push(bulan);
