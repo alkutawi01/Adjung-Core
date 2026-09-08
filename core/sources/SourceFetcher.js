@@ -1,4 +1,4 @@
-import { fetchSelamat, RalatUrlTakSelamat } from '../utils/urlSafety.js';
+import { fetchSelamat, tetTeksBerhad, RalatUrlTakSelamat } from '../utils/urlSafety.js';
 
 class SourceFetcher {
   static async fetchRaw(url, customHeaders = {}, timeoutMs = 8000) {
@@ -21,7 +21,13 @@ class SourceFetcher {
 
       clearTimeout(id);
 
-      const rawContent = await response.text();
+      // tetTeksBerhad() (bukan response.text() mentah) — dapatan bug-hunt 2026-09-09: url ni
+      // datang daripada senarai rujukan sumber yang editor taip sendiri (input manusia boleh
+      // silap/rosak, bukan mesti berniat jahat), sama corak SIS RSS Direct
+      // (slotRoutes.js executeDirectRssFetch) yang dibaiki lebih awal sesi ni — sumber luaran
+      // yang pulangkan respons gergasi/tanpa penghujung akan membengkakkan memori proses tanpa
+      // had ni. Ralat had dilontar ditangkap oleh catch(error) sedia ada di bawah.
+      const rawContent = await tetTeksBerhad(response, { hadBait: 10 * 1024 * 1024 });
       const responseHeaders = {};
       response.headers.forEach((value, key) => {
         responseHeaders[key.toLowerCase()] = value;

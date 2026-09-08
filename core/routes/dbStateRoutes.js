@@ -1,6 +1,6 @@
 import express from 'express';
 import { safeJsonParse } from '../utils/jsonUtils.js';
-import { fetchSelamat } from '../utils/urlSafety.js';
+import { fetchSelamat, tetTeksBerhad } from '../utils/urlSafety.js';
 
 // Helper to extract plain text from published Google Doc HTML
 function extractTextFromHtml(html) {
@@ -91,7 +91,12 @@ async function fetchGoogleDocText(docUrl) {
       console.error('Failed to fetch Google Doc:', response.statusText);
       return '';
     }
-    const content = await response.text();
+    // tetTeksBerhad() (bukan response.text() mentah) — dapatan bug-hunt 2026-09-09: docUrl ni
+    // ditaip Pentadbir/Ketua Editor sendiri (Tetapan → medan *GoogleDocUrl), sama corak SIS RSS
+    // Direct (slotRoutes.js executeDirectRssFetch) yang dibaiki lebih awal sesi ni — dokumen
+    // Google Doc awam yang sengaja/tersilap sangat besar (atau URL "published" yang tersasar ke
+    // hos lain selepas semakan SSRF di atas) akan membengkakkan memori proses tanpa had ni.
+    const content = await tetTeksBerhad(response, { hadBait: 10 * 1024 * 1024 });
 
     if (isPublishedUrl) {
       return extractTextFromHtml(content);
