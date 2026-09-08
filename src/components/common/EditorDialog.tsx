@@ -86,7 +86,7 @@ export const EditorDialog: React.FC<EditorDialogProps> = ({
             type="button"
             onClick={onTutup}
             aria-label="Tutup"
-            className="text-stone-400 hover:text-stone-700 cursor-pointer shrink-0"
+            className="text-stone-400 hover:text-stone-700 cursor-pointer shrink-0 focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
           >
             <X className="w-3.5 h-3.5" />
           </button>
