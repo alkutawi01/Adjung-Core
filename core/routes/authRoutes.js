@@ -446,6 +446,15 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         if (!u || !pn) {
           return res.status(400).json({ error: 'ID pengguna dan nama pena diperlukan.' });
         }
+        // Had minimum SAMA seperti POST /change-username (2026-09-08, bug-hunt) — laluan tu
+        // tolak username <3 aksara SELEPAS akaun aktif, tapi laluan INI (tetapan identiti KALI
+        // PERTAMA editor jemputan baharu) tak pernah semak panjang langsung, jadi editor boleh
+        // tetapkan ID pengguna 1-2 aksara di sini dan ia terus kekal SAH selama-lamanya (tiada
+        // langkah lain kuatkuasakan semula had ni ke atas username sedia ada). Disahkan reproduce
+        // (sim31): username "a" diterima 200 sebelum pembetulan ni.
+        if (u.length < 3) {
+          return res.status(400).json({ error: 'ID pengguna mesti sekurang-kurangnya 3 aksara.' });
+        }
         // Semakan pendua sama seperti dahulu di POST /api/system/users (userAdminRoutes.js) —
         // kini berlaku DI SINI sebab identiti sebenar baru wujud pada langkah ni. `!= ?` kecuali
         // baris sendiri, supaya kalau editor hantar semula/klik dua kali borang yang sama, ia
