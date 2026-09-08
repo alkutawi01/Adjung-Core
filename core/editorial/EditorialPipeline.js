@@ -391,15 +391,33 @@ ${slot.sourcesList.trim()}
       const claudeKey = process.env.CLAUDE_API_KEY || '';
       const geminiKey = process.env.GEMINI_API_KEY || '';
 
+      // fallbackProviderId MESTI padan baris SEBENAR dalam ai_providers (2026-09-09, dapatan
+      // bug-hunt) — sebelum ni ditulis literal pendek 'claude'/'gemini', sedangkan baris yang
+      // disemai (server.js ~baris 1427) guna id 'gemini-1'/'claude-1'. ai_usage_logs.providerId
+      // ada FOREIGN KEY REFERENCES ai_providers(id) (PRAGMA foreign_keys=ON aktif) -- INSERT
+      // ai_usage_logs pada baris 502/650 di bawah akan GAGAL dengan SQLITE_CONSTRAINT pada
+      // SETIAP failover berjaya, SELEPAS kandungan sudah disimpan ke editorial_objects/revisions
+      // (langkah 8 mendahului langkah 9 ni) -- kandungan terbit, tapi ralat FK dilontar lepas
+      // fakta. Juga punca kos AI (ai_model_pricing, dipadan providerId+modelName) sentiasa jatuh
+      // ke $0 untuk kandungan hasil failover walau pricing wujud, sebab providerId literal tu
+      // tak pernah sepadan baris pricing sebenar. Cari baris ai_providers sebenar dahulu; kalau
+      // tiada (persediaan tanpa baris Claude/Gemini didaftar), jatuh balik ke literal lama supaya
+      // failover generate() itu sendiri tetap cuba (tak sekat ciri sedia ada), walau logging kos
+      // masih terjejas dalam kes jarang tu.
+      const carianProviderFallback = async (corak) => {
+        const baris = await dbGet("SELECT id FROM ai_providers WHERE id LIKE ? ORDER BY id LIMIT 1", [corak]);
+        return baris?.id || null;
+      };
+
       if (!provider.id.includes('claude') && claudeKey) {
         fallbackModel = 'claude-3-5-sonnet-latest';
         fallbackInstance = new ClaudeProvider(claudeKey, fallbackModel);
-        fallbackProviderId = 'claude';
+        fallbackProviderId = (await carianProviderFallback('claude%')) || 'claude';
         fallbackProviderName = 'Claude (Fallback)';
       } else if (!provider.id.includes('gemini') && geminiKey) {
         fallbackModel = 'gemini-2.5-flash';
         fallbackInstance = new GeminiProvider(geminiKey, fallbackModel);
-        fallbackProviderId = 'gemini';
+        fallbackProviderId = (await carianProviderFallback('gemini%')) || 'gemini';
         fallbackProviderName = 'Gemini (Fallback)';
       }
 
