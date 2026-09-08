@@ -38,9 +38,24 @@ export function parseRssXml(xmlString) {
     if (linkMatch && linkMatch[1].trim()) {
       link = sanitizeUrlText(linkMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1'));
     } else {
-      // Atom link format: <link href="url" />
-      const atomLinkMatch = block.match(/<link[^>]+href=["']([^"']+)["']/i);
-      if (atomLinkMatch) link = sanitizeUrlText(atomLinkMatch[1].trim());
+      // Atom link format: <link href="url" rel="..." />. SATU entri Atom sering ada BERBILANG
+      // elemen <link> (rel="alternate" = URL artikel sebenar, tapi juga rel="self"/"hub"/
+      // "related"/"enclosure" dsb — corak lazim suapan WordPress/Superfeedr yang letak
+      // <link rel="hub" href="..."/> SEBELUM <link rel="alternate" href="..."/> dalam entri
+      // yang sama). 2026-09-09 (dapatan bug-hunt): regex asal ambil <link> PERTAMA yang
+      // dijumpai tanpa hirau `rel`, jadi pautan yang tersiar ke pembaca boleh jadi URL hub
+      // WebSub atau pautan berkaitan, bukan artikel — disahkan reproduce (link tersimpan =
+      // URL hub, bukan URL artikel, walau <id> entri betul-betul URL artikel). Dibetulkan:
+      // utamakan <link> yang rel="alternate" ATAU langsung tiada atribut rel (spec Atom:
+      // ketiadaan rel lalai kepada "alternate"), jatuh balik ke <link> PERTAMA hanya kalau
+      // tiada satu pun sepadan corak tu (lebih baik pautan "kurang tepat" drpd tiada langsung).
+      const semuaAtomLink = [...block.matchAll(/<link\b([^>]*)\/?>/gi)];
+      let dipilih = semuaAtomLink.find((m) => !/rel\s*=/i.test(m[1]) || /rel\s*=\s*["']alternate["']/i.test(m[1]));
+      if (!dipilih) dipilih = semuaAtomLink[0];
+      if (dipilih) {
+        const hrefMatch = dipilih[1].match(/href\s*=\s*["']([^"']+)["']/i);
+        if (hrefMatch) link = sanitizeUrlText(hrefMatch[1].trim());
+      }
     }
     if (!isSafeHttpUrl(link)) link = '';
 
