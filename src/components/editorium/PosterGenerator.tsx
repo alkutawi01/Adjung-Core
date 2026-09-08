@@ -2,6 +2,7 @@ import React from 'react';
 import { mesejRalat } from '../../utils/bacaJson';
 import { Download, Loader2, RefreshCw } from 'lucide-react';
 import { EditorDialog } from '../common/EditorDialog';
+import { stripMarkdown } from '../../utils';
 
 // PosterGenerator.tsx (2026-08-23, permintaan Izzat — poster media sosial dijana automatik
 // daripada 5 kandungan terbaharu). Skop dikunci selepas soal balas: muat turun MANUAL sahaja
@@ -232,9 +233,16 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
     const lebarInden = SISI - MARGIN - (MARGIN + INDENT);
 
     // Tajuk (serif, dominan, dibalut maks 2 baris) — diindenkan padan Bidang di atas.
+    // `stripMarkdown()` (dapatan bug-hunt 2026-09-09) — poster dilukis terus ke <canvas>
+    // (fillText), yang TIADA pengetahuan langsung tentang sintaks `*teks*` (tak macam JSX,
+    // yang ada `safeParseInline()` tukar jadi `<em>` sebenar). Tanpa ni, tajuk/huraian yang
+    // mengandungi format condong papar asterisk MENTAH pada poster PNG yang dimuat turun
+    // (cth "*Konklaf* 2026" -> "*Konklaf* 2026" literal, bukan italic) — kandungan editorial
+    // sebenar boleh ada format ni (Ctrl/Cmd+I, lihat utils.tsx), poster ambil terus daripada
+    // API sama tanpa laluan render JSX langsung.
     ctx.fillStyle = '#1C1917';
     ctx.font = '700 25px "Source Serif 4", serif';
-    const baris = bungkusTeks(ctx, item.title, lebarInden, 2);
+    const baris = bungkusTeks(ctx, stripMarkdown(item.title), lebarInden, 2);
     baris.forEach((l, li) => ctx.fillText(l, MARGIN + INDENT, y0 + 45 + li * 31));
     const tajukTinggi = baris.length * 31;
 
@@ -243,7 +251,7 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
       ctx.fillStyle = '#78716C';
       ctx.font = '400 14px "Inter", sans-serif';
       const konteksY = y0 + 45 + tajukTinggi + 20;
-      ctx.fillText(pangkasSatuBaris(ctx, item.summary, lebarInden), MARGIN + INDENT, konteksY);
+      ctx.fillText(pangkasSatuBaris(ctx, stripMarkdown(item.summary), lebarInden), MARGIN + INDENT, konteksY);
     }
 
     // Garis pemisah nipis (kecuali baris terakhir) — lebih ringan drpd versi sebelumnya, ruang
