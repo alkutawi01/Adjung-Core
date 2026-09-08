@@ -1059,7 +1059,19 @@ const initializeSchema = () => {
                 maksud TEXT,
                 createdAt TEXT
               )
-            `, () => {});
+            `, () => {
+              // Kunci unik istilah (2026-09-09, dapatan bug-hunt — sibling ejaan_piawai/
+              // pemenggalan_pengecualian) — glosariRoutes.js POST/PATCH /glosari guna corak
+              // baca-semak-tulis SAMA PERSIS (SELECT id FROM glosari_istilah WHERE LOWER(istilah)
+              // = LOWER(?) diikuti INSERT/UPDATE), tapi jadual ni SAHAJA antara tiga jadual
+              // rujukan editorial (glosari/ejaan/pemenggalan) yang terlepas index unik peringkat
+              // DB — dua hantaran serentak istilah SAMA (cth double-click) kedua-duanya baca
+              // `sedia`=NULL sebelum sempat INSERT, dua baris bercanggah tercipta senyap. DALAM
+              // callback CREATE TABLE ni (bukan statement berasingan selepasnya) — sama sebab
+              // ejaan_piawai di bawah: db.serialize() tidak jamin urutan strict merentasi
+              // callback bersarang berbeza.
+              db.run(`CREATE UNIQUE INDEX IF NOT EXISTS idx_glosari_istilah_unik ON glosari_istilah (LOWER(istilah))`, () => {});
+            });
 
             // Glosari Berasaskan Bidang — Sense (2026-08-16, arahan Izzat, seni bina disahkan
             // docs/glossary-architecture-proposal.md v3). ADDITIVE sepenuhnya — glosari_istilah

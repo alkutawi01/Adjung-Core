@@ -115,7 +115,16 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
     }
   });
 
-  router.post('/glosari', requirePermission('manageEditorial'), async (req, res) => {
+  // Dikunci sama kunci rantaian dengan laluan Sense di bawah (2026-09-09, dapatan bug-hunt) —
+  // laluan ni SENDIRI buka BEGIN TRANSACTION (cipta istilah+Sense pertama serentak), tapi
+  // sebelum ni TIADA serialisasi. Disahkan reproduce (scratch DB, N POST serentak istilah SAMA):
+  // dua/lebih permintaan buka BEGIN TRANSACTION pada sambungan sqlite3 DIKONGSI SEBELUM
+  // mana-mana sempat COMMIT/ROLLBACK — sqlite3 (mod bukan-serialize di sini, satu sambungan
+  // dikongsi semua request) pulangkan "SQLITE_ERROR: cannot start a transaction within a
+  // transaction" sebagai 500 mentah kepada sesetengah request, bukan cuma 400 "sudah ada" yang
+  // dijangka. Kunci global (bukan per-istilah) memadai — laluan ni aktiviti pentadbiran jarang,
+  // sama justifikasi seperti kunci Sense (nota kepala fail).
+  router.post('/glosari', requirePermission('manageEditorial'), (req, res) => denganKunciSenseGlosari(async () => {
     try {
       const istilah = (req.body?.istilah || '').trim();
       const elakkan = (req.body?.elakkan || '').trim();
@@ -184,6 +193,13 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
         await dbRun('COMMIT');
       } catch (e) {
         try { await dbRun('ROLLBACK'); } catch (rollbackErr) { console.error('Rollback gagal (cipta istilah+Sense):', rollbackErr.message); }
+        // Index unik idx_glosari_istilah_unik (server.js, 2026-09-09) menangkap race dua POST
+        // serentak istilah SAMA yang kedua-duanya terlepas semakan "sedia" di atas (TOCTOU) —
+        // pemadanan SAMA seperti mesej 400 sedia ada, bukan 500 mentah. Corak sama
+        // ejaanRoutes.js/pemenggalanRoutes.js.
+        if (/UNIQUE constraint failed/i.test(e.message || '')) {
+          return res.status(400).json({ error: `Istilah "${istilah}" sudah ada dalam glosari.` });
+        }
         throw e;
       }
 
@@ -206,7 +222,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       console.error('POST glosari error:', err);
       res.status(500).json({ error: 'Gagal menyimpan istilah. ' + (err.message || '') });
     }
-  });
+  }));
 
   // PATCH /glosari/:id — sunting istilah/maksud SAHAJA (2026-09-03, dapatan bug-hunt,
   // diluluskan Izzat) — sebelum ni Glosari SATU-SATUNYA modul rujukan (Ejaan/Pemenggalan ada)
@@ -241,7 +257,14 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
         }
       }
 
-      await dbRun('UPDATE glosari_istilah SET istilah = ?, elakkan = ?, maksud = ? WHERE id = ?', [istilah, elakkan, maksud, req.params.id]);
+      try {
+        await dbRun('UPDATE glosari_istilah SET istilah = ?, elakkan = ?, maksud = ? WHERE id = ?', [istilah, elakkan, maksud, req.params.id]);
+      } catch (updateErr) {
+        if (/UNIQUE constraint failed/i.test(updateErr.message || '')) {
+          return res.status(400).json({ error: `Istilah "${istilah}" sudah ada dalam glosari.` });
+        }
+        throw updateErr;
+      }
 
       await logAudit(dbRun, {
         actorId: req.session?.user?.id,
