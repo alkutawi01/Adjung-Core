@@ -36,15 +36,23 @@ export function createUiLabelRoutes(dbAll, dbRun) {
         return res.status(400).json({ error: 'Tiada label dihantar.' });
       }
       const now = new Date().toISOString();
+      // Pra-pas pengesahan SEMUA kunci DAHULU (bukan semak-lepas-tulis dalam gelung yang sama)
+      // — corak "semua-atau-tiada" mesti sahkan segala-galanya sebelum sentuh DB, kalau tidak
+      // kunci yang berjaya sebelum kunci gagal akan TERSIMPAN walaupun respons keseluruhan
+      // ialah 400 (pepijat sebenar #126 di slotsConfigRoutes.js, corak sama ditemui di sini).
+      const nilaiBersih = {};
       for (const kunci of kunciSenarai) {
         const nilai = String(patch[kunci] ?? '').trim();
         if (!nilai) {
           return res.status(400).json({ error: `Nilai untuk "${kunci}" tidak boleh kosong.` });
         }
+        nilaiBersih[kunci] = nilai;
+      }
+      for (const kunci of kunciSenarai) {
         await dbRun(
           `INSERT INTO ui_labels (key, value, category, updatedAt) VALUES (?, ?, COALESCE((SELECT category FROM ui_labels WHERE key = ?), ''), ?)
            ON CONFLICT(key) DO UPDATE SET value = excluded.value, updatedAt = excluded.updatedAt`,
-          [kunci, nilai, kunci, now]
+          [kunci, nilaiBersih[kunci], kunci, now]
         );
       }
       await logAudit(dbRun, {
