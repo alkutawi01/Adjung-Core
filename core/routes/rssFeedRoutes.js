@@ -108,8 +108,21 @@ export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
       // dalam JS selepas query (slugBidang tak boleh diungkap dalam SQL), jadi ambil kolam lebih
       // besar dahulu supaya Bidang yang kandungannya jarang muncul tetap dapat item; suapan
       // global kekal LIMIT 50 asal.
+      // eo.categoryId dibekukan pada MASA PENCIPTAAN objek — Bidang sebenar boleh ditukar
+      // kemudian (contentRoutes.js PATCH /content/:id, medan `desk`), yang menulis atribut
+      // 'desk' BAHARU pada revisi terkini tanpa sekali-kali mengemas kini eo.categoryId (lihat
+      // nota "AUAT-003"/bidangSebelum di contentRoutes.js — objRow.categoryId cuma fallback
+      // untuk objek yang tak pernah ada atribut desk langsung). Halaman Bidang awam
+      // (bidangRoutes.js) dan Semakan Kandungan sudah baca atribut 'desk' LIVE ni, tapi suapan
+      // RSS ni sebelum ni tapis ?bidang= terus atas eo.categoryId BEKU — kandungan yang
+      // Bidangnya ditukar selepas terbit akan tersalah tapis (kekal di suapan Bidang LAMA,
+      // hilang daripada suapan Bidang BAHARU) walaupun laman awam sendiri dah betul. Dibaiki:
+      // sertakan atribut 'desk' revisi terkini, guna itu dahulu (fallback categoryId hanya
+      // untuk objek lama yang tiada atribut desk).
       const rows = await dbAll(`
-        SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, er.title, er.summary, er.createdAt as revisionCreatedAt
+        SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, er.title, er.summary, er.createdAt as revisionCreatedAt,
+               (SELECT av.valueText FROM editorial_attribute_values av
+                WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk') as deskLive
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -120,7 +133,7 @@ export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
         LIMIT ${bidangSlug ? 300 : 50}
       `);
       const rowsDitapis = bidangSlug
-        ? rows.filter((r) => slugBidang(r.categoryId) === bidangSlug).slice(0, 50)
+        ? rows.filter((r) => slugBidang(r.deskLive || r.categoryId) === bidangSlug).slice(0, 50)
         : rows;
 
       const siteUrl = `${req.protocol}://${req.get('host')}`;
