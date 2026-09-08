@@ -225,7 +225,7 @@ export const HalamanSertai: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className={LABEL_KELAS} htmlFor="sertai-nama">Nama penuh *</label>
-                <input id="sertai-nama" type="text" className={kelasInput('namaPenuh')} value={namaPenuh} onChange={(e) => setNamaPenuh(e.target.value)} onBlur={(e) => semakMedan('namaPenuh', e.target.value)} maxLength={120} placeholder="Contoh: Ahmad Fikri bin Zulkifli" />
+                <input id="sertai-nama" type="text" className={kelasInput('namaPenuh')} value={namaPenuh} onChange={(e) => setNamaPenuh(e.target.value)} onBlur={(e) => semakMedan('namaPenuh', e.target.value)} maxLength={120} placeholder="Contoh: Muhammad Faris bin Mat Harun" />
                 {ralatMedan.namaPenuh && <p className={RALAT_MEDAN_KELAS}>{ralatMedan.namaPenuh}</p>}
               </div>
               <div>
