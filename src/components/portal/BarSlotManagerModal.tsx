@@ -169,7 +169,15 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
   // (lihat komen penuh di situ): Buang sebelum ni cuma ubah senarai tempatan, perlu klik "Simpan"
   // berasingan untuk persist ke pelayan, punca draf "muncul semula" bila borang dibuka semula.
   const remove = (i: number) => {
-    setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
+    // Pepijat sebenar (2026-09-08, ditemui bug-hunt, sama corak SlotManagerModal.tsx) — clamp
+    // SAHAJA (`Math.min(a, length-2)`) tak ambil kira KEDUDUKAN item dibuang berbanding `active`.
+    // Buang item SEBELUM `active` anjak semua item selepasnya turun SATU kedudukan, jadi `active`
+    // yang tak diselaraskan menuding ke item BERBEZA. Fix: anjak `active` turun SATU jika item
+    // dibuang berada SEBELUM `active` (lihat SlotManagerModal.tsx remove() untuk rasional penuh).
+    setActive((a) => {
+      const anjak = i < a ? a - 1 : a;
+      return Math.max(0, Math.min(anjak, items.length - 2));
+    });
     setKonfirmBuangIndex(null);
     commit((prev) => {
       const next = prev.filter((_, n) => n !== i);
