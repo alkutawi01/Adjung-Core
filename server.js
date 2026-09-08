@@ -4832,8 +4832,18 @@ process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err);
   gracefulShutdown('uncaughtException', 2000);
 });
+// Susulan (2026-09-09, bug-hunt REAL) — handler ni cuma `console.error` dan proses TERUS
+// berjalan. Tak macam `uncaughtException` (dibaiki di atas, kini laluan sama `gracefulShutdown`),
+// `unhandledRejection` biarkan proses hidup dalam keadaan tak diketahui — promise yang reject
+// tanpa `.catch` bermakna ada operasi async yang gagal SENYAP, kod lain yang menunggu (`await`)
+// hasil operasi tu tak akan pernah selesai/gagal dengan jelas, ia cuma tergantung selama-lamanya
+// (memory leak timer/promise tertunda, sambungan DB/HTTP yang tak pernah ditutup). Falsafah yang
+// sama macam `uncaughtException` di atas terpakai di sini: proses yang diteruskan lepas ralat tak
+// tertangkap lebih bahaya drpd exit bersih. Dibaiki: guna `gracefulShutdown()` yang sama (kunci
+// tunggal, hormati request sedang berjalan sebelum keluar).
 process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason);
+  gracefulShutdown('unhandledRejection', 2000);
 });
 
 // Penutupan bersih (2026-08-02) — pastikan pemegang SQLite ditutup dengan kemas supaya jurnal
