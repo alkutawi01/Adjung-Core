@@ -16,7 +16,18 @@ class ClaudeProvider extends AIProvider {
       },
       body: JSON.stringify({
         model: this.modelName || 'claude-3-5-sonnet-latest',
-        max_tokens: 1000,
+        // Naik drpd 1000 -> 8192 (2026-09-09, dapatan bug-hunt #151, susulan #150). Editor boleh
+        // tetapkan [Jumlah kandungan] > 1 (SlotManagerModal.tsx, tiada had maksimum) — satu
+        // panggilan generate() kena hasilkan BEBERAPA kandungan penuh (title+brief+briefLong
+        // sehingga 600 aksara setiap satu, MAX_BRIEF_LONG_CHARS di GeometryConfig.js) serentak
+        // dalam SATU respons JSON. 1000 token cukup untuk SATU kandungan sahaja — GeminiProvider.js
+        // (baris setanding) TIADA had output token langsung (SDK guna had model, ~8192+), jadi
+        // slot [Jumlah kandungan] yg sama bendera Gemini boleh siap penuh tapi Claude terpotong
+        // separuh JSON (parseAiJsonResponse gagal senyap ke rentetan mentah) — bukan had API
+        // Claude sendiri (model ni sokong sehingga 8192 output token), cuma nombor sembarang
+        // ditinggalkan sejak awal. Diselaraskan supaya kedua-dua penyedia sama keupayaan untuk
+        // input yang SAMA, bukan sekadar naikkan sewenang-wenangnya.
+        max_tokens: 8192,
         system: systemInstructions || undefined,
         messages: [{ role: 'user', content: promptText + '\nSila jawab dalam format JSON sahaja.' }]
       })
