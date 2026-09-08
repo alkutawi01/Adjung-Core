@@ -1,4 +1,5 @@
 import React from 'react';
+import { safeParseInline } from '../../../utils.tsx';
 
 interface BarCardExpandedPanelProps {
   item: any;
@@ -9,6 +10,19 @@ interface BarCardExpandedPanelProps {
 // which has any other display path on the compact card (see BarCard.tsx). item.penerangan was
 // added to the data pipeline specifically for this panel (server.js, "disediakan untuk ciri
 // akordion akan datang").
+//
+// safeParseInline() on penerangan (2026-09-09, bug-hunt follow-up to #135/#136/#137) —
+// BarSlotManagerModal.tsx's Field component wires the SAME Ctrl/Cmd+I italic shortcut
+// (tanganiKekunciItalic) to the Penerangan textarea as every other editorial text field
+// (Tajuk/Huraian in SlotManagerModal.tsx), so an editor pressing Ctrl+I there produces the
+// exact same `*teks*` literal asterisks the rest of the app renders as <em>. This panel used
+// to print item.penerangan as a raw string with zero formatting/gloss/typography processing,
+// so those asterisks (and any bold/glossary markup) showed up verbatim to readers instead of
+// being rendered — the input affordance promised formatting the output never honoured.
+// safeParseInline() is the single shared renderer every other kad/Focus View text already
+// goes through (bold/italic/autocondong/pemenggalan, plus the gloss-authoring kill-switch
+// strip that closed #137) — wiring it here brings Penerangan in line with that contract
+// instead of leaving it as the one text field with an input path but no output path.
 export const BarCardExpandedPanel: React.FC<BarCardExpandedPanelProps> = ({ item }) => {
   if (!item) return null;
 
@@ -28,7 +42,7 @@ export const BarCardExpandedPanel: React.FC<BarCardExpandedPanelProps> = ({ item
           besarnya. */}
       {hasPenerangan ? (
         <p className="font-serif text-[9px] md:text-xs text-stone-700 leading-relaxed whitespace-pre-line">
-          {item.penerangan}
+          {safeParseInline(item.penerangan)}
         </p>
       ) : (
         <p className="font-serif text-[9px] md:text-xs text-stone-400 italic">Tiada perincian tambahan.</p>
