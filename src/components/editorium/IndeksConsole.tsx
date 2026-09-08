@@ -1006,6 +1006,15 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       setItems(prev => prev.map(i => i.id === activeItemModal.id ? {
         ...i,
         status: statusSebenar,
+        // sebabMenunggu (bug-hunt 2026-09-09) — medan ni DIKIRA SEMULA pelayan setiap kali status
+        // berubah (contentRoutes.js ~baris 1441-1445: 'slot_penuh' bila tersekat had slot, '' bila
+        // mendarat status lain). Dahulu hanya `status` ditampal optimistik, `sebabMenunggu` LAMA
+        // (dari sebelum Siarkan Semula, selalunya kosong sebab rekod tu 'Archive') dibiarkan
+        // lapuk — baris jadual (labelSebabMenunggu()) dan kiraan statusCounts.PendingSemakan/
+        // PendingSlotPenuh (guna medan ni terus) tersilap papar "Menunggu Semakan" untuk
+        // kandungan yang sebenarnya SUDAH lulus, cuma tunggu slot kosong, sehingga muat semula
+        // penuh. Segarkan sekali dengan status.
+        sebabMenunggu: body.slotPenuh ? 'slot_penuh' : '',
         // reactivateDesk sumber terus daripada activeBidangList (dropdown) — sudah betul kes
         // hurufnya, formatTitleCase() di sini dulu SILAP tekabalik nama yang dah pun betul.
         desk: reactivateDesk,
