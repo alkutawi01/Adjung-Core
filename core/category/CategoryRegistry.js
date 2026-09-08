@@ -455,7 +455,25 @@ class CategoryRegistry {
     if (berlanggar) {
       throw new Error(`Bidang aktif "${trimmedName}" sudah wujud. Pilih nama lain atau gabungkan Bidang.`);
     }
+    // PEMBETULAN (2026-09-08, dapatan bug-hunt) — dahulu HANYA lajur `name` di CategoryRegistry
+    // ditukar; `slots_config.manualDesk` (kunci Bidang SEMASA bagi slot tu, bukan rekod sejarah
+    // kandungan) dibiarkan menyimpan nama LAMA. Disahkan terhadap salinan DB sebenar: selepas
+    // rename, `getSlotsForCategory(namaBaharu)` pulangkan SIFAR slot (Taksonomi nampak macam
+    // peruntukan slot hilang terus), manakala manualDesk slot tu terus memegang nama lama yang
+    // sudah TAK PADAN mana-mana Bidang aktif — assign-slot/dropdown borang kandungan tak lagi
+    // kenal nama tu, jadi slot berkenaan terkunci pada Bidang "hantu" sehingga Pentadbir sedar dan
+    // assign-slot semula secara manual. Ini BERBEZA daripada sekatan sengaja di atas (yang
+    // mengelak cascade ke `editorial_objects.categoryId`/`editorial_attribute_values` — rekod
+    // SEJARAH kandungan lama, memang patut kekal) — `manualDesk` bukan sejarah, ia peruntukan
+    // AKTIF, jadi MESTI ikut nama baharu supaya slot terus berfungsi selepas rename.
+    const lamaRow = await this.dbGet(db, "SELECT name FROM CategoryRegistry WHERE id = ?", [id]);
     await this.dbRunMestiUbah(db, "UPDATE CategoryRegistry SET name = ?, updatedAt = ? WHERE id = ?", [trimmedName, now, id]);
+    if (lamaRow && lamaRow.name && lamaRow.name.toLowerCase() !== trimmedName.toLowerCase()) {
+      await this.dbRun(db, `
+        UPDATE slots_config SET manualDesk = ?
+        WHERE layoutTemplateId = 'frontpage' AND LOWER(manualDesk) = LOWER(?)
+      `, [trimmedName, lamaRow.name]);
+    }
   }
 
   // Nombor slot (0-based) yang manualDesk-nya sepadan (case-insensitive) nama Bidang ni — untuk
