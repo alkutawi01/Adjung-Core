@@ -6,6 +6,14 @@ import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, requirePermission, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany, selesaikanMenungguKelulusan } from '../notifications/Notify.js';
+// stripMarkdownEsm (2026-09-09, sambungan vein bug-hunt markdown-leak) — Peti Makluman
+// (MaklumanDrawer.tsx) render n.tajuk/n.kandungan sebagai TEKS JSX literal (`{n.tajuk}`), BUKAN
+// melalui safeParseInline seperti kad frontpage/FocusView — konteks plain-text-SAHAJA yang sama
+// seperti PosterGenerator.tsx (canvas) dan og.png (satori) yang dibaiki sebelum ni. Tajuk artikel
+// (boleh mengandungi sintaks *condong* mentah, editor guna Ctrl/Cmd+I) dihantar terus ke medan
+// `title`/`detail` notify()/notifyMany() di bawah tanpa dibuang dahulu — asterisk mentah bocor ke
+// Peti Makluman editor lain (disahkan: tiada laluan render notifikasi guna safeParseInline).
+import { stripMarkdownEsm } from '../editorial/stripMarkdown.js';
 import { isDue, hasReplacementForExpiry, resolveEffectiveStatus } from '../editorial/Scheduling.js';
 // denganKunciTicker (2026-08-20, dapatan audit modul Ticker) — laluan dalam fail ni yang
 // membaca-ubah-menulis `system_settings.inTheNewsText` dahulu hanya memegang
@@ -173,7 +181,7 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
     await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
       type: 'kandungan_disiar', title: 'Kandungan anda kini Aktif (giliran slot kini kosong)',
-      detail: (calon.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${calon.objectId}`,
+      detail: stripMarkdownEsm(calon.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${calon.objectId}`,
     });
   }
 }
@@ -383,7 +391,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
           title: sebabJadual === 'slot_penuh'
             ? 'Kandungan berjadual anda menunggu slot kosong'
             : 'Kandungan berjadual anda kini disiarkan',
-          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
+          detail: stripMarkdownEsm(row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
         });
       }
     }
@@ -426,7 +434,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [objRow.slotIndex]);
         await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
           type: 'kandungan_luput_berjadual', title: 'Kandungan anda telah luput & diarkibkan',
-          detail: (row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
+          detail: stripMarkdownEsm(row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
         });
         // Slot berkosong (2026-08-06) — luput berjadual bebaskan satu ruang 'approved'; naik
         // taraf calon 'slot_penuh' paling lama tertunggu dalam slot yang sama, kalau ada.
@@ -559,7 +567,7 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
         const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
         await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
           type: 'kandungan_putar_arkib', title: 'Kandungan anda diarkibkan automatik (giliran slot, 24 jam)',
-          detail: (terlama.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${terlama.objectId}`,
+          detail: stripMarkdownEsm(terlama.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${terlama.objectId}`,
         });
         // Ruang baharu terbuka — naik taraf calon 'slot_penuh' paling lama tertunggu SEKARANG,
         // jangan tunggu tik lain (promosikanMenungguSlotKosong sendiri idempotent/selamat dipanggil
@@ -1372,7 +1380,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           await notifyMany(dbRun, penerimaBukanDiri, {
             type: 'kandungan_disiar',
             title: 'Kandungan anda telah disiarkan',
-            detail: (title !== undefined ? title : rev.title || '').slice(0, 150),
+            detail: stripMarkdownEsm(title !== undefined ? title : rev.title || '').slice(0, 150),
             targetType: 'kandungan',
             targetId: `${notifySlotIndex}:${id}`,
           });
@@ -1964,7 +1972,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         .filter((eid) => eid !== req.session?.user?.id);
       await notifyMany(dbRun, penerimaIds, {
         type: 'kandungan_ditolak',
-        title: `Kandungan anda ditolak: ${(rev.title || '').slice(0, 100)}`,
+        title: `Kandungan anda ditolak: ${stripMarkdownEsm(rev.title || '').slice(0, 100)}`,
         detail: sebab ? `Sebab: ${sebab}` : '',
         // targetType 'draf_ditolak' (bukan 'kandungan' generik) — objek ASAL (id) sudah diarkibkan
         // di atas dan bukan lagi boleh disunting; draf BOLEH-EDIT sebenar ialah blok teks baharu

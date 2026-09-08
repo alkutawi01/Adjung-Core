@@ -78,6 +78,11 @@ import { semakKonfigBaseUrlStartup } from './core/utils/baseUrl.js';
 import { requireAuthForWrites, loadRolePermissions, hasPermission } from './core/middleware/auth.js';
 import { logAudit } from './core/audit/AuditLog.js';
 import { notify, notifyMany, beritahuPelulusKandungan } from './core/notifications/Notify.js';
+// stripMarkdownEsm (2026-09-09, sambungan vein bug-hunt markdown-leak — lihat komen sepadan di
+// contentRoutes.js) — Peti Makluman render tajuk/detail notifikasi sebagai teks JSX literal,
+// bukan safeParseInline; tajuk kandungan (boleh ada sintaks *condong* mentah) mesti dibuang
+// dahulu sebelum masuk medan title/detail notify()/beritahuPelulusKandungan().
+import { stripMarkdownEsm } from './core/editorial/stripMarkdown.js';
 const mockDb = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -4211,7 +4216,7 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
     await beritahuPelulusKandungan(dbAll, dbRun, {
       type: 'kandungan_menunggu_kelulusan',
       title: 'Kandungan menunggu kelulusan anda',
-      detail: `Slot ${slotIndex + 1}: ${menunggu.title}`.slice(0, 150),
+      detail: `Slot ${slotIndex + 1}: ${stripMarkdownEsm(menunggu.title)}`.slice(0, 150),
       targetType: 'kandungan',
       // objectId TELANJANG (bukan `${slotIndex}:${objectId}`) — selesaikanMenungguKelulusan()
       // (Notify.js, dipanggil contentRoutes.js selepas Tolak/Arkib/Padam/Pulihkan) padan
