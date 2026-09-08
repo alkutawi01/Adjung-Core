@@ -1,5 +1,6 @@
 import React from 'react';
 import { safeParseInline } from '../../../utils.tsx';
+import { renderDenganGlosari, type EntriGlosari } from '../../common/IstilahGlosari';
 
 // Tajuk+huraian tier MENEGAK (2026-08-16, sambungan Pelan Pratonton Kad ke SEMUA tier).
 //
@@ -24,11 +25,16 @@ export interface MenegakCardTeksProps {
   // perlukan literal, bukan hex digubah runtime), dikira ikut `getCardTheme(item).finalIsDark`
   // supaya maroon pada kad terang (biasa), aksen asal dikekalkan pada kad gelap (jarang berlaku).
   hoverClassName?: string;
+  // Glosari Berasaskan Bidang pada huraian (2026-09-08) — lihat nota HeroCardTeks.tsx.
+  petaGlosari?: Map<string, EntriGlosari>;
+  desk?: string | null;
   onClickTajuk?: (e: React.MouseEvent) => void;
   onClickHuraian?: (e: React.MouseEvent) => void;
 }
 
-export const MenegakCardTeks: React.FC<MenegakCardTeksProps> = ({ title, brief, briefStyle, hoverClassName = 'hover:text-[#802334]', onClickTajuk, onClickHuraian }) => (
+const PETA_KOSONG = new Map<string, EntriGlosari>();
+
+export const MenegakCardTeks: React.FC<MenegakCardTeksProps> = ({ title, brief, briefStyle, hoverClassName = 'hover:text-[#802334]', petaGlosari, desk, onClickTajuk, onClickHuraian }) => (
   <>
     <h3
       className={`font-serif text-[14px] md:text-2xl leading-snug font-medium transition-colors ${hoverClassName}`}
@@ -37,7 +43,7 @@ export const MenegakCardTeks: React.FC<MenegakCardTeksProps> = ({ title, brief, 
       {safeParseInline(title || '')}
     </h3>
     <p className="font-serif text-sm text-stone-100/95 leading-relaxed font-normal mt-3" style={briefStyle} onClick={onClickHuraian}>
-      {safeParseInline(brief || '')}
+      {renderDenganGlosari(brief || '', petaGlosari || PETA_KOSONG, new Set(), desk, safeParseInline)}
     </p>
   </>
 );

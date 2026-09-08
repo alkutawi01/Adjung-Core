@@ -10,9 +10,12 @@ import { resolveDefinisiGlosari as resolveDefinisiGlosariTulen } from '../../../
 // di Editorium sahaja, tak pernah menyentuh apa pembaca nampak. Ciri ni yang PERTAMA menjadikan
 // Glosari berkesan kepada pembaca sebenar.
 //
-// Keputusan Izzat (2026-08-07): kali PERTAMA sahaja per artikel (bukan setiap kemunculan), skop
-// tajuk+huraian+huraian panjang, padanan TAK case-sensitive, gaya garis putus-putus halus (bukan
-// warna menjerit — sepadan tipografi tenang Adjung).
+// Keputusan Izzat (2026-08-07): kali PERTAMA sahaja per artikel/kad (bukan setiap kemunculan),
+// skop tajuk+huraian panjang (FocusView.tsx, artikel penuh) DAN huraian PENDEK kad bento
+// (src/components/portal/cards/*CardTeks.tsx, 2026-09-08 — dahulu skop ni ASPIRASI sahaja, huraian
+// pendek tak pernah disambungkan walaupun frontpage TAK PERNAH papar huraian panjang; huraian
+// pendek ialah SATU-SATUNYA tempat huraian kelihatan di frontpage). Padanan TAK case-sensitive,
+// gaya garis putus-putus halus (bukan warna menjerit — sepadan tipografi tenang Adjung).
 //
 // Glosari Berasaskan Bidang — Sense (2026-08-16, arahan Izzat, seni bina disahkan
 // docs/glossary-architecture-proposal.md v3) — satu istilah kini boleh ada BANYAK Sense (makna

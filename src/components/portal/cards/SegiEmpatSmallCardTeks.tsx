@@ -1,5 +1,6 @@
 import React from 'react';
 import { safeParseInline } from '../../../utils.tsx';
+import { renderDenganGlosari, type EntriGlosari } from '../../common/IstilahGlosari';
 
 // Tajuk+huraian tier SEGI_EMPAT_SMALL (2026-08-16, sambungan Pelan Pratonton Kad ke SEMUA tier).
 //
@@ -17,12 +18,17 @@ export interface SegiEmpatSmallCardTeksProps {
   briefStyle?: React.CSSProperties;
   hoverClassName: string;
   briefClassName?: string;
+  // Glosari Berasaskan Bidang pada huraian (2026-09-08) — lihat nota HeroCardTeks.tsx.
+  petaGlosari?: Map<string, EntriGlosari>;
+  desk?: string | null;
   onClickTajuk?: (e: React.MouseEvent) => void;
   onClickHuraian?: (e: React.MouseEvent) => void;
 }
 
+const PETA_KOSONG = new Map<string, EntriGlosari>();
+
 export const SegiEmpatSmallCardTeks: React.FC<SegiEmpatSmallCardTeksProps> = ({
-  title, brief, briefStyle, hoverClassName, briefClassName = 'text-stone-200/90', onClickTajuk, onClickHuraian,
+  title, brief, briefStyle, hoverClassName, briefClassName = 'text-stone-200/90', petaGlosari, desk, onClickTajuk, onClickHuraian,
 }) => (
   <>
     <h3
@@ -32,7 +38,7 @@ export const SegiEmpatSmallCardTeks: React.FC<SegiEmpatSmallCardTeksProps> = ({
       {safeParseInline(title || '')}
     </h3>
     <p className={`font-serif text-xs ${briefClassName} leading-relaxed font-normal mt-2`} style={briefStyle} onClick={onClickHuraian}>
-      {safeParseInline(brief || '')}
+      {renderDenganGlosari(brief || '', petaGlosari || PETA_KOSONG, new Set(), desk, safeParseInline)}
     </p>
   </>
 );

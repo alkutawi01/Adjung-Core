@@ -1,5 +1,6 @@
 import React from 'react';
 import { safeParseInline } from '../../../utils.tsx';
+import { renderDenganGlosari, type EntriGlosari } from '../../common/IstilahGlosari';
 
 // Tajuk+huraian tier STANDARD (2026-08-16, sambungan Pelan Pratonton Kad ke SEMUA tier).
 //
@@ -18,11 +19,16 @@ export interface StandardCardTeksProps {
   // Warna hover tajuk (2026-08-17, Izzat) — lihat nota panjang di MenegakCardTeks.tsx. `#E9D8A6`
   // dikekalkan lalai untuk kad GELAP sahaja; kad terang (majoriti sebenar) kini maroon.
   hoverClassName?: string;
+  // Glosari Berasaskan Bidang pada huraian (2026-09-08) — lihat nota HeroCardTeks.tsx.
+  petaGlosari?: Map<string, EntriGlosari>;
+  desk?: string | null;
   onClickTajuk?: (e: React.MouseEvent) => void;
   onClickHuraian?: (e: React.MouseEvent) => void;
 }
 
-export const StandardCardTeks: React.FC<StandardCardTeksProps> = ({ title, brief, briefStyle, hoverClassName = 'hover:text-[#802334]', onClickTajuk, onClickHuraian }) => (
+const PETA_KOSONG = new Map<string, EntriGlosari>();
+
+export const StandardCardTeks: React.FC<StandardCardTeksProps> = ({ title, brief, briefStyle, hoverClassName = 'hover:text-[#802334]', petaGlosari, desk, onClickTajuk, onClickHuraian }) => (
   <>
     <h3
       className={`font-serif text-[15px] md:text-xl leading-snug font-medium transition-colors mt-2 ${hoverClassName}`}
@@ -31,7 +37,7 @@ export const StandardCardTeks: React.FC<StandardCardTeksProps> = ({ title, brief
       {safeParseInline(title || '')}
     </h3>
     <p className="font-serif text-sm text-stone-200/90 leading-relaxed font-normal mt-2" style={briefStyle} onClick={onClickHuraian}>
-      {safeParseInline(brief || '')}
+      {renderDenganGlosari(brief || '', petaGlosari || PETA_KOSONG, new Set(), desk, safeParseInline)}
     </p>
   </>
 );

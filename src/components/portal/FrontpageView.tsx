@@ -23,6 +23,7 @@ import { MenegakCardTeks } from './cards/MenegakCardTeks';
 import { StandardCardTeks } from './cards/StandardCardTeks';
 import { SegiEmpatMediumCardTeks } from './cards/SegiEmpatMediumCardTeks';
 import { SegiEmpatSmallCardTeks } from './cards/SegiEmpatSmallCardTeks';
+import { binaPetaGlosari, type EntriGlosari } from '../common/IstilahGlosari';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import BriefNavigator from './BriefNavigator';
@@ -2129,6 +2130,25 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
   useEffect(() => {
     setPemenggalanPengecualian(pemenggalanPengecualianList);
   }, [pemenggalanPengecualianList]);
+
+  // Glosari Berasaskan Bidang — huraian PENDEK kad bento (2026-09-08, permintaan Izzat: "ya, bina
+  // sekarang"). Sebelum ni tooltip glosari cuma sampai huraian PANJANG di FocusView.tsx (artikel
+  // penuh, dibuka sebagai anak komponen ni) — huraian pendek di kad bento (SATU-SATUNYA tempat
+  // huraian dipaparkan di frontpage, huraian panjang cuma kelihatan bila pembaca buka artikel)
+  // tak pernah disambungkan, jadi tooltip TAK PERNAH sampai ke kebanyakan pembaca. Muat SEKALI di
+  // sini (peta PENUH sama untuk semua kad — CLAUDE.md "pelayan cuma hantar peta PENUH sekali,
+  // setiap artikel/kad resolve sendiri ikut Bidangnya semasa render"), corak identik fetch
+  // `/api/system/glosari` sedia ada di FocusView.tsx (fetch berasingan sengaja — FocusView boleh
+  // dibuka tanpa FrontpageView pernah mount peta ni dahulu dalam sesetengah laluan ujian/deep-link).
+  const [petaGlosariKad, setPetaGlosariKad] = useState<Map<string, EntriGlosari>>(new Map());
+  useEffect(() => {
+    let dibatal = false;
+    fetch('/api/system/glosari')
+      .then((res) => res.json())
+      .then((data) => { if (!dibatal && Array.isArray(data)) setPetaGlosariKad(binaPetaGlosari(data)); })
+      .catch(() => { /* glosari cuma penambahbaikan bacaan — kegagalan tak menghalang frontpage */ });
+    return () => { dibatal = true; };
+  }, []);
 
   const loadSlotsConfig = () => {
     fetch('/api/system/slots')
@@ -4273,7 +4293,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                       activeIndex={bentoNewsItems[0].carouselIndex || 0}
                       onNavigate={(dir) => majuKarusel(0, bentoNewsItems[0].items && bentoNewsItems[0].items.length > 0 ? bentoNewsItems[0].items : [bentoNewsItems[0]], dir)}
                       renderItem={(it) => (
-                        <HeroCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[0]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                        <HeroCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[0]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                       )}
                     />
                   </div>
@@ -4324,7 +4344,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[1].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(1, bentoNewsItems[1].items && bentoNewsItems[1].items.length > 0 ? bentoNewsItems[1].items : [bentoNewsItems[1]], dir)}
                         renderItem={(it) => (
-                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[1]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <MenegakCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[1]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4372,7 +4392,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[2].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(2, bentoNewsItems[2].items && bentoNewsItems[2].items.length > 0 ? bentoNewsItems[2].items : [bentoNewsItems[2]], dir)}
                         renderItem={(it) => (
-                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[2]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <StandardCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[2]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4432,7 +4452,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[3]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[3]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[3]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4498,6 +4518,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <KompakCardTeks
                               title={it.title}
                               brief={it.brief}
+                              petaGlosari={petaGlosariKad}
+                              desk={it.desk}
                               briefStyle={getCardTheme(bentoNewsItems[4]).briefStyle}
                               onClickTajuk={focusClick(it)}
                               onClickHuraian={focusClick(it)}
@@ -4562,6 +4584,8 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <KompakCardTeks
                               title={it.title}
                               brief={it.brief}
+                              petaGlosari={petaGlosariKad}
+                              desk={it.desk}
                               briefStyle={getCardTheme(bentoNewsItems[5]).briefStyle}
                               onClickTajuk={focusClick(it)}
                               onClickHuraian={focusClick(it)}
@@ -4619,7 +4643,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[6].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(6, bentoNewsItems[6].items && bentoNewsItems[6].items.length > 0 ? bentoNewsItems[6].items : [bentoNewsItems[6]], dir)}
                         renderItem={(it) => (
-                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[6]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <StandardCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[6]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4668,7 +4692,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[12].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(12, bentoNewsItems[12].items && bentoNewsItems[12].items.length > 0 ? bentoNewsItems[12].items : [bentoNewsItems[12]], dir)}
                         renderItem={(it) => (
-                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[12]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <MenegakCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[12]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4756,7 +4780,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[11]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[11]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[11]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4822,7 +4846,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[13]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[13]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[13]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4881,7 +4905,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[14]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[14]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[14]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4937,7 +4961,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[15].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(15, bentoNewsItems[15].items && bentoNewsItems[15].items.length > 0 ? bentoNewsItems[15].items : [bentoNewsItems[15]], dir)}
                         renderItem={(it) => (
-                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[15]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <MenegakCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[15]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -4997,7 +5021,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[16]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[16]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[16]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5155,7 +5179,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[19].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(19, bentoNewsItems[19].items && bentoNewsItems[19].items.length > 0 ? bentoNewsItems[19].items : [bentoNewsItems[19]], dir)}
                         renderItem={(it) => (
-                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[19]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <StandardCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[19]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5213,7 +5237,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[26].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(26, bentoNewsItems[26].items && bentoNewsItems[26].items.length > 0 ? bentoNewsItems[26].items : [bentoNewsItems[26]], dir)}
                         renderItem={(it) => (
-                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[26]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <MenegakCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[26]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5261,7 +5285,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[20].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(20, bentoNewsItems[20].items && bentoNewsItems[20].items.length > 0 ? bentoNewsItems[20].items : [bentoNewsItems[20]], dir)}
                         renderItem={(it) => (
-                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[20]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <StandardCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[20]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5322,7 +5346,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[25]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[25]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[25]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5413,7 +5437,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[27]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[27]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[27]).finalIsDark ? 'hover:text-[#E9D8A6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5472,7 +5496,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[28]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatMediumCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[28]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[28]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5528,7 +5552,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[29].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(29, bentoNewsItems[29].items && bentoNewsItems[29].items.length > 0 ? bentoNewsItems[29].items : [bentoNewsItems[29]], dir)}
                         renderItem={(it) => (
-                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[29]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <MenegakCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[29]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5588,7 +5612,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                           <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                         )}
                         renderItem={(it) => (
-                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[30]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[30]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[30]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5746,7 +5770,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[33].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(33, bentoNewsItems[33].items && bentoNewsItems[33].items.length > 0 ? bentoNewsItems[33].items : [bentoNewsItems[33]], dir)}
                         renderItem={(it) => (
-                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[33]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <StandardCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[33]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5803,7 +5827,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[34].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(34, bentoNewsItems[34].items && bentoNewsItems[34].items.length > 0 ? bentoNewsItems[34].items : [bentoNewsItems[34]], dir)}
                         renderItem={(it) => (
-                          <StandardCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[34]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <StandardCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[34]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5851,7 +5875,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         activeIndex={bentoNewsItems[37].carouselIndex || 0}
                         onNavigate={(dir) => majuKarusel(37, bentoNewsItems[37].items && bentoNewsItems[37].items.length > 0 ? bentoNewsItems[37].items : [bentoNewsItems[37]], dir)}
                         renderItem={(it) => (
-                          <MenegakCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[37]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                          <MenegakCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[37]).briefStyle} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                         )}
                       />
                     </div>
@@ -5912,7 +5936,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                           )}
                           renderItem={(it) => (
-                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[35]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[35]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[35]).finalIsDark ? 'hover:text-[#F5EBE6]' : 'hover:text-[#802334]'} onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
                         />
                       </div>
@@ -5971,7 +5995,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                             <span className="absolute top-6 right-6 tarikh-siaran-badge font-mono text-[8px] text-stone-400 opacity-80 pointer-events-none select-none">{formatSiaranDate(it.publishedAt)}</span>
                           )}
                           renderItem={(it) => (
-                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[36]).finalIsDark ? 'hover:text-stone-300' : 'hover:text-[#802334]'} briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
+                            <SegiEmpatSmallCardTeks title={it.title} brief={it.brief} petaGlosari={petaGlosariKad} desk={it.desk} briefStyle={getCardTheme(bentoNewsItems[36]).briefStyle} hoverClassName={getCardTheme(bentoNewsItems[36]).finalIsDark ? 'hover:text-stone-300' : 'hover:text-[#802334]'} briefClassName="text-stone-300/90" onClickTajuk={focusClick(it)} onClickHuraian={focusClick(it)} />
                           )}
                         />
                       </div>

@@ -1,5 +1,6 @@
 import React from 'react';
 import { safeParseInline } from '../../../utils.tsx';
+import { renderDenganGlosari, type EntriGlosari } from '../../common/IstilahGlosari';
 
 // Tajuk+huraian tier SEGI_EMPAT_MEDIUM (2026-08-16, sambungan Pelan Pratonton Kad ke SEMUA tier).
 //
@@ -20,11 +21,16 @@ export interface SegiEmpatMediumCardTeksProps {
   brief: string;
   briefStyle?: React.CSSProperties;
   hoverClassName: string;
+  // Glosari Berasaskan Bidang pada huraian (2026-09-08) — lihat nota HeroCardTeks.tsx.
+  petaGlosari?: Map<string, EntriGlosari>;
+  desk?: string | null;
   onClickTajuk?: (e: React.MouseEvent) => void;
   onClickHuraian?: (e: React.MouseEvent) => void;
 }
 
-export const SegiEmpatMediumCardTeks: React.FC<SegiEmpatMediumCardTeksProps> = ({ title, brief, briefStyle, hoverClassName, onClickTajuk, onClickHuraian }) => (
+const PETA_KOSONG = new Map<string, EntriGlosari>();
+
+export const SegiEmpatMediumCardTeks: React.FC<SegiEmpatMediumCardTeksProps> = ({ title, brief, briefStyle, hoverClassName, petaGlosari, desk, onClickTajuk, onClickHuraian }) => (
   <>
     <h3
       className={`font-serif text-[14px] md:text-xl leading-snug font-medium transition-colors ${hoverClassName}`}
@@ -33,7 +39,7 @@ export const SegiEmpatMediumCardTeks: React.FC<SegiEmpatMediumCardTeksProps> = (
       {safeParseInline(title || '')}
     </h3>
     <p className="font-serif text-xs text-stone-200/90 leading-relaxed font-normal mt-2" style={briefStyle} onClick={onClickHuraian}>
-      {safeParseInline(brief || '')}
+      {renderDenganGlosari(brief || '', petaGlosari || PETA_KOSONG, new Set(), desk, safeParseInline)}
     </p>
   </>
 );
