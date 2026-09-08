@@ -1367,8 +1367,24 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
         // Slot berkosong (2026-08-06) — Arkib SENGAJA membebaskan satu ruang 'approved' dalam
         // slot ni; naik taraf calon 'slot_penuh' paling lama tertunggu, kalau ada.
+        //
+        // PEMBETULAN (2026-09-08, dapatan bug-hunt, corak sama seperti veins categoryId/desk
+        // sebelum ni) — sebelum ni guna `slotIndex !== undefined ? slotIndex : objRow.slotIndex`,
+        // sama seperti tapak notifySlotIndex/slotUntukPromosi lain kat fail ni. Tapi maksud dua
+        // tapak tu SEBENARNYA BERBEZA: bila kandungan jadi 'approved' (Terbit/Siarkan Semula), ia
+        // BENAR-BENAR mengisi slot BAHARU (kalau dipindah) — notify slot baharu memang betul. Bila
+        // kandungan jadi 'archived' pula, ruang yang DIBEBASKAN ialah slot LAMA yang objek tu
+        // TINGGALKAN (objRow.slotIndex, dibaca SEBELUM UPDATE slotIndex di atas) — bukan slot
+        // baharu (yang objek tu tak pernah 'approved' di situ dalam PATCH sama). Guna slotIndex
+        // baharu di sini (kalau PATCH turut memindah slot serentak dgn arkib) akan periksa slot
+        // yang SALAH: calon 'slot_penuh' yang sepatutnya naik taraf di slot lama tersekat
+        // 'pending' selama-lamanya, manakala slot baharu (yang tiada kaitan dgn vacancy ni)
+        // diperiksa sia-sia. Disahkan pepijat sebenar via simulasi DB (scratch, bukan adjung.db):
+        // Slot A ada 1 'approved' + 1 'pending' menunggu (slot_penuh); PATCH pindah objek approved
+        // tu ke Slot B serentak arkib — guna slotIndex baharu (5) biarkan calon Slot A tersekat
+        // pending; guna objRow.slotIndex (2, slot asal) betul naik taraf calon tu ke approved.
         if (effectiveStatus === 'archived' && objRow) {
-          const slotUntukPromosi = slotIndex !== undefined ? slotIndex : objRow.slotIndex;
+          const slotUntukPromosi = objRow.slotIndex;
           await promosikanMenungguSlotKosong(dbAll, dbGet, dbRun, slotUntukPromosi).catch((e) => {
             console.warn('Gagal naik taraf kandungan slot-berkosong:', e.message);
           });
