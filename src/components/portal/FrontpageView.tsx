@@ -6044,11 +6044,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
             <div className="flex flex-col gap-2.5">
               <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Institusi</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
-                {halamanAktif('about') && <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Mengenai Adjung</button></li>}
-                {halamanAktif('editorial-board') && <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Lembaga Editorial</button></li>}
-                <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Catatan Ketua Editor</button></li>
-                {halamanAktif('publishing-policies') && <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Dasar Penerbitan</button></li>}
-                <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Pengumuman</button></li>
+                {halamanAktif('about') && <li className="flex"><button onClick={() => handleFooterLinkClick('about')} className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Mengenai Adjung</button></li>}
+                {halamanAktif('editorial-board') && <li className="flex"><button onClick={() => handleFooterLinkClick('editorial-board')} className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Lembaga Editorial</button></li>}
+                <li className="flex"><button onClick={() => handleFooterLinkClick('editors-notes')} className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Catatan Ketua Editor</button></li>
+                {halamanAktif('publishing-policies') && <li className="flex"><button onClick={() => handleFooterLinkClick('publishing-policies')} className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Dasar Penerbitan</button></li>}
+                <li className="flex"><button onClick={() => handleFooterLinkClick('notices')} className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Pengumuman</button></li>
                 {/* "Sejarah Versi" DIBUANG dari footer (2026-08-16, keputusan Izzat selepas audit
                     ChatGPT) — bukan pepijat, keputusan positioning sengaja. Kandungan awam yang
                     sesuai untuk nama "Sejarah Versi" ialah sejarah PERKEMBANGAN PRODUK (release
@@ -6069,11 +6069,11 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
                 {/* Borang permohonan editor awam (2026-08-25) — laluan sebenar, bukan modal.
                     Dipindah dari kolum Institusi ke Maklumat (2026-08-27, arahan Izzat). */}
-                <li className="flex"><Link to="/sertai-pasukan-editorial" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Sertai Pasukan Editorial</Link></li>
-                {halamanAktif('hubungi') && <li className="flex"><Link to="/hubungi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Hubungi</Link></li>}
-                {halamanAktif('polisi-privasi') && <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Polisi Privasi</Link></li>}
-                {halamanAktif('terma-penggunaan') && <li className="flex"><Link to="/terma-penggunaan" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Terma Penggunaan</Link></li>}
-                {halamanAktif('penafian') && <li className="flex"><Link to="/penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none cursor-pointer">Penafian</Link></li>}
+                <li className="flex"><Link to="/sertai-pasukan-editorial" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Sertai Pasukan Editorial</Link></li>
+                {halamanAktif('hubungi') && <li className="flex"><Link to="/hubungi" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Hubungi</Link></li>}
+                {halamanAktif('polisi-privasi') && <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Polisi Privasi</Link></li>}
+                {halamanAktif('terma-penggunaan') && <li className="flex"><Link to="/terma-penggunaan" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Terma Penggunaan</Link></li>}
+                {halamanAktif('penafian') && <li className="flex"><Link to="/penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Penafian</Link></li>}
               </ul>
             </div>
           </div>
