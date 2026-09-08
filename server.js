@@ -4823,11 +4823,38 @@ process.on('unhandledRejection', (reason) => {
 
 // Penutupan bersih (2026-08-02) — pastikan pemegang SQLite ditutup dengan kemas supaya jurnal
 // panas tidak tertinggal bila proses dihentikan (cth semasa deploy semula).
+//
+// Susulan (2026-09-09, bug-hunt REAL) — versi asal terus panggil `db.close()` tanpa pernah
+// hentikan pelayan HTTP dahulu. `app.listen()` (baris di atas) tak pernah simpan handle
+// pelayan pun (`app.listen(...)` berdiri sendiri, bukan `const httpServer = app.listen(...)`),
+// jadi TIADA CARA untuk berhenti terima sambungan baharu atau tunggu request YANG SEDANG
+// berjalan (cth PATCH /content sedang tulis DB) selesai sebelum proses ditamatkan. `pm2
+// restart`/deploy (lihat deploy.yml, `pm2 restart adjung-brief` selepas `npm run build`)
+// hantar SIGTERM terus — kalau signal tu tiba semasa handler Express sedang di tengah-tengah
+// (dah terima request, belum sempat panggil db.run/db.get), `db.close()` (yang cuma tunggu
+// STATEMENT SQLite yang SUDAH DIJADUALKAN, bukan handler HTTP yang belum sempat menjadualkan
+// apa-apa) boleh siap dan proses exit SEBELUM handler tu sempat menulis — permintaan pengguna
+// hilang senyap (bukan gagal dengan ralat 500 yang jelas, terus tiada respons/connection
+// reset), berlaku pada SETIAP restart pm2 (bukan cuma deploy). Dibaiki: `httpServer.close()`
+// dipanggil DAHULU — Node berhenti terima sambungan BAHARU serta-merta tetapi biarkan
+// sambungan/request SEDANG BERJALAN selesai sendiri sebelum callback `close` tercetus, BARU
+// `db.close()` dipanggil. Had masa 10 saat (`forceExitTimer`) sebagai jaring keselamatan kalau
+// ada request tersekat (cth panggilan AI luaran perlahan) — proses tetap keluar supaya pm2
+// tak tunggu selama-lamanya, tapi kes biasa (request pantas) kini selesai dengan bersih dahulu.
 const gracefulShutdown = (signal) => {
   console.log(`${signal} diterima — menutup pelayan...`);
-  db.close((err) => {
-    if (err) console.error('Ralat menutup pangkalan data:', err);
-    process.exit(err ? 1 : 0);
+  const forceExitTimer = setTimeout(() => {
+    console.error('Penutupan bersih tamat masa (10s) — keluar paksa.');
+    process.exit(1);
+  }, 10000);
+  forceExitTimer.unref();
+  httpServer.close((httpErr) => {
+    if (httpErr) console.error('Ralat menutup pelayan HTTP:', httpErr);
+    db.close((err) => {
+      if (err) console.error('Ralat menutup pangkalan data:', err);
+      clearTimeout(forceExitTimer);
+      process.exit(err ? 1 : 0);
+    });
   });
 };
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
@@ -5015,7 +5042,7 @@ const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
 
 // Start Express Server
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, '0.0.0.0', () => {
+const httpServer = app.listen(PORT, '0.0.0.0', () => {
   console.log(`Backend API server running on http://localhost:${PORT}`);
   semakKonfigSmtpStartup();
   semakKonfigBaseUrlStartup(logAudit, dbRun).catch(() => {});
