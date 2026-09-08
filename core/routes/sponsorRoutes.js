@@ -78,12 +78,31 @@ const namaPaparPenaja = (r) => (r.anonymousNo ? `${r.name} ${angkaRom(r.anonymou
 // luput). Semakan ni kini eksplisit tanya "adakah tamatTajaan sudah lepas SEKARANG", bukan
 // "adakah ia tak aktif sekarang atas apa jua sebab" — penaja belum bermula (mula > sekarang)
 // tak lagi terjebak dalam label yang sama.
-const tajaanSudahLepas = (sponsor, sekarang) => {
-  if (!sponsor || !sponsor.mulaTajaan || !sponsor.tamatTajaan) return false;
-  const masa = sekarang instanceof Date ? sekarang.getTime() : new Date(sekarang).getTime();
-  const tamat = new Date(sponsor.tamatTajaan).getTime();
-  if (Number.isNaN(masa) || Number.isNaN(tamat)) return false;
-  return tamat < masa;
+// tajaanSudahLepas HANYA tangani penaja julat-tarikh (mulaTajaan+tamatTajaan kedua-duanya
+// diisi) — kembali false serta-merta bila salah satu tiada, termasuk penaja BULANAN lama
+// (guna `bulan`, tiada julat ISO langsung). Itu bermakna penaja bulanan berstatus 'aktif'
+// yang `bulan`-nya SUDAH BUKAN bulan semasa (cth "2026-06" sedangkan sekarang 2026-09) tak
+// pernah dapat lencana amaran "Tamat" ni — SAMA PEPIJAT yang baru dibaiki utk penaja julat-
+// tarikh (komited hari ni, lihat nota tajaanTamat/tajaanSudahLepas di atas), cuma cabang
+// bulanan tercicir drpd pembetulan asal sebab tajaanSudahLepas() sengaja skop sempit kepada
+// julat ISO sahaja. Kesan sebenar: sponsorAktifPadaMasa() (gerbang SEBENAR laluan awam) sudah
+// betul-betul menyembunyikan logo penaja bulanan lapuk drpd footer/halaman /penaja (bulan !==
+// bulanKini), tapi Editorium terus papar ia di bawah "Penaja Aktif" TANPA sebarang isyarat
+// visual — Pentadbir tak nampak penaja tu sebenarnya sudah tak tayang, sama seperti masalah
+// asal yang dilaporkan utk kes julat-tarikh (2026-09-09, bug-hunt susulan).
+const tajaanSudahLepas = (sponsor, sekarang, bulanKini) => {
+  if (!sponsor) return false;
+  if (sponsor.mulaTajaan && sponsor.tamatTajaan) {
+    const masa = sekarang instanceof Date ? sekarang.getTime() : new Date(sekarang).getTime();
+    const tamat = new Date(sponsor.tamatTajaan).getTime();
+    if (Number.isNaN(masa) || Number.isNaN(tamat)) return false;
+    return tamat < masa;
+  }
+  // Penaja bulanan (tiada julat ISO) — "Tamat" bermakna bulan tersimpan BUKAN bulan semasa.
+  // bulanKini opsyenal (pemanggil lama yang tak hantar ia terus jatuh balik `false`, elak
+  // regresi kalau ada laluan lain panggil fungsi ni tanpa parameter tambahan).
+  if (!bulanKini) return false;
+  return !!sponsor.bulan && sponsor.bulan !== bulanKini;
 };
 
 const barisKepadaPenaja = (r, petaSlot, sekarang, bulanKini) => ({
@@ -98,7 +117,7 @@ const barisKepadaPenaja = (r, petaSlot, sekarang, bulanKini) => ({
   tayangSemasaTransisi: r.tayangSemasaTransisi === 1,
   jumlahBayaran: r.jumlahBayaran || 0,
   status: r.status,
-  tajaanTamat: r.status === 'aktif' && tajaanSudahLepas(r, sekarang || new Date()),
+  tajaanTamat: r.status === 'aktif' && tajaanSudahLepas(r, sekarang || new Date(), bulanKini),
   dikemasPada: r.updatedAt,
 });
 
