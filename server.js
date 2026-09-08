@@ -593,17 +593,24 @@ const initializeSchema = () => {
         `, (errRssSet) => {
           if (errRssSet) reject(errRssSet);
           else {
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN formattedBrief TEXT;", () => {});
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN scoreBreakdown TEXT;", () => {});
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN decision TEXT;", () => {});
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN deskBreakdown TEXT;", () => {});
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryDesk TEXT;", () => {});
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryScore INTEGER DEFAULT 0;", () => {});
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN rawCategory TEXT;", () => {});
-            // briefTruncated (2026-08-02, Fasa 8, "limpahan teks seragam") — formatRssBrief
-            // potong huraian panjang senyap sepenuhnya sebelum ni, tiada rekod ia berlaku.
-            // Kini ditanda per-item supaya boleh disemak/dipanjangkan semula di Editorium.
-            db.run("ALTER TABLE rss_ticker_items ADD COLUMN briefTruncated INTEGER DEFAULT 0;", () => {});
+            // ALTER TABLE rss_ticker_items ADD COLUMN ... (formattedBrief, scoreBreakdown,
+            // decision, deskBreakdown, secondaryDesk, secondaryScore, rawCategory,
+            // briefTruncated) DIPINDAH ke initEditorialOS() (lihat CREATE TABLE IF NOT EXISTS
+            // rss_ticker_items di situ) — 2026-09-08, dapatan bug-hunt REAL (disahkan simulasi
+            // HTTP terhadap DB baharu). Sebelum ni ALTER TABLE ni berada DI SINI, iaitu SEBELUM
+            // rss_ticker_items itu sendiri wujud (jadual tu cuma dicipta lewat dalam
+            // initEditorialOS, dipanggil selepas rantaian db.serialize ni selesai). Pada
+            // pangkalan data BAHARU (fresh install, atau pemulihan selepas kehilangan adjung.db —
+            // CLAUDE.md Teras 4: "tiada backup DB yang boleh dipercayai"), SETIAP ALTER ni gagal
+            // senyap dengan "no such table: rss_ticker_items" (`() => {}` menelan ralat), jadi
+            // lajur ni TIDAK PERNAH wujud — POST /api/system/rss-settings (nilaiSemulaKeputusanSediaAda,
+            // baca lajur `rawCategory`) gagal 500 "SQLITE_ERROR: no such column: rawCategory" pada
+            // percubaan PERTAMA simpan Tetapan RSS, dan seluruh Modul RSS Direct/Review Queue
+            // pincang kekal begitu (IF NOT EXISTS bermakna ALTER tak dicuba semula pada boot
+            // seterusnya). Susunan lama kebetulan tak nampak pada adjung.db pengeluaran sebab
+            // jadual itu sudah wujud lebih awal sebelum kod ni disusun begini, tapi mana-mana
+            // klon/pemasangan baharu akan terjejas serta-merta — disahkan reproduce & dibaiki
+            // via server sebenar terhadap DB buangan (.simulasi/sim15-rss-review-lulus.mjs).
             db.run("ALTER TABLE rss_editorial_settings ADD COLUMN maxNewsAgeHours INTEGER DEFAULT 48;", () => {});
             db.run("ALTER TABLE rss_editorial_settings ADD COLUMN tickerMaxItems INTEGER DEFAULT 20;", () => {});
             // tickerTitleMinChars (2026-08-16, permintaan Izzat — "ticker ada yg terlalu pendek
@@ -2233,6 +2240,18 @@ const initEditorialOS = (dbConn) => {
           createdAt TEXT
         )
       `);
+      // ALTER TABLE lajur tambahan rss_ticker_items — DIPINDAH ke SINI (2026-09-08, bug-hunt REAL)
+      // daripada rantaian db.serialize lebih awal (berhampiran CREATE TABLE rss_editorial_settings),
+      // yang cuba ALTER jadual ni SEBELUM ia wujud — gagal senyap pada DB baharu, lihat nota panjang
+      // di lokasi asal. MESTI kekal SELEPAS CREATE TABLE rss_ticker_items di atas.
+      dbConn.run("ALTER TABLE rss_ticker_items ADD COLUMN deskBreakdown TEXT;", () => {});
+      dbConn.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryDesk TEXT;", () => {});
+      dbConn.run("ALTER TABLE rss_ticker_items ADD COLUMN secondaryScore INTEGER DEFAULT 0;", () => {});
+      dbConn.run("ALTER TABLE rss_ticker_items ADD COLUMN rawCategory TEXT;", () => {});
+      // briefTruncated (2026-08-02, Fasa 8, "limpahan teks seragam") — formatRssBrief potong
+      // huraian panjang senyap sepenuhnya sebelum ni, tiada rekod ia berlaku. Kini ditanda per-item
+      // supaya boleh disemak/dipanjangkan semula di Editorium.
+      dbConn.run("ALTER TABLE rss_ticker_items ADD COLUMN briefTruncated INTEGER DEFAULT 0;", () => {});
 
       // 1. ai_providers
       dbConn.run(`
