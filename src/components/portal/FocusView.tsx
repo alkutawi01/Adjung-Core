@@ -325,7 +325,14 @@ export interface FocusViewProps {
   onPrev?: () => void;
   onNext?: () => void;
   /** Tajuk kandungan sebelum/selepas, dipapar kecil di sebelah anak panah atas/bawah. Tiada kesan
-   *  kalau `onPrev`/`onNext` sepadan tiada. */
+   *  kalau `onPrev`/`onNext` sepadan tiada. Dihantar sebagai rentetan MENTAH (HalamanBidang.tsx
+   *  `gabungan[i].title`, FrontpageView.tsx `focusPrevTitle`/`focusNextTitle`) — MESTI dibalut
+   *  `safeParseInline()` di SETIAP tapak render (4 tapak: mobile + desktop), BUKAN dipaparkan
+   *  terus, sama corak pepijat #138-141 (dapatan bug-hunt 2026-09-09) — medan Tajuk terima
+   *  pintasan Ctrl/Cmd+I (`tanganiKekunciItalic()`), jadi rentetan ni boleh mengandungi `*teks*`
+   *  tersimpan. Sebelum fix ni, klik navigasi atas/bawah/gesture papar asterisk literal pada
+   *  pratonton tajuk artikel bersebelahan walau artikel yang sama papar condong dengan betul
+   *  bila dibuka terus. */
   prevPreviewTitle?: string;
   nextPreviewTitle?: string;
   onClose?: () => void;
@@ -1259,7 +1266,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   <span style={{
                     fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
-                  }}>{prevPreviewTitle}</span>
+                  }}>{safeParseInline(prevPreviewTitle)}</span>
                 )}
               </button>
               <button type="button" aria-label="Kandungan seterusnya" onClick={onNext} disabled={!onNext} style={{ ...navBtn, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -1267,7 +1274,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   <span style={{
                     fontFamily: 'var(--font-serif)', fontSize: '12px', color: 'var(--text-heading)', lineHeight: 1.3,
                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' as any, overflow: 'hidden',
-                  }}>{nextPreviewTitle}</span>
+                  }}>{safeParseInline(nextPreviewTitle)}</span>
                 )}
                 <ChevronDown size={16} strokeWidth={1.75} className="fv-nav-chevron fv-nav-chevron-down" style={{ flex: '0 0 auto' }} />
               </button>
@@ -1498,7 +1505,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                       style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '8px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onPrev ? 'pointer' : 'default' }}
                     >
                       <span className="fv-arrow" style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▲</span>
-                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{prevPreviewTitle}</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{safeParseInline(prevPreviewTitle)}</span>
                     </button>
                   )}
                   {nextPreviewTitle && (
@@ -1508,7 +1515,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                       style={{ display: 'flex', flexDirection: 'row', alignItems: 'baseline', gap: '8px', background: 'none', border: 0, padding: 0, margin: 0, textAlign: 'left', cursor: onNext ? 'pointer' : 'default' }}
                     >
                       <span className="fv-arrow" style={{ ...micro, textTransform: 'none' as any, fontSize: 'var(--text-11)', flex: '0 0 auto' }} aria-hidden="true">▼</span>
-                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{nextPreviewTitle}</span>
+                      <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', lineHeight: 1.4, color: 'var(--text-heading)' }}>{safeParseInline(nextPreviewTitle)}</span>
                     </button>
                   )}
                 </div>
