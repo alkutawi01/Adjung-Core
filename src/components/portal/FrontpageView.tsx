@@ -3011,6 +3011,20 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         if (t.timeoutId) clearTimeout(t.timeoutId);
         if (t.intervalId) clearInterval(t.intervalId);
       });
+      // Turut kosongkan jam yang telah DISET SEMULA oleh navigasi manual (majuKarusel(), di
+      // bawah) selepas effect ni jalan (2026-09-09, dapatan audit uncancelled-timer). majuKarusel
+      // dicetuskan oleh klik pembaca — DI LUAR effect ni — dan menulis intervalId BAHARU terus ke
+      // timerRefsMap.current[slotIdx] TANPA pernah mendaftarkannya ke activeTimers di atas. Kalau
+      // pembaca navigasi manual satu slot, kemudian slotsConfig/rawBentoNewsItems berubah (effect
+      // ni jalan semula) ATAU komponen unmount, `activeTimers` di atas cuma memegang intervalId
+      // LAMA (yang majuKarusel() sendiri dah clearInterval semasa reset) — intervalId BAHARU yang
+      // dicipta majuKarusel() tak pernah disebut di situ, jadi ia terus berjalan selama-lamanya,
+      // memanggil setCarouselIndices() pada komponen yang sudah unmount/slot data yang dah lapuk.
+      // timerRefsMap.current sentiasa memegang intervalId TERKINI (sama ada dari effect ni atau
+      // dari majuKarusel), jadi ia satu-satunya sumber kebenaran yang selamat untuk dibersihkan.
+      Object.values(timerRefsMap.current).forEach((rujukan: { intervalId?: ReturnType<typeof setInterval> }) => {
+        if (rujukan?.intervalId) clearInterval(rujukan.intervalId);
+      });
     };
   }, [rawBentoNewsItems, mulaIkutMasa, jedaPertamaCarousel, modCarousel]);
 
