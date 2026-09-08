@@ -59,7 +59,7 @@ interface MaklumanDrawerProps {
   // Buka terus sasaran notifikasi kandungan/draf (2026-09-01, Izzat: "susah nak cari kandungan
   // apa yg ditolak... pautan utk edit pun tak diberi"). Pilihan — tak semua jenis notifikasi ada
   // sasaran boleh dibuka (cth Sistem RSS/cuaca gagal, Nota Ketua Editor).
-  onBukaSasaran?: (sasaranJenis: string, sasaranId: string, jenisNotifikasi: string) => void;
+  onBukaSasaran?: (id: string, sasaranJenis: string, sasaranId: string, jenisNotifikasi: string) => void;
   // Lapor tab yang BENAR-BENAR dilihat (2026-09-08, dapatan bug-hunt) — EditoriumView.tsx guna
   // ni supaya tanda-dibaca bila laci ditutup hanya kenakan tab yang editor sempat lihat, bukan
   // KEDUA-DUA tab secara membuta tuli (lihat nota panjang di notificationRoutes.js `kumpulan`).
@@ -376,7 +376,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
                       {onBukaSasaran && n.sasaranJenis && n.sasaranId && JENIS_BOLEH_BUKA.has(n.jenis) && (
                         <button
                           type="button"
-                          onClick={(e) => { e.stopPropagation(); onBukaSasaran(n.sasaranJenis!, n.sasaranId!, n.jenis); }}
+                          onClick={(e) => { e.stopPropagation(); onBukaSasaran(n.id, n.sasaranJenis!, n.sasaranId!, n.jenis); }}
                           className="font-mono text-[10px] uppercase tracking-wide font-bold text-Adjung-maroon hover:underline cursor-pointer"
                         >
                           {n.jenis === 'kandungan_ditolak' || n.jenis === 'draf_ditolak' ? 'Buka draf →' : 'Lihat di Indeks →'}

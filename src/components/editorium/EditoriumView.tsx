@@ -553,19 +553,31 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
     // selamat drpd meneka salah dan tersembunyikan hasil sebenar.
     kandungan_terbit_berjadual: 'Semua',
   };
-  const bukaSasaranNotifikasi = (sasaranJenis: string, sasaranId: string, jenisNotifikasi?: string) => {
+  // `id` (2026-09-09, dapatan bug-hunt) — butang "Buka draf →"/"Lihat di Indeks →" di
+  // MaklumanDrawer.tsx panggil `e.stopPropagation()` sebelum fungsi ni, jadi onClick baris
+  // (yang memanggil onKlikNotifikasi) TIDAK PERNAH tercetus untuk notis ni. Fungsi ni pula
+  // menutup laci terus dengan `setMaklumanTerbuka(false)` (bukan tutupMakluman()), jadi
+  // laluan tanda-dibaca ikut tab (2026-09-08) turut terlangkau. Kesannya: notis yang EDITOR
+  // BARU SAHAJA bertindak ke atasnya (klik terus untuk pergi baiki/lihat kandungan) kekal
+  // "belum dibaca" buat selama-lamanya — paling teruk melanggar kontrak "Lencana = janji"
+  // (CLAUDE.md) berbanding sebarang laluan lain, sebab ini laluan paling kerap digunakan untuk
+  // BERTINDAK atas notis (bukan sekadar membaca). Dibaiki: tandakan notis ni sendiri dibaca
+  // (corak sama klikNotifikasi) DAN tutup melalui tutupMakluman() supaya tab yang sempat
+  // dilihat turut ditanda ikut peraturan sedia ada, bukan dilangkau terus.
+  const bukaSasaranNotifikasi = (id: string, sasaranJenis: string, sasaranId: string, jenisNotifikasi?: string) => {
+    klikNotifikasi(id);
     const kolon = sasaranId.indexOf(':');
     if (kolon === -1) {
       // Format objectId telanjang (lihat komen di atas) — tiada slotIndex utk ditapis, buka
       // Indeks ikut status sahaja merentasi semua slot.
-      setMaklumanTerbuka(false);
+      tutupMakluman();
       lihatDiIndeks({ status: (jenisNotifikasi && STATUS_IKUT_JENIS[jenisNotifikasi]) || 'Semua' });
       return;
     }
     const slotIndex = parseInt(sasaranId.slice(0, kolon), 10);
     const sisa = sasaranId.slice(kolon + 1);
     if (Number.isNaN(slotIndex)) return;
-    setMaklumanTerbuka(false);
+    tutupMakluman();
     if (sasaranJenis === 'draf_ditolak') {
       bukaDraf(slotIndex, sisa);
       return;
