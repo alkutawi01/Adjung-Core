@@ -279,6 +279,20 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         }
         await dbRun('UPDATE permohonan_penaja SET status = ?, catatanDalaman = ?, updatedAt = ? WHERE id = ?',
           ['perlu_maklumat', String(catatan || '').trim(), kini, id]);
+        // E-mel WAJIB di sini (dapatan bug-hunt 2026-09-09) — tindakan 'tolak' dan 'lulus' di
+        // bawah kedua-duanya hantar e-mel kepada pemohon, tapi 'minta_maklumat' dahulu senyap:
+        // status/catatan cuma ditulis ke `catatanDalaman` (dibaca PenajaConsole.tsx SAHAJA,
+        // lihat nama medan "dalaman" = untuk kegunaan pentadbir semata-mata). Permohonan Penaja
+        // SENGAJA tiada akaun/log masuk (lihat komen fail atas) — e-mel ialah SATU-SATUNYA
+        // saluran pemohon tahu apa-apa berlaku pada permohonan mereka. Tanpa e-mel ni, pemohon
+        // yang diminta maklumat tambahan terperangkap tanpa notis buat selama-lamanya (tiada
+        // token/pautan pun dijana peringkat ni, tak macam 'lulus' — jadi mereka tak tahu langsung
+        // status berubah, apatah lagi maklumat apa yang diperlukan).
+        await hantarEmel({
+          to: rekod.emel,
+          subject: `Maklumat Tambahan Diperlukan — Permohonan Penajaan [${id}]`,
+          html: `<p>Salam,</p><p>Terima kasih atas permohonan penajaan ${id} kepada Adjung Brief. Sebelum semakan diteruskan, kami memerlukan maklumat tambahan daripada anda:</p>${catatan ? `<p>${escapeHtmlEmel(String(catatan).trim())}</p>` : ''}<p>Sila balas terus e-mel ini dengan maklumat yang diminta.</p>`,
+        });
       } else if (tindakan === 'tolak') {
         if (!STATUS_BOLEH_DISEMAK.includes(rekod.status)) {
           return res.status(409).json({ error: 'Permohonan ini sudah melepasi peringkat semakan.' });
