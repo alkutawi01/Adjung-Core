@@ -219,12 +219,14 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, fileData }),
       });
-      if (!res.ok) throw new Error('Muat naik gagal');
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      // Sama pembetulan seperti SlotManagerModal.tsx/PenajaConsole.tsx — baca `error` sebenar
+      // daripada pelayan sebelum buang, bukan mesej generik tetap.
+      if (!res.ok) throw new Error(data.error || 'Muat naik gagal');
       patch(i, 'image', data.url);
       setImageNote('Dimuat naik');
-    } catch (e) {
-      setImageNote('Muat naik gagal, cuba lagi');
+    } catch (e: any) {
+      setImageNote(e?.message || 'Muat naik gagal, cuba lagi');
     } finally {
       setUploadingImage(false);
       setTimeout(() => setImageNote(''), 2400);

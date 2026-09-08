@@ -242,12 +242,17 @@ export const PenajaConsole: React.FC = () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, fileData }),
       });
-      if (!res.ok) throw new Error('Muat naik gagal');
       const data = await bacaJsonSelamat(res);
+      if (!res.ok) throw new Error(data.error || 'Muat naik gagal');
       setLogoUrl(data.url);
       setNotaLogo('Dimuat naik');
-    } catch (e) {
-      setNotaLogo('Muat naik gagal, cuba lagi');
+    } catch (e: any) {
+      // Sebelum ni sentiasa "Muat naik gagal, cuba lagi" generik walau pelayan hantar sebab
+      // sebenar (cth "Fail melebihi had 5MB.", "Jenis fail tidak dibenarkan...", lihat
+      // mediaRoutes.js) — corak sama seperti bendera merah `throw new Error()` kosong yang
+      // dicatat CLAUDE.md, cuma di sini mesej pelayan dibaca dahulu (bacaJsonSelamat) tapi terus
+      // dibuang oleh catch generik. Papar mesej sebenar bila ada.
+      setNotaLogo(e?.message || 'Muat naik gagal, cuba lagi');
     } finally {
       setMemuatNaik(false);
       setTimeout(() => setNotaLogo(''), 2400);

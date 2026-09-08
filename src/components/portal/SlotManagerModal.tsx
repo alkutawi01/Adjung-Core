@@ -1155,12 +1155,17 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ filename: file.name, fileData }),
       });
-      if (!res.ok) throw new Error('Muat naik gagal');
-      const data = await res.json();
+      const data = await res.json().catch(() => ({}));
+      // Sebelum ni sentiasa "Muat naik gagal, cuba lagi" generik walau pelayan hantar sebab
+      // sebenar (cth "Fail melebihi had 5MB.", "Jenis fail tidak dibenarkan...", lihat
+      // mediaRoutes.js) — bendera merah `throw new Error()` tanpa baca `error` sebenar
+      // (CLAUDE.md, corak sama ContentReview.tsx saveBulk()), terlepas semasa fix itu sebab
+      // laluan muat naik imej ni tak pernah diaudit.
+      if (!res.ok) throw new Error(data.error || 'Muat naik gagal');
       patch(i, 'image', data.url);
       setImageNote('Dimuat naik');
-    } catch (e) {
-      setImageNote('Muat naik gagal, cuba lagi');
+    } catch (e: any) {
+      setImageNote(e?.message || 'Muat naik gagal, cuba lagi');
     } finally {
       setUploadingImage(false);
       setTimeout(() => setImageNote(''), 2400);
