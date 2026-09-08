@@ -1496,6 +1496,26 @@ export const FocusView: React.FC<FocusViewProps> = ({
         </div>
       </div>
 
+      {/* Jalur khas butang sunting (2026-09-08, arahan Izzat — MESTI di atas <hr>, label
+          "Editor" MESTI kekal sejajar "Sumber"). Dua percubaan awal salah: (1) posisi mutlak
+          dlm lajur Editor sendiri bertindih <hr>; (2) posisi mutlak "terapung" ikut tinggi
+          bekas bacaan pula tak boleh dipercayai (bergantung panjang setiap artikel, gagal utk
+          artikel panjang yg penuhi ruang sampai ke bawah). Kali ni: JALUR NYATA (bahagian
+          aliran biasa, height sebenar, bukan absolute) diselitkan SEBELUM <hr> — sentiasa di
+          tempat SAMA tak kira panjang artikel, mustahil bertindih kandungan/label sebab ia
+          ambil ruang sendiri, dan langsung tak sentuh lajur Editor di bawah (kekal identik
+          asal, sejajar Sumber/Kongsi). Lebar+pemusatan SAMA seperti bekas kolofon di bawah
+          (min(74%,1040px)) supaya ikon jatuh tepat sejajar menegak dgn lajur Editor. */}
+      {role && objectId && (
+        <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: '4px clamp(16px, 3vw, 40px) 0', display: 'flex', justifyContent: 'center' }}>
+          <div style={{ width: 'min(74%, 1040px)', display: 'flex', justifyContent: 'flex-end' }}>
+            <span style={{ position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
+              <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* KOLOFON — sumber + tarikh sumber, editor + hubungan. Merentasi lebar PENUH viewport
           (sama corak macam MASTHEAD), TAPI "Sumber" sendiri dijajarkan dengan tepi kiri TAJUK
           (2026-07-29, permintaan pemilik projek) — bukan tepi kiri viewport. Dicapai dengan
@@ -1575,18 +1595,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               supaya lajur ni still ada label seragam dgn 2 lajur lain -- kandungan bawahnya
               (tarikh sahaja) tetap papar. */}
           {publishedDate && (
-            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', lineHeight: 1.5, textAlign: 'right' }}>
-              {/* Butang sunting (2026-09-08, arahan Izzat — dipindah dari masthead atas ke sini,
-                  bucu kanan-atas lajur "Editor". Cubaan pertama guna posisi mutlak (-top-6)
-                  bertindih dgn garis <hr> pembahagi kolofon di atas (ruang padding-top kolofon
-                  cuma ~18px, tak cukup utk anjakan 24px) — dibetulkan ke ALIRAN BIASA (flex
-                  column, bukan absolute) supaya ikon ambil ruang sebenar dlm lajur ni, tak
-                  sesekali bertindih elemen luar lajur. */}
-              {role && objectId && (
-                <span style={{ position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
-                  <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
-                </span>
-              )}
+            <span style={{ lineHeight: 1.5, textAlign: 'right' }}>
               <span style={{ ...micro, display: 'block' }}>Editor</span>
               <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', whiteSpace: 'nowrap' }}>
                 {editorName && <>{editorName}<span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · </span></>}
