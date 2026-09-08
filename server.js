@@ -340,28 +340,27 @@ const kuatkuasakanHadSaizBackup = (dirDb, namaDb) => {
   }
 };
 
+// Penentuan "patut backup boot?" (fs SAHAJA, tak sentuh DB) kekal SYNCHRONOUS di sini, sebelum
+// sambungan dibuka. Salinan sebenar (fs.copyFileSync) DITANGGUHKAN ke dalam giliran `db.serialize`
+// di bawah — lihat nota checkpoint WAL berhampiran `db.run("PRAGMA journal_mode = WAL;")`.
+let patutBackupBoot = false;
+let dirDbBoot = '';
+let namaDbBoot = '';
 try {
   if (fs.existsSync(dbPath)) {
-    const dirDb = path.dirname(dbPath);
-    const namaDb = path.basename(dbPath);
-    const adaBaharu = fs.readdirSync(dirDb)
-      .filter((f) => f.startsWith(`${namaDb}.backup-boot-`))
+    dirDbBoot = path.dirname(dbPath);
+    namaDbBoot = path.basename(dbPath);
+    const adaBaharu = fs.readdirSync(dirDbBoot)
+      .filter((f) => f.startsWith(`${namaDbBoot}.backup-boot-`))
       .some((f) => {
         try {
-          return Date.now() - fs.statSync(path.join(dirDb, f)).mtimeMs < JEDA_BACKUP_BOOT_MS;
+          return Date.now() - fs.statSync(path.join(dirDbBoot, f)).mtimeMs < JEDA_BACKUP_BOOT_MS;
         } catch { return false; }
       });
-    if (!adaBaharu) {
-      const capMasa = new Date().toISOString().replace(/[:.]/g, '-');
-      const laluanBoot = path.join(dirDb, `${namaDb}.backup-boot-${capMasa}`);
-      fs.copyFileSync(dbPath, laluanBoot);
-      console.log(`[Backup Pra-Migrasi] Salinan sebelum skema dikuatkuasakan: ${laluanBoot}`);
-      kuatkuasakanHadSaizBackup(dirDb, namaDb);
-    }
+    patutBackupBoot = !adaBaharu;
   }
 } catch (err) {
-  // Backup gagal TIDAK boleh menghalang server bermula — sama falsafah macam backup berjadual.
-  console.error('[Backup Pra-Migrasi] Gagal cipta salinan:', err.message);
+  console.error('[Backup Pra-Migrasi] Gagal semak salinan sedia ada:', err.message);
 }
 
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -383,6 +382,37 @@ db.serialize(() => {
   // masa tunggu automatik dahulu sebelum SQLITE_BUSY, bukan gagal serta-merta.
   db.run("PRAGMA journal_mode = WAL;");
   db.run("PRAGMA busy_timeout = 5000;");
+
+  // Salinan pra-migrasi (2026-08-13) — DIBAIKI (2026-09-09, dapatan bug-hunt): dahulu
+  // fs.copyFileSync dipanggil TERUS terhadap dbPath SEBELUM sambungan `db` ni pun dibuka,
+  // tanpa checkpoint WAL — pepijat SAMA PERSIS yang dibaiki pada backup BERJADUAL harian
+  // (2026-09-02, lihat runScheduledBackup di bawah) tapi terlepas di SINI. Fail DB yang sudah
+  // pernah berjalan dalam mod WAL (pragma di atas ni menetapkannya, tapi tetapan tu KEKAL dalam
+  // fail merentasi restart) boleh ada transaksi TERKINI duduk dalam `adjung.db-wal` sahaja —
+  // salinan "sebelum migrasi" yang sepatutnya jaring keselamatan PALING kritikal (ia snapshot
+  // SEBELUM skema diubah) boleh tercicir kandungan/perubahan paling baharu secara senyap.
+  // Checkpoint dimasukkan ke SINI (bukan sambungan berasingan) supaya ia beratur DALAM giliran
+  // sambungan `db` yang SAMA (node-sqlite3 laksanakan mengikut turutan panggilan secara lalai) —
+  // checkpoint MESTI selesai sebelum `initializeSchema()` (dipanggil kemudian dalam fail ni)
+  // sempat menghantar sebarang CREATE TABLE/ALTER TABLE pada sambungan sama, tanpa perlu buka
+  // sambungan kedua yang boleh berlumba dengan sambungan utama.
+  if (patutBackupBoot) {
+    db.run('PRAGMA wal_checkpoint(TRUNCATE);', (errCheckpoint) => {
+      if (errCheckpoint) {
+        console.warn('[Backup Pra-Migrasi] wal_checkpoint gagal (backup diteruskan, mungkin tercicir transaksi paling terkini):', errCheckpoint.message);
+      }
+      try {
+        const capMasa = new Date().toISOString().replace(/[:.]/g, '-');
+        const laluanBoot = path.join(dirDbBoot, `${namaDbBoot}.backup-boot-${capMasa}`);
+        fs.copyFileSync(dbPath, laluanBoot);
+        console.log(`[Backup Pra-Migrasi] Salinan sebelum skema dikuatkuasakan: ${laluanBoot}`);
+        kuatkuasakanHadSaizBackup(dirDbBoot, namaDbBoot);
+      } catch (errSalin) {
+        // Backup gagal TIDAK boleh menghalang server bermula — sama falsafah macam backup berjadual.
+        console.error('[Backup Pra-Migrasi] Gagal cipta salinan:', errSalin.message);
+      }
+    });
+  }
 });
 
 // Initialize database schema
