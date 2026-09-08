@@ -83,7 +83,17 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         return gagalLogMasuk();
       }
 
+      // Mesej sekatan log masuk kini ikut STATUS SEBENAR (2026-09-09, bug-hunt — corak sama
+      // bug tajuk notifikasi akaun di userAdminRoutes.js), bukan cuma `isSuspended` (binari).
+      // STATUS_SAH (userAdminRoutes.js) ada EMPAT nilai tapi isSuspended cuma 0/1 — 'Tidak
+      // Aktif' (gantungan, BOLEH pulih) dan 'Ditamatkan' (penamatan, kekal) kedua-duanya set
+      // isSuspended=1, jadi mesej binari lama silap beritahu akaun yang SUDAH ditamatkan
+      // sebagai "digantung oleh sidang editorial" — mengelirukan pengguna (nampak macam
+      // sementara/boleh rayu, padahal ia penamatan kekal).
       if (userRow.isSuspended === 1) {
+        if (userRow.status === 'Ditamatkan') {
+          return res.status(403).json({ error: 'Akaun ditamatkan', message: 'Akaun ini telah ditamatkan oleh sidang editorial.' });
+        }
         return res.status(403).json({ error: 'Akaun digantung', message: 'Akaun ini telah digantung oleh sidang editorial.' });
       }
 
