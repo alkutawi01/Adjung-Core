@@ -311,11 +311,22 @@ export const createSlotAmRoutes = (dbGet, dbRun) => {
         hadHuraianPanjang: (() => {
           const n = nombor(b.hadHuraianPanjang, 'Had huraian panjang');
           // Nombor ni kini turut jadi had MAKSIMUM geometri sebenar (setMedanLimitOverrides di
-          // atas), bukan cuma semakan tambahan — mesti sekurang-kurangnya minimum huraian panjang
-          // sedia ada (MIN_BRIEF_LONG_CHARS), kalau tidak mustahil simpan APA-APA kandungan (min >
-          // max). 0 (tiada had) sentiasa dibenarkan.
-          if (n > 0 && n < MIN_BRIEF_LONG_CHARS) {
-            throw new RalatPengesahan(`Had huraian panjang mesti sekurang-kurangnya ${MIN_BRIEF_LONG_CHARS} aksara (had minimum sedia ada), atau 0 untuk tiada had.`);
+          // atas), bukan cuma semakan tambahan — mesti sekurang-kurangnya minimum BERKUAT KUASA
+          // (had minimum PATCH ni sendiri kalau ditetapkan, jatuh balik ke MIN_BRIEF_LONG_CHARS
+          // kalau tidak), kalau tidak mustahil simpan APA-APA kandungan (min > max). 0 (tiada had)
+          // sentiasa dibenarkan.
+          //
+          // PEMBETULAN (2026-09-08, dapatan bug-hunt) — semakan ni dahulu bandingkan terus dengan
+          // PEMALAR HARDCODE (MIN_BRIEF_LONG_CHARS, 400), bukan `b.hadHuraianPanjangMin` yang
+          // SEDANG ditetapkan dalam PATCH SAMA. Kesan: Ketua Editor cuba turunkan kedua-dua had
+          // minimum DAN maksimum serentak (cth min=100, maks=250 — julat SAH, min <= maks) ditolak
+          // 400 sebab maks(250) < 400 hardcode, walhal semakan silang min<=maks berasingan di bawah
+          // (pasanganMinMax) sendiri akan membenarkan kombinasi ni. Ketua Editor terkunci selamanya
+          // pada lantai 400 walau dia sengaja nak turunkan berpasangan.
+          const minBaharu = Number(b.hadHuraianPanjangMin);
+          const lantaiBerkuatKuasa = Number.isFinite(minBaharu) && minBaharu > 0 ? minBaharu : MIN_BRIEF_LONG_CHARS;
+          if (n > 0 && n < lantaiBerkuatKuasa) {
+            throw new RalatPengesahan(`Had huraian panjang mesti sekurang-kurangnya ${lantaiBerkuatKuasa} aksara (had minimum berkuat kuasa), atau 0 untuk tiada had.`);
           }
           return n;
         })(),
