@@ -435,13 +435,24 @@ export const EditorialConsole: React.FC = () => {
 
   // Corak (sempang dibuang) mesti sepadan tepat perkataan — semakan client SAMA seperti pelayan
   // (pemenggalanRoutes.js), supaya editor nampak ralat serta-merta bukan lepas hantar borang.
+  // SERPIHAN_MIN=2 (pembetulan 2026-09-08 pelayan + PemenggalSukuKata.js) — semakan client ni
+  // tercicir waktu tu, jadi editor boleh hantar corak serpihan-satu-huruf (cth "p-entadbiran")
+  // tanpa amaran langsung, borang nampak sah (butang aktif), pelayan baru tolak lepas hantar
+  // dengan mesej "mesti sepadan tepat" yang mengelirukan sebab huruf MEMANG sepadan — punca
+  // sebenar (had 2 huruf setiap serpihan) tak pernah disebut. Diselaraskan semula di sini.
+  const SERPIHAN_MIN_CLIENT = 2;
   const corakSahUntukPerkataan = (perkataan: string, corak: string): boolean => {
     if (!corak.includes('-')) return false;
     const segmen = corak.split('-');
-    if (segmen.some((s) => s.length === 0)) return false;
+    if (segmen.some((s) => s.length < SERPIHAN_MIN_CLIENT)) return false;
     return segmen.join('').toLowerCase() === perkataan.trim().toLowerCase();
   };
   const pCorakSah = !pPerkataan.trim() || !pCorak.trim() || corakSahUntukPerkataan(pPerkataan, pCorak);
+  // Mesej ralat khusus bila punca sebenar ialah serpihan terlalu pendek (bukan ejaan tak
+  // sepadan) — elak mesej "mesti sepadan tepat" yang mengelirukan sedangkan huruf memang sepadan.
+  const pSerpihanTerlaluPendek = !!pCorak.trim() && pCorak.includes('-') &&
+    pCorak.split('-').some((s) => s.length > 0 && s.length < SERPIHAN_MIN_CLIENT) &&
+    pCorak.split('-').join('').toLowerCase() === pPerkataan.trim().toLowerCase();
 
   const tambahPemenggalan = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1271,7 +1282,12 @@ export const EditorialConsole: React.FC = () => {
                   </div>
                 </FormColumn>
 
-                {!pCorakSah && (
+                {!pCorakSah && pSerpihanTerlaluPendek && (
+                  <MesejStatus tone="error">
+                    Setiap serpihan corak mesti sekurang-kurangnya 2 huruf (elak serpihan satu huruf terpencil).
+                  </MesejStatus>
+                )}
+                {!pCorakSah && !pSerpihanTerlaluPendek && (
                   <MesejStatus tone="error">
                     Corak (sempang dibuang) mesti sepadan tepat dengan perkataan — semak semula ejaan.
                   </MesejStatus>

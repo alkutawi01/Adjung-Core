@@ -34,6 +34,21 @@ const corakSahUntukPerkataan = (perkataan, corak) => {
   return segmen.join('').toLowerCase() === perkataan.toLowerCase();
 };
 
+// Mesej ralat spesifik ikut punca sebenar — "mesti sepadan tepat" mengelirukan bila huruf
+// SEBENARNYA sepadan tapi ditolak sebab serpihan terlalu pendek (SERPIHAN_MIN). Dipanggil hanya
+// selepas corakSahUntukPerkataan() pulang false, jadi mesej lalai (ejaan tak sepadan) masih betul
+// untuk kes lain.
+const mesejRalatCorak = (perkataan, corak) => {
+  if (corak.includes('-')) {
+    const segmen = corak.split('-');
+    const hurufSepadan = segmen.join('').toLowerCase() === perkataan.toLowerCase();
+    if (hurufSepadan && segmen.some((s) => s.length < SERPIHAN_MIN)) {
+      return `Setiap serpihan dalam corak "${corak}" mesti sekurang-kurangnya ${SERPIHAN_MIN} huruf (elak serpihan satu huruf terpencil).`;
+    }
+  }
+  return `Corak "${corak}" (sempang dibuang) mesti sepadan tepat dengan perkataan "${perkataan}".`;
+};
+
 export function createPemenggalanRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
 
@@ -64,7 +79,7 @@ export function createPemenggalanRoutes(dbAll, dbRun, dbGet) {
       if (!corak) return res.status(400).json({ error: 'Corak pemenggalan wajib diisi (contoh: pen-tad-bir-an).' });
       if (corak.length > HAD_CORAK) return res.status(400).json({ error: `Corak tidak boleh melebihi ${HAD_CORAK} aksara.` });
       if (!corakSahUntukPerkataan(perkataan, corak)) {
-        return res.status(400).json({ error: `Corak "${corak}" (sempang dibuang) mesti sepadan tepat dengan perkataan "${perkataan}".` });
+        return res.status(400).json({ error: mesejRalatCorak(perkataan, corak) });
       }
 
       // Satu perkataan satu entri — dua corak bercanggah untuk perkataan sama tak bermakna.
@@ -115,7 +130,7 @@ export function createPemenggalanRoutes(dbAll, dbRun, dbGet) {
       if (!corak) return res.status(400).json({ error: 'Corak pemenggalan wajib diisi (contoh: pen-tad-bir-an).' });
       if (corak.length > HAD_CORAK) return res.status(400).json({ error: `Corak tidak boleh melebihi ${HAD_CORAK} aksara.` });
       if (!corakSahUntukPerkataan(perkataan, corak)) {
-        return res.status(400).json({ error: `Corak "${corak}" (sempang dibuang) mesti sepadan tepat dengan perkataan "${perkataan}".` });
+        return res.status(400).json({ error: mesejRalatCorak(perkataan, corak) });
       }
 
       const pertindihan = await dbGet('SELECT id FROM pemenggalan_pengecualian WHERE LOWER(perkataan) = LOWER(?) AND id != ?', [perkataan, req.params.id]);
