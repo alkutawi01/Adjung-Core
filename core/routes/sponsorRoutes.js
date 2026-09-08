@@ -31,7 +31,17 @@ const bulanSemasa = () => bulanMalaysia(); // 'YYYY-MM'
 
 const sahBulan = (b) => /^\d{4}-\d{2}$/.test(String(b || '')) && Number(String(b).slice(5, 7)) >= 1 && Number(String(b).slice(5, 7)) <= 12;
 const sahIso = (v) => typeof v === 'string' && v.trim() !== '' && !Number.isNaN(new Date(v).getTime());
-const sahSenaraiSlot = (arr) => Array.isArray(arr) && arr.every((n) => Number.isInteger(n) && n >= -1 && n <= 37);
+// unik (2026-09-08, dapatan bug-hunt) — sahSenaraiSlot() dahulu cuma semak julat/integer, tak
+// tolak duplikat (cth [3,3]). sponsor_slots ada PRIMARY KEY (sponsorId, slotIndex), jadi
+// tulisSlotUntukSponsor() (DELETE semua slot sponsor tu, kemudian INSERT satu-satu TANPA
+// transaksi) akan DELETE berjaya, sebahagian INSERT berjaya, lalu INSERT slot pendua tu
+// langgar PRIMARY KEY dan throw — baki gelung tak sempat jalan, permintaan pulang 500, TAPI
+// DELETE awal tu dah termeterai (bukan dalam transaksi) — penaja kehilangan skop slot sedia
+// ada tanpa gantian baharu lengkap. Sama corak pepijat "tulisan berbilang langkah tanpa
+// transaksi" yang dibaiki di permohonanPenajaRoutes.js /aktifkan (lihat nota di situ).
+// Tolak input pendua di peringkat pengesahan (400 bersih) daripada biar ia pecahkan data.
+const sahSenaraiSlot = (arr) => Array.isArray(arr) && arr.every((n) => Number.isInteger(n) && n >= -1 && n <= 37)
+  && new Set(arr).size === arr.length;
 
 // Baris ADMIN (Editorium) — sertakan jumlahBayaran, Pentadbir sahaja yang capai laluan ni.
 // `slotIndexes` disuap dari luar (peta sponsorId->slotIndex[], dibina sekali per senarai
