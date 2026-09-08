@@ -470,9 +470,16 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         // kini berlaku DI SINI sebab identiti sebenar baru wujud pada langkah ni. `!= ?` kecuali
         // baris sendiri, supaya kalau editor hantar semula/klik dua kali borang yang sama, ia
         // tak sengaja tolak diri sendiri sebagai "pendua".
-        const usernameSedia = await dbGet('SELECT id FROM users WHERE LOWER(username) = ? AND id != ?', [u, userRow.id]);
+        // Semak MERENTASI username DAN email (2026-09-09, bug-hunt) — sama sebab macam
+        // POST /change-username (lihat komen di situ, dapatan audit 2026-08-08): log masuk
+        // padan `LOWER(username) = ? OR LOWER(email) = ?` (satu ruang nama gabungan), tapi
+        // laluan INI (tempat username SEBENAR editor jemputan baharu mula-mula ditetapkan)
+        // cuma semak lajur username. Tanpa ni, editor jemputan boleh tetapkan ID pengguna
+        // sama dengan emel akaun lain — log masuk lepas ni jadi taksa (dua baris padan carian
+        // yang sama).
+        const usernameSedia = await dbGet('SELECT id FROM users WHERE (LOWER(username) = ? OR LOWER(email) = ?) AND id != ?', [u, u, userRow.id]);
         if (usernameSedia) {
-          return res.status(409).json({ error: 'ID pengguna sudah digunakan akaun lain.' });
+          return res.status(409).json({ error: 'ID pengguna sudah digunakan akaun lain (sebagai username atau emel).' });
         }
         const penNameSedia = await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?) AND id != ?', [pn, userRow.id]);
         if (penNameSedia) {
