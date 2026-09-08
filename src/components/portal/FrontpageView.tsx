@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
-import { setPemenggalanPengecualian } from '../../../core/editorial/PemenggalSukuKata.js';
+import { setPemenggalanPengecualian, SOFT_HYPHEN } from '../../../core/editorial/PemenggalSukuKata.js';
 import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
 import { motion, AnimatePresence } from 'motion/react';
@@ -3700,9 +3700,29 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         yang MEMANG patut kekal tak boleh pilih — elemen hiasan tu semua sudah ada `select-none`
         SENDIRI di setiap tapak (badge tarikh siaran, anak panah carousel, dsb.), jadi buang
         select-none akar ni tak jejaskan elemen hiasan tu langsung. */}
+    {/* `onCopy` ditambah 2026-09-08 — komen dokstring `PemenggalSukuKata.js` (dan CLAUDE.md
+        sesi 2026-08-16 di atas) mendakwa "soft hyphen digugurkan semasa salin", tapi tiada
+        siapa PERNAH sahkan tuntutan ni pada pelayar sebenar. Semakan (sumber luaran, kelakuan
+        pelayar moden didokumentasikan awam) dedah SEBALIKNYA — pelayar SEKARANG kekalkan
+        U+00AD literal dalam teks yang disalin, ia cuma tak kelihatan semasa PAPARAN (bukan
+        semasa SALIN). Kesan sebenar: pembaca yang copy tajuk/huraian kad panjang (SEMUA
+        melalui `penggalSukuKata()`) dapat rentetan bertabur aksara halimunan — nampak okay
+        di UI destinasi (Notepad, WhatsApp, dsb.) tapi PANJANG AKSARA sebenar salah, carian
+        exact-match/dedup gagal senyap, dan tampal semula ke medan lain (cth borang editorial
+        sendiri) boleh cetuskan overflow palsu (ContentBudget kira U+00AD sebagai aksara).
+        Dibaiki di peringkat SALIN (bukan PAPARAN) — event `copy` tangkap plaintext terpilih,
+        buang SEMUA U+00AD sebelum ditulis ke papan keratan, biarkan tingkah laku lalai untuk
+        selainnya (format HTML/rich text tak disentuh). */}
     <div
       className="bg-transparent text-[#1F1F1F] font-serif w-full min-h-screen flex flex-col px-4 md:px-8 pt-4 animate-fade-in"
       onClick={kendaliKlikRuangKosong}
+      onCopy={(e) => {
+        const sel = window.getSelection ? window.getSelection()?.toString() : '';
+        if (sel && sel.includes(SOFT_HYPHEN)) {
+          e.preventDefault();
+          e.clipboardData.setData('text/plain', sel.split(SOFT_HYPHEN).join(''));
+        }
+      }}
       // Bekas ni sendiri masih terikat lebar `<main className="max-w-6xl w-full mx-auto">`
       // (App.tsx) — TAK PERNAH mengehadkan apa-apa yang KELIHATAN sebab lajur kandungan
       // sebenar (grandanak `max-w-5xl mx-auto`, line ~3653) sentiasa lebih sempit (5xl < 6xl),
