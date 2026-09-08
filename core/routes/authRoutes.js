@@ -235,6 +235,15 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
       // Sesi server simpan salinan username untuk paparan header — segarkan serta-merta supaya
       // tak lapuk sehingga log masuk semula.
       if (req.session.user) req.session.user.username = next;
+      // Usir semua sesi LAIN akaun ni (2026-09-09, bug-hunt) — sama falsafah keselamatan macam
+      // change-password di atas ("kalau penceroboh sudah log masuk dengan kata laluan lama,
+      // pemilik sah mesti mengusirnya serta-merta"). Sebelum ni HANYA change-password buat ni;
+      // change-username terlepas walau komennya sendiri kata "sama corak pengesahan macam
+      // change-password" — kalau pemilik akaun tukar username sebagai langkah pemulihan (cth
+      // curiga akaun dicerobohi) TANPA turut tukar kata laluan serentak, sesi penceroboh yang
+      // sudah pegang kuki sah kekal sah sehingga tamat tempoh sendiri (12 jam). Sesi semasa
+      // dikecualikan (req.sessionID) supaya pemilik tak log keluar sendiri.
+      await padamSesiPengguna(userRow.id, req.sessionID);
       res.json({ success: true, username: next });
     } catch (err) {
       console.error('Change username error:', err);
@@ -278,6 +287,9 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         throw errUpdate;
       }
       if (req.session.user) req.session.user.email = next;
+      // Usir semua sesi LAIN akaun ni (2026-09-09, bug-hunt) — lihat komen setara di
+      // change-username di atas, sebab sama persis.
+      await padamSesiPengguna(userRow.id, req.sessionID);
       res.json({ success: true, email: next });
     } catch (err) {
       console.error('Change email error:', err);
