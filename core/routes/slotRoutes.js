@@ -104,7 +104,10 @@ async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
       skorSemasa, adaKataDisekat, (item.title || '').length, editorialSettings
     );
     if (decision !== item.decision || status !== item.status || skorBaharu !== null) {
-      perubahan.push({ id: item.id, decision, status, skor: skorBaharu });
+      // `decisionAsal` disimpan (2026-09-08, dapatan bug-hunt TOCTOU) — nilai `decision`
+      // SEMASA bacaan SELECT di atas, bukan nilai baharu yang baru dikira. Digunakan sebagai
+      // syarat WHERE semasa UPDATE di bawah, lihat nota di situ.
+      perubahan.push({ id: item.id, decision, status, skor: skorBaharu, decisionAsal: item.decision });
     }
   }
 
@@ -112,14 +115,30 @@ async function nilaiSemulaKeputusanSediaAda(dbAll, dbRun, editorialSettings) {
 
   // Transaksi atomik (corak sama contentRoutes.js/glosariRoutes.js, CLAUDE.md) — ribuan UPDATE
   // berasingan bermakna ribuan fsync SQLite; dalam satu transaksi ia jadi satu sahaja.
+  //
+  // AND decision = ? (decisionAsal) pada SETIAP UPDATE (2026-09-08, dapatan bug-hunt TOCTOU
+  // sebenar, disahkan reproduce hujung-ke-hujung guna .simulasi/sim19-toctou-review-vs-nilai-
+  // semula.mjs) — fungsi ni SELECT semua baris DAHULU (baris ~74), kira keputusan baharu dalam
+  // gelung JS (sync, tak sentuh DB), KEMUDIAN UPDATE setiap baris di sini. Antara SELECT dan
+  // UPDATE (transaksi ribuan baris ni ambil masa SEBENAR, banyak titik `await`), POST
+  // /ticker/review-action (editor klik Lulus/Tolak SEBENAR) menulis rss_ticker_items.status/
+  // decision baris yang SAMA DI LUAR denganKunciTicker (cuma penjanaan semula rentetan ticker
+  // yang dikunci, lihat komen di laluan tu) — jadi kelulusan/penolakan MANUAL editor yang
+  // berlaku SEMASA transaksi ni berjalan boleh SENYAP DITIMPA BALIK oleh nilai lapuk yang
+  // dikira daripada bacaan SEBELUM tindakan manual tu (UPDATE tanpa syarat guna id sahaja,
+  // tak semak sama ada decision baris tu masih SAMA macam semasa dibaca). Keputusan manusia
+  // MESTI jadi kata putus (dasar editorial sedia ada, lihat komen /ticker/review-action) —
+  // `AND decision = ?` jadikan UPDATE ni SENYAP TIADA KESAN (0 baris terjejas) kalau decision
+  // baris tu sudah berubah sejak SELECT (cth ditukar ke MANUAL_APPROVED/MANUAL_REJECTED oleh
+  // editor semasa transaksi ni berjalan), bukan menimpanya secara membuta tuli.
   await dbRun('BEGIN TRANSACTION');
   try {
     for (const p of perubahan) {
       if (p.skor !== null) {
         // Kes pemulihan sahaja — skor turut ditulis semula. Baris lain skornya TIDAK disentuh.
-        await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ?, score = ? WHERE id = ?", [p.decision, p.status, p.skor, p.id]);
+        await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ?, score = ? WHERE id = ? AND decision = ?", [p.decision, p.status, p.skor, p.id, p.decisionAsal]);
       } else {
-        await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ?", [p.decision, p.status, p.id]);
+        await dbRun("UPDATE rss_ticker_items SET decision = ?, status = ? WHERE id = ? AND decision = ?", [p.decision, p.status, p.id, p.decisionAsal]);
       }
     }
     await dbRun('COMMIT');
