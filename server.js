@@ -1633,7 +1633,12 @@ const seedDatabase = async () => {
 };
 
 // Start initialization flow
-initializeSchema().then(() => {
+// `skemaSedia` (2026-09-08, bug-hunt REAL) — dieksport modul supaya kod boot LAIN yang perlu
+// tunggu SEMUA CREATE TABLE selesai (bukan cuma jadual sendiri via panggil balik CREATE TABLE,
+// corak `loadAmSettings`/`loadTierOverrides`/`loadDasarAktifSettings` di atas) boleh `.then()`
+// padanya dahulu — lihat `jalankanSemakanTakAktif()` berhampiran app.listen untuk punca sebenar
+// kenapa ni perlu.
+const skemaSedia = initializeSchema().then(() => {
   seedDatabase();
 }).catch(err => {
   console.error('Failed to initialize database schema:', err);
@@ -4899,7 +4904,21 @@ app.listen(PORT, '0.0.0.0', () => {
   // amaran, tiada gantungan tercetus), jadi ia jenis pepijat yang paling lambat disedari:
   // editor yang sepatutnya digantung selepas 21 hari tak aktif terus tak digantung, dan tiada
   // sesiapa perasan sebab tiada apa-apa yang "gagal" untuk dilaporkan.
-  jalankanSemakanTakAktif();
+  //
+  // Susulan (2026-09-08, bug-hunt REAL, dapatan boot DB kosong sebenar) — larian boot ni sendiri
+  // rupanya PUNCA amaran "Gagal memuatkan Dasar Aktif Editorial: no such table:
+  // dasar_aktif_editorial" yang selama ni disangka "amaran diterima/tak berbahaya" (nota lama di
+  // atas kata race preload asal dasar_aktif_editorial dah dibaiki — ITU BETUL, tapi bukan punca
+  // amaran ni). `app.listen()` (dan callback ni) tercetus SEBAIK Express mula dengar, TANPA
+  // tunggu `initializeSchema()` (rantaian CREATE TABLE async) selesai — pada DB BAHARU, panggilan
+  // segera `jalankanSemakanTakAktif()` -> `runSemakanTakAktif()` -> `loadDasarAktifSettings()`
+  // (server.js/dasarAktifRoutes.js) berlumba terus dengan CREATE TABLE dasar_aktif_editorial dan
+  // KALAH — corak race SAMA seperti slot_am_settings/tier_settings yang dibaiki di atas, cuma
+  // puncanya di SINI (panggilan larian-boot), bukan preload cache asal (yang dah selamat).
+  // Digerbang pada `skemaSedia` (promise `initializeSchema()`, lihat definisi berhampiran
+  // `seedDatabase()`) supaya larian PERTAMA ni tunggu semua jadual wujud dahulu — setInterval
+  // (larian seterusnya, sekali sehari) tak terjejas, jadual tentu dah wujud lama pada masa tu.
+  skemaSedia.then(jalankanSemakanTakAktif).catch(jalankanSemakanTakAktif);
   setInterval(jalankanSemakanTakAktif, SEMAKAN_TAK_AKTIF_INTERVAL_MS);
   console.log(`Semakan tak aktif editorial aktif (sekali setiap ${SEMAKAN_TAK_AKTIF_INTERVAL_MS / 3600000} jam — tempoh boleh laras di Direktori, Editorium).`);
 
