@@ -21,8 +21,20 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
       // (MAX(version) merentasi semua status, papar HANYA jika revisi terkini tu approved).
       // Ticker (slotIndex -1) dikecualikan — sama seperti sitemap/rss, bukan kandungan boleh
       // dibuka di Focus View / ada URL sendiri.
+      //
+      // eo.categoryId dibekukan pada MASA PENCIPTAAN objek — Bidang sebenar boleh ditukar
+      // kemudian (contentRoutes.js PATCH /content/:id, medan `desk`) tanpa mengemas kini
+      // eo.categoryId (corak sama seperti rssFeedRoutes.js/articleUrlRoutes.js/sitemapRoutes.js).
+      // Laluan poster ni sebelum ni baca eo.categoryId BEKU terus utk label "desk" DAN utk bina
+      // URL kanonikal poster — kandungan yang Bidangnya ditukar selepas terbit akan papar label
+      // Bidang LAMA dan pautan poster ke laluan Bidang LAMA, bercanggah dgn laman awam sebenar
+      // (dapatan bug-hunt 2026-09-08, sambungan sweep categoryId beku yang sama). Dibaiki:
+      // sertakan atribut 'desk' revisi terkini, guna itu dahulu (fallback categoryId hanya
+      // untuk objek lama yang tiada atribut desk).
       const rows = await dbAll(`
-        SELECT eo.id as objectId, eo.categoryId, er.id as revisionId, er.title, er.summary, er.createdAt
+        SELECT eo.id as objectId, eo.categoryId, er.id as revisionId, er.title, er.summary, er.createdAt,
+               (SELECT av.valueText FROM editorial_attribute_values av
+                WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk') as deskLive
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -35,8 +47,9 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
 
       const items = [];
       for (const r of rows) {
+        const bidang = r.deskLive || r.categoryId || 'Umum';
         const kodPendek = await getOrCreateUrlKod(dbGet, dbRun, r.objectId).catch(() => null);
-        const warna = await CategoryRegistry.getCategoryColor(db, r.categoryId || 'Umum');
+        const warna = await CategoryRegistry.getCategoryColor(db, bidang);
         items.push({
           objectId: r.objectId,
           title: r.title || '',
@@ -45,9 +58,9 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
           // dipangkas ke SATU baris oleh PosterGenerator.tsx sendiri (bukan di sini — lebar
           // sebenar bergantung fon/kanvas, elak pangkas dua kali dgn nombor berbeza).
           summary: r.summary || '',
-          desk: r.categoryId || 'Umum',
+          desk: bidang,
           warna,
-          url: kodPendek ? `https://brief.adjung.com${binaLaluanKandungan(r.title, r.categoryId || 'Umum', kodPendek)}` : 'https://brief.adjung.com/',
+          url: kodPendek ? `https://brief.adjung.com${binaLaluanKandungan(r.title, bidang, kodPendek)}` : 'https://brief.adjung.com/',
         });
       }
       res.json({ items });

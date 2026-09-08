@@ -42,10 +42,21 @@ export function createSearchRoutes(dbAll) {
       // (carian kosong sebab edit terbaharu belum approved dianggap versi "terkini") — bentuk di
       // bawah selesaikan KEDUA-DUA arah serentak: cari revisi TERKINI SEBENAR (version tertinggi
       // tanpa syarat status), papar HANYA jika revisi terkini SEBENAR itu approved.
+      // eo.categoryId dibekukan pada MASA PENCIPTAAN objek — Bidang sebenar boleh ditukar
+      // kemudian (contentRoutes.js PATCH /content/:id, medan `desk`) tanpa mengemas kini
+      // eo.categoryId (corak sama seperti rssFeedRoutes.js/articleUrlRoutes.js/sitemapRoutes.js/
+      // posterRoutes.js). Label "desk" hasil carian awam ni sebelum ni baca eo.categoryId BEKU
+      // terus — kandungan yang Bidangnya ditukar selepas terbit akan papar label Bidang LAMA
+      // dalam senarai hasil carian, bercanggah dgn label sebenar di frontpage/halaman Bidang
+      // (dapatan bug-hunt 2026-09-08, sambungan sweep categoryId beku yang sama; paparan sahaja,
+      // tiada URL dibina di sini). Dibaiki: sertakan atribut 'desk' revisi terkini, guna itu
+      // dahulu (fallback categoryId hanya untuk objek lama yang tiada atribut desk).
       const rows = await dbAll(`
         SELECT eo.id as objectId, eo.slotIndex, eo.categoryId, er.title, er.summary,
                (SELECT valueText FROM editorial_attribute_values
-                WHERE objectId = eo.id AND revisionId = er.id AND attributeId = 'topik') as topik
+                WHERE objectId = eo.id AND revisionId = er.id AND attributeId = 'topik') as topik,
+               (SELECT valueText FROM editorial_attribute_values
+                WHERE objectId = eo.id AND revisionId = er.id AND attributeId = 'desk') as deskLive
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -69,7 +80,7 @@ export function createSearchRoutes(dbAll) {
         slotIndex: r.slotIndex,
         title: r.title || '',
         summary: (r.summary || '').slice(0, 140),
-        desk: r.categoryId || '',
+        desk: r.deskLive || r.categoryId || '',
         topik: r.topik || '',
       }));
       res.json({ results });
