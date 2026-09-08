@@ -879,9 +879,19 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
   // rasional jenisEfektifSlot yang sedia ada (Arah/3b "Tidak berkaitan"). Override
   // jenisAnimasiOverride TAK PERNAH 'rawak' (senarai pilihan override sengaja terhad 4 jenis
   // sedia ada, FrontpageView.tsx) — 'rawak' cuma boleh datang drpd `amJenis` (fallback global).
-  const jenisEfektifSlot = draf.jenisAnimasiOverride || amJenis;
-  const arahEfektifSlot = draf.arahOverride || amArah;
-  const kelajuanEfektifSlot = Number(draf.kelajuanOverride) > 0 ? Number(draf.kelajuanOverride) : amKelajuan;
+  // Neraca SAMA PERSIS FrontpageView.tsx (arahUntukSlot/jenisAnimasiUntukSlot/
+  // kelajuanUntukSlot/nisbahPenajaUntukSlot) — `paksaTetapanAmSemuaSlot` mengabaikan
+  // override slot TANPA SYARAT (nilai am menang) utk jenis/arah/kelajuan/nisbah, tak kira
+  // override tersimpan apa. Bug #167 dibaiki gerbang ni utk warna sahaja — audit susulan
+  // dapati EMPAT medan lain (jenis, arah, kelajuan, nisbah) baca override membuta tanpa
+  // semak `amPaksaTetapanAmSemuaSlot` langsung, jadi pratonton papar override slot walau
+  // mod "Paksa tetapan am semua slot" aktif (patut papar nilai am semua medan, bukan warna
+  // sahaja).
+  const jenisEfektifSlot = amPaksaTetapanAmSemuaSlot ? amJenis : (draf.jenisAnimasiOverride || amJenis);
+  const arahEfektifSlot = amPaksaTetapanAmSemuaSlot ? amArah : (draf.arahOverride || amArah);
+  const kelajuanEfektifSlot = amPaksaTetapanAmSemuaSlot
+    ? amKelajuan
+    : (Number(draf.kelajuanOverride) > 0 ? Number(draf.kelajuanOverride) : amKelajuan);
   // Neraca SAMA PERSIS FrontpageView.tsx `warnaPanelUntukSlot()` — Mod Seragam ATAU paksa
   // tetapan am mengabaikan override slot TANPA SYARAT (warna am menang), tak kira override
   // tersimpan apa. Sebelum ni baris ni baca override secara membuta tanpa semak dua gerbang ni.
@@ -890,7 +900,9 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
     : (draf.warnaPanelOverride || amWarnaPanel);
   // Nisbah EFEKTIF (2026-08-26, parity) — '' tidak boleh guna `||` (0 ialah nilai SAH "Adjung
   // sahaja", `0 || amNisbah` akan silap jatuh ke am walau editor sengaja pilih 0).
-  const nisbahEfektifSlot = draf.nisbahPenajaTransisiOverride !== '' ? Number(draf.nisbahPenajaTransisiOverride) : amNisbahPenajaTransisi;
+  const nisbahEfektifSlot = amPaksaTetapanAmSemuaSlot
+    ? amNisbahPenajaTransisi
+    : (draf.nisbahPenajaTransisiOverride !== '' ? Number(draf.nisbahPenajaTransisiOverride) : amNisbahPenajaTransisi);
   const kotor = JSON.stringify(draf) !== JSON.stringify(drafAwal);
   const { cubaTutup, tunjukAmaran, batalTutup, sahkanTutup } = useAmaranBelumSimpan(kotor, onTutup);
 
