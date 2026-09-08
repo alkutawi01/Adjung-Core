@@ -229,39 +229,71 @@ class CategoryRegistry {
 
     if (!sourceReg) return;
 
-    // Combine usageCounts
-    const now = new Date().toISOString();
-    await this.dbRun(db, `
-      UPDATE CategoryRegistry 
-      SET usageCount = usageCount + ?, updatedAt = ? 
-      WHERE slug = ?
-    `, [sourceReg.usageCount, now, targetReg.slug]);
+    // PEMBETULAN (2026-09-08, dapatan bug-hunt) — seluruh operasi ni dibungkus SATU transaksi.
+    // Sebelum ni setiap langkah (usageCount, DELETE Bidang sumber, remap kandungan) ialah
+    // dbRun() berasingan tanpa BEGIN/COMMIT. `glosari_sense_bidang.categoryId` rujuk
+    // CategoryRegistry(id) TANPA ON DELETE CASCADE (server.js, jadual tu — tak macam
+    // glosari_sense->glosari_istilah yang memang CASCADE) — dengan PRAGMA foreign_keys=ON,
+    // DELETE FROM CategoryRegistry di bawah GAGAL (SQLITE_CONSTRAINT) sebaik mana-mana Sense
+    // glosari khusus-Bidang masih rujuk Bidang sumber. Sebab tiada transaksi, kegagalan pada
+    // langkah TERAKHIR ni tinggalkan keadaan SEPARA: usageCount sasaran dah naik, tapi baris
+    // Bidang sumber gagal padam — laluan API (categoryRoutes.js) pulangkan 500 generik yang
+    // tak mendedahkan keadaan bercelaru ni (disahkan `.simulasi/sim28-gabung-bidang-glosari-fk.mjs`,
+    // hujung-ke-hujung HTTP sebenar). BEGIN/COMMIT/ROLLBACK di sini jamin sama ada SEMUA
+    // langkah berjaya atau TIADA satu pun terpakai — corak sama seperti transaksi glosariRoutes.js.
+    await this.dbRun(db, 'BEGIN TRANSACTION');
+    try {
+      // Combine usageCounts
+      const now = new Date().toISOString();
+      await this.dbRun(db, `
+        UPDATE CategoryRegistry
+        SET usageCount = usageCount + ?, updatedAt = ?
+        WHERE slug = ?
+      `, [sourceReg.usageCount, now, targetReg.slug]);
 
-    // Delete source category from registry
-    await this.dbRun(db, "DELETE FROM CategoryRegistry WHERE slug = ?", [sourceSlug]);
+      // Pindahkan perkaitan Sense Glosari khusus-Bidang daripada Bidang sumber ke sasaran
+      // SEBELUM padam baris Bidang sumber, jika tidak DELETE di bawah akan gagal FK constraint
+      // (atau, kalau constraint tu suatu hari dilonggarkan, perkaitan tu jadi rujukan yatim
+      // senyap). INSERT OR IGNORE dahulu (elak langgar PRIMARY KEY (senseId, categoryId) kalau
+      // Sense yang sama kebetulan dah terikat kepada Bidang sasaran juga), baru DELETE baris
+      // lama yang merujuk Bidang sumber.
+      await this.dbRun(db, `
+        INSERT OR IGNORE INTO glosari_sense_bidang (senseId, categoryId)
+        SELECT senseId, ? FROM glosari_sense_bidang WHERE categoryId = ?
+      `, [targetReg.id, sourceReg.id]);
+      await this.dbRun(db, "DELETE FROM glosari_sense_bidang WHERE categoryId = ?", [sourceReg.id]);
 
-    // Re-map any saved items matching source slug/category to target category uppercase
-    const targetNameUpper = targetReg.name.toUpperCase();
+      // Delete source category from registry
+      await this.dbRun(db, "DELETE FROM CategoryRegistry WHERE slug = ?", [sourceSlug]);
 
-    // PEMBETULAN (2026-09-02, dapatan bug-hunt) — padanan asal `valueText = ?` (case-sensitive)
-    // gagal senyap terhadap kandungan sebenar yang tersimpan bukan huruf besar penuh (disahkan
-    // DB sebenar: 1 baris `desk = 'Siber'` bersebelahan majoriti `'SIBER'`). Kandungan macam ni
-    // TAK PERNAH dipetakan semasa gabung Bidang — kekal senyap merujuk Bidang yang sudah dipadam
-    // daripada CategoryRegistry, "yatim" tanpa amaran. LOWER() pada kedua-dua belah gerbang ni
-    // padan tanpa kira huruf besar/kecil, sama corak `LOWER(TRIM())` yang sudah dipakai di tempat
-    // lain (contoh: padanan editorName pemilikan kandungan, contentRoutes.js).
-    await this.dbRun(db, `
-      UPDATE editorial_objects
-      SET categoryId = ?
-      WHERE LOWER(categoryId) = LOWER(?) OR LOWER(categoryId) = LOWER(?)
-    `, [targetNameUpper, sourceCategory.trim(), sourceReg.name]);
+      // Re-map any saved items matching source slug/category to target category uppercase
+      const targetNameUpper = targetReg.name.toUpperCase();
 
-    // Update attribute values
-    await this.dbRun(db, `
-      UPDATE editorial_attribute_values
-      SET valueText = ?
-      WHERE attributeId = 'desk' AND (LOWER(valueText) = LOWER(?) OR LOWER(valueText) = LOWER(?))
-    `, [targetNameUpper, sourceCategory.trim(), sourceReg.name]);
+      // PEMBETULAN (2026-09-02, dapatan bug-hunt) — padanan asal `valueText = ?` (case-sensitive)
+      // gagal senyap terhadap kandungan sebenar yang tersimpan bukan huruf besar penuh (disahkan
+      // DB sebenar: 1 baris `desk = 'Siber'` bersebelahan majoriti `'SIBER'`). Kandungan macam ni
+      // TAK PERNAH dipetakan semasa gabung Bidang — kekal senyap merujuk Bidang yang sudah dipadam
+      // daripada CategoryRegistry, "yatim" tanpa amaran. LOWER() pada kedua-dua belah gerbang ni
+      // padan tanpa kira huruf besar/kecil, sama corak `LOWER(TRIM())` yang sudah dipakai di tempat
+      // lain (contoh: padanan editorName pemilikan kandungan, contentRoutes.js).
+      await this.dbRun(db, `
+        UPDATE editorial_objects
+        SET categoryId = ?
+        WHERE LOWER(categoryId) = LOWER(?) OR LOWER(categoryId) = LOWER(?)
+      `, [targetNameUpper, sourceCategory.trim(), sourceReg.name]);
+
+      // Update attribute values
+      await this.dbRun(db, `
+        UPDATE editorial_attribute_values
+        SET valueText = ?
+        WHERE attributeId = 'desk' AND (LOWER(valueText) = LOWER(?) OR LOWER(valueText) = LOWER(?))
+      `, [targetNameUpper, sourceCategory.trim(), sourceReg.name]);
+
+      await this.dbRun(db, 'COMMIT');
+    } catch (e) {
+      try { await this.dbRun(db, 'ROLLBACK'); } catch (rollbackErr) { console.error('Rollback gagal (gabung Bidang):', rollbackErr.message); }
+      throw e;
+    }
   }
 
   // Senarai Bidang tertutup (isActive=1) — sumber untuk dropdown/Taksonomi. Baris isActive=0
