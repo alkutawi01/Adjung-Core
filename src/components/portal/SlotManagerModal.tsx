@@ -1002,7 +1002,18 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // closure lama, yang belum sempat kemas kini disebabkan setState tak segerak) supaya Buang
   // SENTIASA tersimpan tanpa langkah tambahan.
   const remove = useCallback((i: number) => {
-    setActive((a) => Math.max(0, Math.min(a, items.length - 2)));
+    // Pepijat sebenar (2026-09-08, ditemui bug-hunt) — clamp SAHAJA (`Math.min(a, length-2)`)
+    // tak pernah mengambil kira KEDUDUKAN item yang dibuang berbanding `active`. Buang item
+    // SEBELUM `active` anjak semua item selepasnya turun SATU kedudukan dalam array baharu, jadi
+    // indeks `active` yang tak diselaraskan terus menuding ke item BERBEZA (yang sebelum ni di
+    // active+1) — editor yang sedang menyunting kandungan ke-4 (cth "D") tiba-tiba dipindah
+    // senyap ke kandungan ke-5 ("E") hanya kerana memadam kandungan PERTAMA yang tiada kaitan.
+    // Disahkan reproduce: items [A,B,C,D,E], active=3 (D), buang index 0 (A) -> lama papar E,
+    // bukan D. Fix: anjak `active` turun SATU jika item dibuang berada SEBELUM `active`.
+    setActive((a) => {
+      const anjak = i < a ? a - 1 : a;
+      return Math.max(0, Math.min(anjak, items.length - 2));
+    });
     setKonfirmBuangIndex(null);
     commit((prevItems) => {
       const next = prevItems.filter((_, n) => n !== i);
