@@ -96,14 +96,22 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
         LIMIT 10
       `);
 
-      const history30Days = await dbAll(`
+      // PEMBETULAN (2026-09-09, dapatan bug-hunt) — ORDER BY date(createdAt) ASC ... LIMIT 30
+      // dahulu pulangkan 30 HARI TERAWAL dalam jadual (bukan 30 hari TERKINI seperti nama
+      // `history30Days` janjikan). Sebaik data ai_usage_logs melebihi 30 hari, carta "Sejarah 30
+      // Hari" di UI (AiCostConsole/PenajaConsole dsb.) papar Jun (cth) selama-lamanya, bukan
+      // bulan semasa — makin banyak sejarah terkumpul, makin salah/lapuk paparannya. Dibetulkan:
+      // ambil 30 baris TERKINI dahulu (ORDER BY DESC + LIMIT), kemudian susun semula MENAIK untuk
+      // carta garis (kiri=lama, kanan=baharu).
+      const history30DaysDesc = await dbAll(`
         SELECT date(createdAt) as date, SUM(estimatedCost) as cost, COUNT(*) as calls, SUM(totalTokens) as tokens
         FROM ai_usage_logs
         WHERE status = 'SUCCESS'
         GROUP BY date(createdAt)
-        ORDER BY date(createdAt) ASC
+        ORDER BY date(createdAt) DESC
         LIMIT 30
       `);
+      const history30Days = history30DaysDesc.slice().reverse();
 
       res.json({
         providerBreakdown,
