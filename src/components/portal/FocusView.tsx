@@ -1273,11 +1273,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
       <hr style={{ ...rule, flex: '0 0 auto' }} />
       <div style={{ flex: '0 0 auto', width: '100%', boxSizing: 'border-box', padding: 'clamp(10px, 1.8vh, 18px) clamp(16px, 3vw, 40px)', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
         <span style={{ justifySelf: 'start', display: 'inline-flex', alignItems: 'center', gap: '14px' }}>
-          {role && objectId && (
-            <span style={{ position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
-              <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
-            </span>
-          )}
+          {/* Butang sunting DIPINDAHKAN keluar dari masthead ni (2026-09-08, teguran Izzat — pensel
+              bertindan dgn ikon Rawak/Auto di sini, jadi tiga ikon berselerak di bucu kiri masthead
+              tak keruan). Sekarang di bucu kanan atas lajur "Editor" di footer bawah (desktop) —
+              lihat tapak render sama seperti label "Editor". */}
           {/* Label teks "Rawak"/"Turutan"/"Auto" dibuang (2026-08-07, permintaan Izzat — "buang
               label rawak dan auto, kekalkan ikon sahaja") — ikon + title (tooltip hover) +
               aria-label (pembaca skrin) kekal cukup jelas tanpa teks kekal di sisi ikon. */}
@@ -1563,7 +1562,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
               supaya lajur ni still ada label seragam dgn 2 lajur lain -- kandungan bawahnya
               (tarikh sahaja) tetap papar. */}
           {publishedDate && (
-            <span style={{ lineHeight: 1.5, textAlign: 'right' }}>
+            <span style={{ position: 'relative', lineHeight: 1.5, textAlign: 'right' }}>
+              {/* Butang sunting (2026-09-08, arahan Izzat — dipindah dari masthead atas ke sini,
+                  bucu kanan-atas lajur "Editor", supaya letaknya sepadan konteks: pautan pantas
+                  utk editor sunting kandungan ni, letak betul-betul di atas nama editor/tarikh
+                  yang ia edit). */}
+              {role && objectId && (
+                <span style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', width: 20, height: 20 }}>
+                  <EditPensil objectId={objectId} role={role} posisi="-top-6 right-0" />
+                </span>
+              )}
               <span style={{ ...micro, display: 'block' }}>Editor</span>
               <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', whiteSpace: 'nowrap' }}>
                 {editorName && <>{editorName}<span style={{ fontFamily: 'var(--font-mono)', letterSpacing: 'var(--tracking-wide)' }}> · </span></>}
