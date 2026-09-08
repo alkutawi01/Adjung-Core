@@ -365,6 +365,18 @@ ${slot.sourcesList.trim()}
     }
 
     // 6. Call AI Provider (with Fallback Failover)
+    // Kos/atribusi WAJIB ikut provider/model yang BETUL-BETUL jana output (bukan provider utama
+    // yang gagal) -- 2026-09-08, dapatan bug-hunt. `provider.id`/`modelToUse`/`provider.name`
+    // kekal sebagai NILAI UTAMA untuk semua logik lain (prompt-building, dsb.), tapi tiga
+    // pemboleh ubah berasingan ni jejak provider SEBENAR untuk cost tracking (ai_usage_logs) dan
+    // atribut `aiProvider` yang disimpan bersama kandungan. Sebelum ni kedua-dua tempat tu
+    // sentiasa tulis provider.id/modelToUse/provider.name PRIMER walau fallback yang sebenarnya
+    // dipanggil & dibilkan -- kos dikira guna harga model SALAH (kadangkala tiada baris pricing
+    // langsung untuk pasangan providerId/model yang sebenar tak dipanggil), dan kandungan
+    // tersiar kredit provider yang GAGAL, bukan yang sebenar jana ia.
+    let actualProviderId = provider.id;
+    let actualModelToUse = modelToUse;
+    let actualProviderName = provider.name;
     let aiResult;
     try {
       aiResult = await aiInstance.generate(userPrompt, staticSystemPrompt, searchTools);
@@ -372,19 +384,31 @@ ${slot.sourcesList.trim()}
       console.warn(`[AI Failover] Primary provider (${provider.name}) failed for Slot ${slotIndex}: ${primaryErr.message}. Attempting failover...`);
 
       let fallbackInstance = null;
+      let fallbackProviderId = null;
+      let fallbackModel = null;
+      let fallbackProviderName = null;
       const claudeKey = process.env.CLAUDE_API_KEY || '';
       const geminiKey = process.env.GEMINI_API_KEY || '';
 
       if (!provider.id.includes('claude') && claudeKey) {
-        fallbackInstance = new ClaudeProvider(claudeKey, 'claude-3-5-sonnet-latest');
+        fallbackModel = 'claude-3-5-sonnet-latest';
+        fallbackInstance = new ClaudeProvider(claudeKey, fallbackModel);
+        fallbackProviderId = 'claude';
+        fallbackProviderName = 'Claude (Fallback)';
       } else if (!provider.id.includes('gemini') && geminiKey) {
-        fallbackInstance = new GeminiProvider(geminiKey, 'gemini-2.5-flash');
+        fallbackModel = 'gemini-2.5-flash';
+        fallbackInstance = new GeminiProvider(geminiKey, fallbackModel);
+        fallbackProviderId = 'gemini';
+        fallbackProviderName = 'Gemini (Fallback)';
       }
 
       if (fallbackInstance) {
         try {
           console.log(`[AI Failover] Executing fallback AI provider for Slot ${slotIndex}...`);
           aiResult = await fallbackInstance.generate(userPrompt, staticSystemPrompt, searchTools);
+          actualProviderId = fallbackProviderId;
+          actualModelToUse = fallbackModel;
+          actualProviderName = fallbackProviderName;
         } catch (fallbackErr) {
           throw new Error(`Primary provider (${provider.name}: ${primaryErr.message}) and fallback provider (${fallbackErr.message}) both failed.`);
         }
@@ -456,8 +480,8 @@ ${slot.sourcesList.trim()}
         await dbRun("UPDATE system_settings SET tickerSourceHash = ? WHERE id = 'settings-main'", [sourceHash]);
       }
 
-      // Track AI Usage Logs for Ticker
-      const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, modelToUse]);
+      // Track AI Usage Logs for Ticker (guna provider/model SEBENAR -- lihat nota failover di atas)
+      const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [actualProviderId, actualModelToUse]);
       let estimatedCost = 0;
       if (pricing) {
         estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
@@ -470,7 +494,7 @@ ${slot.sourcesList.trim()}
       await dbRun(`
         INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex)
         VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?)
-      `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, -1]);
+      `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, -1]);
 
       return {
         status: 'SUCCESS',
@@ -589,7 +613,7 @@ ${slot.sourcesList.trim()}
       { key: 'desk', val: finalCategory },
       { key: 'source', val: finalSource },
       { key: 'url', val: finalSourceUrl },
-      { key: 'aiProvider', val: provider.name },
+      { key: 'aiProvider', val: actualProviderName },
       // Topik: kosong untuk slot BAR (tak terpakai di sana).
       { key: 'topik', val: finalTopik },
       // Tarikh Sumber sebenar (dari Content Pool bila ada) — lihat nota validateTarikhSumber di atas.
@@ -603,8 +627,8 @@ ${slot.sourcesList.trim()}
       `, [objectId, revisionId, attr.key, attr.val]);
     }
 
-    // 9. Track AI Usage Logs
-    const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, modelToUse]);
+    // 9. Track AI Usage Logs (guna provider/model SEBENAR -- lihat nota failover di atas)
+    const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [actualProviderId, actualModelToUse]);
     let estimatedCost = 0;
     if (pricing) {
       estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
@@ -615,7 +639,7 @@ ${slot.sourcesList.trim()}
     await dbRun(`
       INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex)
       VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?)
-    `, [currentRunId, provider.id, modelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, slotIndex]);
+    `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, slotIndex]);
 
     return {
       status: 'SUCCESS',
