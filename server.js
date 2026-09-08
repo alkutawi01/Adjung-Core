@@ -2792,6 +2792,22 @@ const initEditorialOS = (dbConn) => {
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('statusSebelumPadam', 'Status Sebelum Dipadam', 'text')", () => {});
           dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('dipadamPada', 'Dipadam Pada', 'text')", () => {});
 
+          // sourceHash/aiProvider: dua attributeId ditulis EditorialPipeline.js (attributesToSave,
+          // ~baris 640) untuk SETIAP kandungan slot bukan-Ticker dijana AI, tapi terlepas
+          // pendaftaran di sini (2026-09-09, dapatan bug-hunt) -- sama corak PERSIS macam
+          // desk/url/source/sourceType/topik/editorName di atas. Kesan lebih teruk drpd biasa:
+          // attributesToSave ialah SATU gelung tanpa try/catch per-item, dan 'sourceHash' ialah
+          // ITEM PERTAMA dalam senarai, jadi SQLITE_CONSTRAINT padanya menggagalkan SELURUH
+          // gelung serta-merta -- desk/source/url/aiProvider/topik/originalDate turut TIDAK
+          // PERNAH tersimpan untuk kandungan slot bukan-Ticker dijana AI, bukan cuma dua
+          // attributeId ni. Kesan tambahan: SourceCache.isHashUnchanged() (penjimat kos AI utama
+          // modul, lihat komen buildContentPool di EditorialPipeline.js) sentiasa pulang `false`
+          // sebab baris 'sourceHash' tak pernah wujud utk dibandingkan -- setiap larian
+          // berjadual panggil AI walau pool sumber tak berubah langsung. Disahkan reproduce +
+          // pembetulan via .simulasi/sim48-sourceHash-aiProvider-attr-fk.mjs.
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('sourceHash', 'Cincang Sumber (Cache)', 'text')", () => {});
+          dbConn.run("INSERT OR IGNORE INTO editorial_attributes (id, name, valueType) VALUES ('aiProvider', 'Pembekal AI', 'text')", () => {});
+
           // Tandatangan Nota Editor (2026-08-08, Fasa 4 pemilikan kandungan) — PERANAN sahaja
           // ("Ketua Editor"/"Penolong Ketua Editor"), kosong bila penulis asal sendiri yang
           // menulis. Ditetapkan di PATCH /api/system/content/:id (contentRoutes.js).
