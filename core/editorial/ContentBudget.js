@@ -56,6 +56,23 @@ const validateContentBudget = (slotIndex, title, summary) => {
           reason: `Tajuk (${titleLen} aksara) melebihi had maksimum ruang kad ${tier} (${maxTitleAlone} aksara).`,
         };
       }
+      // Had minimum bajet KESELURUHAN (MIN_TOTAL_USAGE_FRACTION) turut terpakai pada tier BAR —
+      // CLAUDE.md nyatakan eksplisit formula ni "terpakai pada kesemua 8 tier (termasuk BAR...)".
+      // Tier ni tiada medan huraian (maxBriefAlone=0) jadi usedFraction cuma titleLen/maxTitleAlone
+      // (brief tak menyumbang apa-apa, sentiasa 0/0 diabaikan). Sebelum ni cabang BAR return awal
+      // di atas TANPA semakan ni langsung — bug sebenar, disahkan reproduce: tajuk 1 aksara ("A")
+      // lulus validateContentBudget() untuk slot BAR walhal tier lain (cth KOMPAK) tolak nisbah
+      // penggunaan serendah tu dengan mesej "kad nampak kosong". Kad BAR SAMA rupanya boleh nampak
+      // kosong pada frontpage sebenar tanpa had ni.
+      if (maxTitleAlone) {
+        const usedFractionBar = titleLen / maxTitleAlone;
+        if (usedFractionBar < MIN_TOTAL_USAGE_FRACTION) {
+          return {
+            isValid: false, bolehSalinAI: true,
+            reason: `Tajuk (${Math.round(usedFractionBar * 100)}% bajet kad ${tier}) terlalu ringkas. Sekurang-kurangnya ${Math.round(MIN_TOTAL_USAGE_FRACTION * 100)}% bajet tajuk mesti diguna, elak kad nampak kosong. Panjangkan tajuk.`,
+          };
+        }
+      }
       return { isValid: true };
     }
 
