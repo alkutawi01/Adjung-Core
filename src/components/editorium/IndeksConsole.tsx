@@ -750,9 +750,17 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       // di sini: mesej sentiasa papar "disiarkan" DAN status tempatan tersilap ditukar ke Live
       // walaupun rekod sebenar masih Menunggu — betulkan kedua-duanya.
       if (body.slotPenuh) {
-        setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'Pending' } : i));
+        // sebabMenunggu (bug-hunt 2026-09-09) — medan ni DIKIRA SEMULA pelayan setiap kali status
+        // berubah (contentRoutes.js ~baris 1441-1445: 'slot_penuh' bila tersekat had slot, '' bila
+        // mendarat status lain). Dahulu hanya `status` ditampal optimistik di sini, `sebabMenunggu`
+        // LAMA (kosong kalau kandungan tu sebelum ni 'Live'/'Archive') dibiarkan lapuk — baris
+        // jadual (labelSebabMenunggu()) dan kiraan statusCounts.PendingSemakan/PendingSlotPenuh
+        // (guna medan ni terus) tersilap papar "Menunggu Semakan" untuk kandungan yang sebenarnya
+        // tersekat slot penuh, sehingga muat semula penuh. Sama pepijat/pembetulan macam
+        // handleReactivate di bawah — segarkan sekali dengan status.
+        setItems(prev => prev.map(i => i.id === id ? { ...i, status: 'Pending', sebabMenunggu: 'slot_penuh' } : i));
         if (activeItemModal && activeItemModal.id === id) {
-          setActiveItemModal(prev => prev ? { ...prev, status: 'Pending' } : prev);
+          setActiveItemModal(prev => prev ? { ...prev, status: 'Pending', sebabMenunggu: 'slot_penuh' } : prev);
         }
         onToast?.('success', 'Kandungan menunggu, slot penuh.');
       } else {
