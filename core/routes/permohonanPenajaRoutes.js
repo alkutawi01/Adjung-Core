@@ -569,11 +569,18 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
           );
         }
 
-        if (skopSlot.length > 0) {
-          await dbRun('DELETE FROM sponsor_slots WHERE sponsorId = ?', [sponsorId]);
-          for (const slotIndex of skopSlot) {
-            await dbRun('INSERT INTO sponsor_slots (sponsorId, slotIndex) VALUES (?, ?)', [sponsorId, slotIndex]);
-          }
+        // PEMBETULAN (2026-09-09, bug-hunt) — dahulu DELETE cuma jalan bila skopSlot TIDAK
+        // kosong (`if (skopSlot.length > 0)`), jadi bila `sponsorSediaAdaId` dihantar (pembaharuan
+        // penaja sedia ada — lihat komen di atas) DAN `slotIndexes` kali ni kosong/tiada (niat
+        // sebenar: tukar skop kepada portal KESELURUHAN), baris `sponsor_slots` LAMA daripada
+        // kitaran tajaan sebelum ni tidak pernah dipadam — penaja tetap terkunci ke slot lama
+        // (penajaLayakUntukSlot() baca skop bukan-kosong tu), walaupun Pentadbir sengaja tinggalkan
+        // "Slot" kosong dalam borang untuk maksudkan tiada sekatan. Sama pepijat kelas
+        // "select-write stale" macam tulisSlotUntukSponsor() di sponsorRoutes.js (DELETE dahulu,
+        // TANPA SYARAT, kemudian INSERT semula kalau ada) — corak sama diguna pakai di sini.
+        await dbRun('DELETE FROM sponsor_slots WHERE sponsorId = ?', [sponsorId]);
+        for (const slotIndex of skopSlot) {
+          await dbRun('INSERT INTO sponsor_slots (sponsorId, slotIndex) VALUES (?, ?)', [sponsorId, slotIndex]);
         }
 
         await dbRun('UPDATE permohonan_penaja SET status = ?, sponsorId = ?, diaktifkanPada = ?, updatedAt = ? WHERE id = ?',
