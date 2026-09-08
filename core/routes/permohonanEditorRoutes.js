@@ -18,6 +18,29 @@ import { hantarEmel, escapeHtmlEmel } from '../email/MailSender.js';
 
 const STATUS_SAH = ['baharu', 'diterima', 'ditolak'];
 
+// Kunci e-mel permohonan (2026-09-08, bug-hunt) — POST /public/permohonan-editor baca "ada
+// permohonan 'baharu' sedia ada untuk e-mel ni?" KEMUDIAN INSERT baris baharu, bukan operasi
+// baca-semak-tulis atomik. Laluan ni TIADA auth (borang awam "Sertai Pasukan Editorial"), jadi
+// dua hantaran hampir serentak e-mel SAMA (double-click butang hantar, atau dua pemohon
+// tersalah guna e-mel sama dalam saat yang sama) kedua-duanya baca `sediaAda` sebagai NULL
+// sebelum mana-mana sempat INSERT — peraturan "satu permohonan terbuka per e-mel" (komen di
+// bawah) langsung tak terkuatkuasa, DUA (atau lebih) baris 'baharu' tercipta bagi e-mel yang
+// sama. Disahkan reproduce (scratch DB, 3 submit() serentak e-mel sama: 3 baris tercipta, bukan
+// 1). Sama corak kunci rantaian promise global (`denganKunciRujukanPenaja`,
+// permohonanPenajaRoutes.js) — trafik borang awam ni jarang cukup tinggi utk serialisasi
+// global (per-e-mel, bukan per-permintaan) jadi kesesakan.
+const kunciPermohonanEditor = new Map();
+function denganKunciEmelPermohonan(emel, tugas) {
+  const sebelum = kunciPermohonanEditor.get(emel) || Promise.resolve();
+  const giliranIni = sebelum.then(tugas, tugas);
+  const dijagaGiliran = giliranIni.catch(() => {});
+  kunciPermohonanEditor.set(emel, dijagaGiliran);
+  dijagaGiliran.finally(() => {
+    if (kunciPermohonanEditor.get(emel) === dijagaGiliran) kunciPermohonanEditor.delete(emel);
+  });
+  return giliranIni;
+}
+
 // Pengesahan kandungan medan (2026-08-25, teguran Izzat: "takkanlah boleh masukkan mcm ni kan?
 // kena auto validate kan?") — peraturan DICERMINKAN daripada sahkanMedan() di HalamanSertai.tsx
 // (klien). Klien memberi mesej mesra per-medan; semakan di sini ialah gerbang SEBENAR (borang
@@ -134,35 +157,49 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
 
       // Satu permohonan terbuka per e-mel — permohonan kedua semasa yang pertama masih 'baharu'
       // ditolak dengan mesej jelas, bukan direkod berganda (memenuhkan senarai semakan Ketua
-      // Editor dengan pendua).
-      const sediaAda = await dbGet(
-        "SELECT id FROM permohonan_editor WHERE LOWER(emel) = ? AND status = 'baharu'",
-        [emel]
-      );
-      if (sediaAda) {
+      // Editor dengan pendua). Dikunci per-e-mel (lihat denganKunciEmelPermohonan di atas) —
+      // semak+tulis MESTI atomik, jika tidak dua hantaran serentak e-mel sama kedua-duanya lepas
+      // semakan ni sebelum salah satu sempat INSERT.
+      const hasilPermohonan = await denganKunciEmelPermohonan(emel, async () => {
+        const sediaAda = await dbGet(
+          "SELECT id FROM permohonan_editor WHERE LOWER(emel) = ? AND status = 'baharu'",
+          [emel]
+        );
+        if (sediaAda) {
+          const ralat = new Error('DUPLIKAT');
+          ralat.duplikat = true;
+          throw ralat;
+        }
+
+        const idBaharu = `permohonan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+        const kiniBaharu = new Date().toISOString();
+        await dbRun(
+          `INSERT INTO permohonan_editor
+             (id, namaPenuh, emel, telefon, negeri, kelulusan, bidangMinat, pengalaman, pautanContoh, motivasi, status, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
+          [
+            idBaharu,
+            b.namaPenuh.trim(),
+            emel,
+            b.telefon.trim(),
+            b.negeri.trim(),
+            b.kelulusan.trim(),
+            JSON.stringify(bidangMinat),
+            (b.pengalaman || '').trim(),
+            (b.pautanContoh || '').trim(),
+            b.motivasi.trim(),
+            kiniBaharu,
+          ]
+        );
+        return { id: idBaharu, kini: kiniBaharu };
+      }).catch((err) => {
+        if (err && err.duplikat) return null;
+        throw err;
+      });
+      if (!hasilPermohonan) {
         return res.status(409).json({ error: 'Permohonan dengan e-mel ini sedang dalam semakan. Sila tunggu keputusan.' });
       }
-
-      const id = `permohonan-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const kini = new Date().toISOString();
-      await dbRun(
-        `INSERT INTO permohonan_editor
-           (id, namaPenuh, emel, telefon, negeri, kelulusan, bidangMinat, pengalaman, pautanContoh, motivasi, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
-        [
-          id,
-          b.namaPenuh.trim(),
-          emel,
-          b.telefon.trim(),
-          b.negeri.trim(),
-          b.kelulusan.trim(),
-          JSON.stringify(bidangMinat),
-          (b.pengalaman || '').trim(),
-          (b.pautanContoh || '').trim(),
-          b.motivasi.trim(),
-          kini,
-        ]
-      );
+      const { id, kini } = hasilPermohonan;
 
       // Beritahu Ketua Editor + Pentadbir melalui Peti Makluman (kategori Sistem, konvensyen
       // awalan sistem_* seperti notifikasi akaun di userAdminRoutes.js) — permohonan baharu
