@@ -113,7 +113,30 @@ const SQLiteStore = connectSqlite3(session);
 // connect-sqlite3@0.9 jangka `db` sebagai instance sqlite3.Database HIDUP, bukan nama fail —
 // versi API lama (dir+db sebagai string) tak dipakai versi ni, ditemui via TypeError
 // "this.db.exec is not a function" semasa ujian pertama.
-const sessionDb = new sqlite3.Database(path.join(__dirname, 'sessions.db'));
+//
+// Skop sessions.db ikut ADJUNG_DB_PATH (2026-09-09, bug-hunt) — dahulu path ni HARDCODE ke
+// `__dirname/sessions.db` tanpa peduli ADJUNG_DB_PATH langsung, walhal komen di bawah (dbPath,
+// ~baris 264) eksplisit janji ADJUNG_DB_PATH "membolehkan pelayan dihidupkan terhadap pangkalan
+// data BUANGAN untuk simulasi/ujian, TANPA MENYENTUH adjung.db sebenar" — janji tu terbukti
+// PALSU untuk sesi: SEMUA pelayan simulasi (.simulasi/sim-lib.mjs bootServer(), setiap DB buangan
+// berasingan) berkongsi SATU sessions.db fizikal yang sama di root repo, tak pernah dibersihkan
+// antara jalanan. Disahkan reproduce: log masuk terhadap DB A, tamatkan pelayan A, hidupkan
+// pelayan B (DB kosong B TAK LANGSUNG berkaitan A), kuki sesi A MASIH diterima pelayan B (sesi
+// dibaca terus daripada sessions.db kongsi, req.session.user tak pernah disahkan semula lawan
+// baris `users` sebenar DB semasa — lihat requireAuth()/requirePermission(), core/middleware/
+// auth.js). Kesan: (1) sim bug-hunt yang guna id akaun sama berulang (cth 'sim-admin') across
+// jalanan berlainan boleh terbaca peranan/kebenaran LAPUK daripada jalanan sebelumnya, mencemari
+// keputusan ujian secara senyap; (2) risiko sebenar produksi kalau adjung.db PERNAH dipulihkan
+// drpd backup/reset (CLAUDE.md: "tiada backup DB yang boleh dipercayai") — sesi lama akan terus
+// sah walau baris `users` di DB baharu tu tak lagi sepadan (id/peranan berbeza/tiada langsung).
+// Pembetulan: bila ADJUNG_DB_PATH ditetapkan, sessions.db turut skop ke fail BERASINGAN
+// bersebelahan DB buangan tu (nama diterbitkan drpd nama DB, bukan path tetap) — lalai produksi
+// (tiada ADJUNG_DB_PATH) KEKAL sama seperti dahulu, sifar kesan pada deploy sebenar.
+const dbPathEnvUntukSesi = process.env.ADJUNG_DB_PATH ? path.resolve(process.env.ADJUNG_DB_PATH) : null;
+const sessionDbPath = dbPathEnvUntukSesi
+  ? path.join(path.dirname(dbPathEnvUntukSesi), `sessions-${path.basename(dbPathEnvUntukSesi, path.extname(dbPathEnvUntukSesi))}.db`)
+  : path.join(__dirname, 'sessions.db');
+const sessionDb = new sqlite3.Database(sessionDbPath);
 // Stor sesi didaftarkan supaya laluan tukar kata laluan boleh membatalkan sesi lama akaun
 // berkenaan (core/auth/SesiPengguna.js).
 daftarStorSesi(sessionDb);
