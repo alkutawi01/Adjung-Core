@@ -30,6 +30,50 @@ const SCHOOL_HOLIDAYS_LALAI = [
   { start: '2027-01-23', end: '2027-02-14', group: 'B', name: 'Cuti Akhir Persekolahan' }
 ];
 
+// Cache dalam-memori untuk ambilan API cuti awam luaran (2026-09-09, dapatan bug-hunt) —
+// GET /api/system/clock-holidays dipanggil DI SETIAP kunjungan Frontpage awam
+// (FrontpageView.tsx, useEffect `[]`, laluan bukan-Editorium yang trafiknya jauh lebih tinggi
+// drpd laluan sistem lain), tapi laluan ni SATU-SATUNYA yang fetch API luaran tanpa cache
+// langsung — dahulu setiap kunjungan pembaca hantar permintaan HTTP baharu ke
+// malaysia-holiday.dydxsoft.my walhal senarai cuti awam sepatutnya SAMA sepanjang hari (data
+// tu tak berubah minit-ke-minit). Corak cache SAMA seperti googleDocCache (dbStateRoutes.js,
+// "prestasi & kesediaan produksi") dan cache XML sitemapRoutes.js/rssFeedRoutes.js — kunci per
+// tahun (bukan satu kunci global) supaya pertukaran tahun (1 Januari) tak terjebak cache lapuk
+// tahun lama. TTL 6 jam: cukup pendek utk kemas kini data API dalam sehari, cukup panjang utk
+// mengelak membanjiri API pihak ketiga pada setiap muat halaman awam.
+const PUBLIC_HOLIDAYS_CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 jam
+const publicHolidaysCache = new Map(); // year -> { apiHolidays, expiresAt }
+
+async function fetchPublicHolidaysCached(year) {
+  const now = Date.now();
+  const hit = publicHolidaysCache.get(year);
+  if (hit && hit.expiresAt > now) return hit.apiHolidays;
+
+  let apiHolidays = [];
+  try {
+    const response = await fetch(`https://malaysia-holiday.dydxsoft.my/api/v1/holidays?year=${year}`);
+    if (response.ok) {
+      const jsonResult = await response.json();
+      if (jsonResult && Array.isArray(jsonResult.data)) {
+        apiHolidays = jsonResult.data.map(h => {
+          return {
+            name: h.name,
+            date: h.date, // "YYYY-MM-DD"
+            state_codes: h.state_codes || []
+          };
+        });
+      }
+    }
+  } catch (apiErr) {
+    console.warn('Failed to fetch public holidays from DyDxSoft API:', apiErr.message);
+    // Jangan cache kegagalan — ambang expiresAt tak ditetapkan, permintaan seterusnya cuba lagi
+    // segera (bukan terperangkap senarai kosong sejam ke depan sebab satu ralat rangkaian sekejap).
+    return apiHolidays;
+  }
+  publicHolidaysCache.set(year, { apiHolidays, expiresAt: now + PUBLIC_HOLIDAYS_CACHE_TTL_MS });
+  return apiHolidays;
+}
+
 export function createWorldClockRoutes(dbGet) {
   const router = express.Router();
 
@@ -43,24 +87,7 @@ export function createWorldClockRoutes(dbGet) {
       // masih pulangkan tahun LAMA, jadi API cuti awam disoal dengan tahun yang salah dan
       // terlepas cuti awal Januari (termasuk 1 Januari itu sendiri) sepanjang tetingkap tu.
       const currentYear = Number(tarikhMalaysia().slice(0, 4));
-      let apiHolidays = [];
-      try {
-        const response = await fetch(`https://malaysia-holiday.dydxsoft.my/api/v1/holidays?year=${currentYear}`);
-        if (response.ok) {
-          const jsonResult = await response.json();
-          if (jsonResult && Array.isArray(jsonResult.data)) {
-            apiHolidays = jsonResult.data.map(h => {
-              return {
-                name: h.name,
-                date: h.date, // "YYYY-MM-DD"
-                state_codes: h.state_codes || []
-              };
-            });
-          }
-        }
-      } catch (apiErr) {
-        console.warn('Failed to fetch public holidays from DyDxSoft API:', apiErr.message);
-      }
+      const apiHolidays = await fetchPublicHolidaysCached(currentYear);
 
       let schoolHolidays = SCHOOL_HOLIDAYS_LALAI;
       try {
