@@ -10,7 +10,7 @@ import { gantiBlokModTicker } from './contentRoutes.js';
 import { denganKunciTicker } from '../utils/kunciKandungan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { notifyMany } from '../notifications/Notify.js';
-import { sahkanUrlSelamatUntukFetch, fetchSelamat } from '../utils/urlSafety.js';
+import { sahkanUrlSelamatUntukFetch, fetchSelamat, tetTeksBerhad } from '../utils/urlSafety.js';
 
 // Notifikasi Sistem (Fasa 6b) — RSS/cuaca gagal ditujukan kepada Pentadbir/Ketua Editor sahaja
 // (mereka yang boleh bertindak ke atas kegagalan infrastruktur, bukan setiap editor biasa).
@@ -1369,7 +1369,12 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
       clearTimeout(timeoutId);
 
       if (!response.ok) return;
-      const xmlText = await response.text();
+      // tetTeksBerhad() (bukan response.text() mentah) — dapatan bug-hunt 2026-09-09: had 10MB
+      // menghalang SATU sumber RSS berbahaya/rosak daripada membengkakkan memori proses dengan
+      // respons gergasi; lihat nota panjang di urlSafety.js. Ralat had dilontar ditangkap oleh
+      // catch(fetchErr) sedia ada di bawah, sama macam kegagalan rangkaian lain (log Audit +
+      // amaran, sumber lain terus jalan tak terjejas — Promise.allSettled).
+      const xmlText = await tetTeksBerhad(response, { hadBait: 10 * 1024 * 1024 });
       const parsedItems = parseRssXml(xmlText);
       const maxAgeHours = editorialSettings.maxNewsAgeHours !== undefined ? Number(editorialSettings.maxNewsAgeHours) : 48;
 

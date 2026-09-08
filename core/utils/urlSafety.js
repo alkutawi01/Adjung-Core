@@ -179,4 +179,45 @@ export async function fetchSelamat(url, options = {}, { hadPelencongan = HAD_PEL
   throw new RalatUrlTakSelamat(`Terlalu banyak pelencongan (redirect), disekat selepas ${hadPelencongan} kali.`);
 }
 
+// tetTeksBerhad (2026-09-09, bug-hunt suapan RSS) — `await response.text()` bawaan buffer
+// SELURUH badan respons dalam memori tanpa had, tak kira apa Content-Length nyatakan (header tu
+// boleh ditinggalkan/dipalsukan pihak sumber). executeDirectRssFetch() (slotRoutes.js) panggil
+// `response.text()` terus atas respons SETIAP sumber RSS berdaftar, jalan automatik 3 jam sekali
+// (Promise.allSettled, semua sumber serentak) — SATU sumber (didaftar sah oleh editor tapi
+// kemudian dipintas/rosak/pelayan-nya sendiri bermasalah) yang menghantar respons gergasi (cth
+// beratus MB, sengaja atau kerana pepijat pelayan hulu) boleh membengkakkan memori proses Node
+// SEHINGGA nyahstabil keseluruhan pelayan Adjung Brief — bukan cuma satu sumber tu gagal senyap
+// macam sepatutnya (falsafah sedia ada laluan ni, lihat catch(fetchErr) di bawah). Fungsi ni baca
+// respons secara STREAM (bukan tunggu keseluruhan), kira bait SEBENAR yang tiba, dan HENTIKAN
+// bacaan sebaik had dilampaui — dilontar sebagai RalatUrlTakSelamat supaya laluan panggilan sedia
+// ada (catch generik + log Audit + amaran Pentadbir/Ketua Editor) terus tangani ia sama seperti
+// kegagalan rangkaian lain, TANPA ubah tingkah laku laluan tu.
+export async function tetTeksBerhad(response, { hadBait = 10 * 1024 * 1024 } = {}) {
+  const reader = response.body && typeof response.body.getReader === 'function'
+    ? response.body.getReader()
+    : null;
+  // Tiada ReadableStream (persekitaran/pemalsuan ujian tak sokong) — jatuh balik ke response.text()
+  // biasa, tiada regresi berbanding kelakuan sedia ada.
+  if (!reader) return response.text();
+
+  const decoder = new TextDecoder();
+  let jumlahBait = 0;
+  let teks = '';
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      jumlahBait += value.byteLength;
+      if (jumlahBait > hadBait) {
+        throw new RalatUrlTakSelamat(`Respons melebihi had ${hadBait} bait, ambilan dibatalkan.`);
+      }
+      teks += decoder.decode(value, { stream: true });
+    }
+    teks += decoder.decode();
+    return teks;
+  } finally {
+    try { await reader.cancel(); } catch {}
+  }
+}
+
 export default sahkanUrlSelamatUntukFetch;
