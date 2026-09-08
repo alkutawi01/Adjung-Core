@@ -343,6 +343,26 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         });
       }
 
+      // Sekatan kunci-diri matriks RBAC (2026-09-09, dapatan bug-hunt — bentuk sama seperti
+      // sekatan "pentadbir aktif terakhir" di userAdminRoutes.js, tapi peringkat KAPASITI bukan
+      // AKAUN). Gerbang manageRbac di atas (2026-09-08) menghalang sesiapa TANPA manageRbac
+      // daripada mengubah matriks ni — tapi tiada apa-apa menghalang seseorang YANG ADA
+      // manageRbac daripada menyimpan matriks yang membuang manageRbac daripada SEMUA peranan
+      // sekali gus (cth borang Kawalan Akses hantar objek gabungan penuh, Pentadbir tersilap
+      // nyahtanda kotak manageRbac miliknya sendiri). Selepas simpan macam tu, TIADA sesiapa —
+      // walau lantik Pentadbir baharu — boleh capai laluan ni lagi (peranan itu sendiri dah tak
+      // bawa manageRbac), satu-satunya pemulihan ialah edit terus adjung.db. Tolak simpanan yang
+      // akan tinggalkan SIFAR peranan dengan manageRbac=true, sama falsafah seperti
+      // adaPentadbirAktifLain() — pertahanan di titik SIMPAN, bukan lepas fakta.
+      if (Array.isArray(s.rolePermissions)) {
+        const masihAdaManageRbac = s.rolePermissions.some((r) => r && r.permissions && r.permissions.manageRbac === true);
+        if (!masihAdaManageRbac) {
+          return res.status(400).json({
+            error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Kawalan Akses" (manageRbac). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
+          });
+        }
+      }
+
       // Julat sah medan berangka (SETTINGS-VALIDATION-001, audit #44.4, 2026-08-13) — sebelum ni
       // medan ni cuma `Number(v)` tanpa sebarang semakan: rentetan sampah jadi NaN dan tersimpan
       // senyap, nilai gila (0 saat, 999999) diterima bulat-bulat. Bukan lubang keselamatan (laluan
