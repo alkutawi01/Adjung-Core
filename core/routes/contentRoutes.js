@@ -1729,10 +1729,41 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'statusSebelumPadam'",
         [id, rev.id]
       );
-      const statusPulihan = (statusSebelumRow && CONTENT_STATUSES.includes(statusSebelumRow.valueText))
+      let statusPulihan = (statusSebelumRow && CONTENT_STATUSES.includes(statusSebelumRow.valueText))
         ? statusSebelumRow.valueText
         : 'archived';
+      // Had kandungan seslot terpakai pada Pulihkan Tong Sampah juga (2026-09-08, bug-hunt) —
+      // SAMA kelas pepijat yang dibaiki 2026-08-06 di POST /revisions/:revisionId/restore
+      // (komen "Had kandungan seslot terpakai pada pulihan juga" di atas fail ni), tapi laluan
+      // Tong Sampah ni terlepas pembetulan sama. statusSebelumPadam boleh 'approved' — kandungan
+      // yang dipadam semasa ia Aktif MEMBEBASKAN ruang slot tu (DELETE /content/:id panggil
+      // promosikanMenungguSlotKosong()), jadi kandungan LAIN mungkin sudah dinaik taraf mengisi
+      // ruang tu sebelum Pulihkan diklik. Menulis 'approved' terus di sini tanpa semak semula
+      // hadKandunganSlot akan letak DUA baris 'approved' bagi SATU slot serentak — melanggar
+      // invariant "satu slot, satu kandungan Aktif" (CarouselStableBlock/resolveSlotContent
+      // andaikan ini SENTIASA benar). Sama macam laluan restore-versi: bukan ditolak, cuma masuk
+      // giliran 'slot_penuh' — editor tak patut kehilangan pulihan sebab masalah ruang sementara.
+      const objRowUntukPulih = await dbGet("SELECT slotIndex FROM editorial_objects WHERE id = ?", [id]);
+      let sebabMenungguPulihan = '';
+      if (statusPulihan === 'approved' && objRowUntukPulih && !TIER_SLOTS.BAR.includes(objRowUntukPulih.slotIndex)) {
+        const { hadKandunganSlot } = getAmSettings();
+        if (hadKandunganSlot > 0) {
+          const kiraanAktif = await dbGet(`
+            SELECT COUNT(*) AS n FROM editorial_objects o
+            JOIN editorial_revisions r ON r.objectId = o.id
+            WHERE o.slotIndex = ? AND o.id != ? AND r.status = 'approved'
+              AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+          `, [objRowUntukPulih.slotIndex, id]);
+          if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
+            statusPulihan = 'pending';
+            sebabMenungguPulihan = 'slot_penuh';
+          }
+        }
+      }
       await dbRun("UPDATE editorial_revisions SET status = ?, updatedAt = ? WHERE id = ?", [statusPulihan, new Date().toISOString(), rev.id]);
+      if (sebabMenungguPulihan) {
+        await tetapkanSebabMenunggu(dbGet, dbRun, id, rev.id, sebabMenungguPulihan);
+      }
       // Buang atribut 'dipadamPada'/'statusSebelumPadam' semasa pulih (2026-08-20, dapatan audit
       // — bug SEBENAR, bukan teori). Sebelum ni laluan ni cuma menukar status, membiarkan kedua-dua
       // atribut TERBENAM. Padam->Pulih->Padam semula (senario biasa: tersilap padam, pulihkan,
@@ -1757,7 +1788,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         targetId: id,
         detail: (rev.title || '').slice(0, 100),
       });
-      res.json({ success: true, status: statusPulihan });
+      res.json({ success: true, status: statusPulihan, slotPenuh: sebabMenungguPulihan === 'slot_penuh' });
     } catch (err) {
       console.error('Pulihkan Tong Sampah error:', err);
       res.status(500).json({ error: 'Gagal memulihkan kandungan. ' + (err.message || '') });
