@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { statusLuputCutiSekolah } from '../../../core/utils/kitaranCutiSekolah.js';
+import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
 import {
   Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
 } from 'lucide-react';
@@ -201,7 +202,11 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
   // tercetus (~185 hari lagi), jadi cabang "hampir tamat"/"sudah tamat" mustahil disahkan
   // dengan mata pada skrin hari ni. Komponen cuma memformat hasilnya.
   const statusLuputCuti = useMemo(() => {
-    const hariIni = new Date().toISOString().slice(0, 10);
+    // tarikhMalaysia() bukan toISOString().slice(0,10) (2026-09-09, bug-hunt) — .toISOString()
+    // ambil tarikh kalendar UTC; antara 12:00am-7:59am waktu Malaysia (UTC+8), "hari ini" jatuh
+    // sehari awal, jadi bezaHari (dan justeru amaran "hampir tamat"/"sudah tamat" senarai cuti
+    // sekolah) tersasar 1 hari sepanjang tetingkap 8 jam tu setiap hari. Sama punca #155/pusingan 9.
+    const hariIni = tarikhMalaysia();
     const asas = statusLuputCutiSekolah(schoolHolidays, hariIni);
     if (!asas) return null;
     return {
