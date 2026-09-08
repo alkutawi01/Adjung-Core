@@ -3721,12 +3721,27 @@ const validateAndPrepareManualItems = async (slotIndex, manualSummary, slotConfi
     // penuh di ContentBudget.js. Kandungan LAMA yang sudah terbit dengan medan ni kosong tak
     // terjejas laluan ni langsung (fungsi ni cuma dipanggil semasa TERBIT draf baharu, bukan
     // semasa resync giliran draf sedia ada — lihat nota `isDraft` di atas).
-    const huraianPanjangWajibCheck = validateHuraianPanjangWajib(item.briefLong, effectiveMinBriefLong());
-    if (!huraianPanjangWajibCheck.isValid) {
-      const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${huraianPanjangWajibCheck.reason} Kandungan tidak disiarkan.`);
-      err.isValidationError = true;
-      err.bolehSalinAI = true;
-      throw err;
+    //
+    // `!isBar` (2026-09-09, dapatan bug-hunt #135) — GeometryConfig.js sendiri dokumenkan
+    // "setiap tier (kecuali BAR/TICKER, tiada medan ni)" untuk had Huraian Panjang, tapi semakan
+    // ni terlepas kekecualian tu semasa ciri "wajib" ditambah 2026-08-28. Slot Bar (acara) tiada
+    // medan "Huraian panjang" langsung dalam borangnya (BarSlotManagerModal.tsx guna Penerangan,
+    // medan BERASINGAN, tak pernah mengisi item.briefLong — lihat serializeManualBarItem,
+    // ManualBlockFormat.js), jadi item.briefLong Slot Bar SENTIASA kosong. Digabung dengan
+    // `isDraft` yang SENGAJA `!isBar && ...` (Bar tiada draf/terbit, SEMUA item disemak SETIAP
+    // simpan, bukan cuma draf baharu) — kesan sebenar: SEBARANG simpanan Slot Bar (acara baharu
+    // ATAU sunting acara sedia ada) ditolak 400 "Huraian panjang wajib diisi" secara MUTLAK sejak
+    // had minimum global > 0 (lalai 400 aksara, Tetapan Am Slot) berkuat kuasa — seluruh tier Bar
+    // tak boleh disimpan langsung, bukan kes tepi jarang. Dikecualikan di sini sama corak macam
+    // bidangTopikCheck (`if (!isBar)`) di bawah.
+    if (!isBar) {
+      const huraianPanjangWajibCheck = validateHuraianPanjangWajib(item.briefLong, effectiveMinBriefLong());
+      if (!huraianPanjangWajibCheck.isValid) {
+        const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${huraianPanjangWajibCheck.reason} Kandungan tidak disiarkan.`);
+        err.isValidationError = true;
+        err.bolehSalinAI = true;
+        throw err;
+      }
     }
     // Had aksara medan bukan-kad (Tetapan Am Slot) — huraian panjang, sumber, topik, nota.
     // Berasingan daripada had per-slot maxBriefLong di bawah: yang mana lebih ketat, itu yang
@@ -3791,6 +3806,22 @@ const validateAndPrepareManualItems = async (slotIndex, manualSummary, slotConfi
     // jadi perlu had ruang sebenar sama macam Huraian Panjang di atas.
     if (isBar && item.penerangan && item.penerangan.length > MAX_PENERANGAN_CHARS) {
       const err = new Error(`Penerangan bagi "${(item.title || '').slice(0, 40)}..." melebihi had ${MAX_PENERANGAN_CHARS} aksara (semasa: ${item.penerangan.length}). Kandungan tidak disiarkan. Pendekkan penerangan dahulu.`);
+      err.isValidationError = true;
+      err.bolehSalinAI = true;
+      throw err;
+    }
+    // Julat tarikh acara terbalik (2026-09-09, dapatan bug-hunt susulan #135) — BarSlotManagerModal.tsx
+    // (2026-09-02) sudah papar AMARAN client bila Tarikh tamat < Tarikh mula, tapi SENGAJA amaran
+    // sahaja (bukan sekatan simpan keras — nota di situ eksplisit elak ubah aliran Simpan tanpa
+    // pengesahan visual dahulu). Sepanjang masa tu, laluan SIMPAN SEBENAR (di sini) langsung TIADA
+    // semakan padanan — julat terbalik terus tersiar ke kad awam ("23 OGOS 2026 - 21 OGOS 2026",
+    // formatEventDateRange() cuma gabung dua tarikh, tiada usaha membetulkan turutan). sponsorRoutes.js
+    // sudah kuatkuasakan invariant SAMA (mula <= tamat) sebagai 400 keras untuk tajaan bertarikh —
+    // Slot Bar/acara tak pernah dapat perlindungan setara walaupun konsep tarikh julat sama persis.
+    // Ditambah di sini (bukan dalam BarSlotManagerModal.tsx) supaya TERPAKAI tak kira laluan simpan
+    // (modal editor, atau mana-mana panggilan API terus ke POST /system/slots).
+    if (isBar && item.originalDate && item.dateEnd && item.dateEnd < item.originalDate) {
+      const err = new Error(`Acara "${(item.title || '').slice(0, 40)}...": Tarikh tamat (${item.dateEnd}) lebih awal daripada tarikh mula (${item.originalDate}). Kandungan tidak disiarkan. Semak semula turutan tarikh.`);
       err.isValidationError = true;
       err.bolehSalinAI = true;
       throw err;
