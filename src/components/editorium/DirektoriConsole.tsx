@@ -298,7 +298,11 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Ditamatkan' }),
       });
-      if (!res.ok) throw new Error('Gagal mengemas kini status.');
+      // Baca ralat SEBENAR pelayan (bendera merah CLAUDE.md: `throw new Error()` kosong buang
+      // sebab sebenar — 400/404 daripada PATCH /users/:id/status di atas hilang jadi mesej
+      // generik yang sama tak kira sebab). Sama pembetulan seperti muatSemula()/ubahStatus().
+      const data = await bacaJsonSelamat(res).catch(() => ({} as any));
+      if (!res.ok) throw new Error(data?.error || 'Gagal mengemas kini status.');
       kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
       setKonfirmasiTamat(null);
       onToast?.('success', 'Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
@@ -319,7 +323,9 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: 'Ditamatkan' }),
       });
-      if (!resStatus.ok) throw new Error('Gagal mengemas kini status.');
+      // Sama pembetulan seperti tamatkanSahaja() di atas — baca ralat sebenar sebelum lempar.
+      const dataStatus = await bacaJsonSelamat(resStatus).catch(() => ({} as any));
+      if (!resStatus.ok) throw new Error(dataStatus?.error || 'Gagal mengemas kini status.');
       kemaskiniStaff({ ...konfirmasiTamat.staff, status: 'Ditamatkan' });
       const res = await fetch(`/api/system/users/${konfirmasiTamat.staff.id}/kandungan-belum-terbit/padam`, { method: 'POST' });
       const data = await bacaJsonSelamat(res);
