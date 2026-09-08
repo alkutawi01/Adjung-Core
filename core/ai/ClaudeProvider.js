@@ -1,4 +1,5 @@
 import AIProvider from './AIProvider.js';
+import { parseAiJsonResponse } from './jsonExtract.js';
 
 class ClaudeProvider extends AIProvider {
   async generate(promptText, systemInstructions = '', searchTools = null) {
@@ -27,12 +28,10 @@ class ClaudeProvider extends AIProvider {
 
     const data = await res.json();
     const text = data.content[0].text.trim();
-    let parsedJson = null;
-    try {
-      parsedJson = JSON.parse(text);
-    } catch (e) {
-      throw new Error(`Failed to parse Claude response as JSON: ${text}`);
-    }
+    // Bersih/pulih sebelum parse (2026-09-09, dapatan bug-hunt) — dahulu terus `JSON.parse(text)`
+    // MENTAH, sedangkan Claude kerap balut jawapan dlm pagar markdown ```json walau arahan sistem
+    // eksplisit larang. Lihat nota penuh jsonExtract.js — laluan sama yg sudah dipakai Gemini.
+    const parsedJson = parseAiJsonResponse(text);
 
     const promptTokens = data.usage?.input_tokens || 0;
     const completionTokens = data.usage?.output_tokens || 0;

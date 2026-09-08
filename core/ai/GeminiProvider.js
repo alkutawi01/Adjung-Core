@@ -1,46 +1,6 @@
 import { GoogleGenAI } from '@google/genai';
 import AIProvider from './AIProvider.js';
-
-// Gemini occasionally appends stray trailing content after an otherwise-complete, valid JSON
-// object/array (observed: a duplicate closing "]}" tacked on after the real structure already
-// closed). Rather than fail the whole generation, scan from the first { or [ and track bracket
-// depth to find exactly where the FIRST complete structure balances back to zero, and parse only
-// that substring — ignoring whatever garbage follows.
-function extractBalancedJson(text) {
-  const start = text.search(/[{[]/);
-  if (start === -1) return null;
-
-  const openChar = text[start];
-  const closeChar = openChar === '{' ? '}' : ']';
-  let depth = 0;
-  let inString = false;
-  let escaped = false;
-
-  for (let i = start; i < text.length; i++) {
-    const ch = text[i];
-    if (inString) {
-      if (escaped) {
-        escaped = false;
-      } else if (ch === '\\') {
-        escaped = true;
-      } else if (ch === '"') {
-        inString = false;
-      }
-      continue;
-    }
-    if (ch === '"') {
-      inString = true;
-    } else if (ch === openChar) {
-      depth++;
-    } else if (ch === closeChar) {
-      depth--;
-      if (depth === 0) {
-        return text.slice(start, i + 1);
-      }
-    }
-  }
-  return null;
-}
+import { parseAiJsonResponse } from './jsonExtract.js';
 
 class GeminiProvider extends AIProvider {
   async generate(promptText, systemInstructions = '', searchTools = null) {
@@ -76,40 +36,7 @@ class GeminiProvider extends AIProvider {
     });
 
     const text = response.text.trim();
-    let parsedJson = null;
-    let cleanText = text;
-    try {
-      // Clean markdown blocks if present
-      if (cleanText.startsWith('```json')) {
-        cleanText = cleanText.substring(7);
-      }
-      if (cleanText.startsWith('```')) {
-        cleanText = cleanText.substring(3);
-      }
-      if (cleanText.endsWith('```')) {
-        cleanText = cleanText.slice(0, -3);
-      }
-      cleanText = cleanText.trim();
-      
-      // Strip search grounding citation footnotes like [1], [1.1], [1.1.2], etc.
-      cleanText = cleanText.replace(/\[\d+(?:\.\d+)*\]/g, '');
-      
-      // Remove trailing commas before closing braces/brackets
-      cleanText = cleanText.replace(/,\s*([}\]])/g, '$1');
-      
-      try {
-        parsedJson = JSON.parse(cleanText);
-      } catch (firstErr) {
-        // Direct parse failed — likely trailing garbage after a complete, valid structure.
-        // Try extracting just the first balanced {...} or [...] before giving up entirely.
-        const balanced = extractBalancedJson(cleanText);
-        if (!balanced) throw firstErr;
-        parsedJson = JSON.parse(balanced);
-        console.warn('[Gemini API] Response had trailing garbage after valid JSON — recovered via balanced-bracket extraction.');
-      }
-    } catch (e) {
-      throw new Error(`Failed to parse Gemini response as JSON: ${cleanText} (Original: ${text})`);
-    }
+    const parsedJson = parseAiJsonResponse(text);
 
     let promptTokens = 0;
     let completionTokens = 0;
