@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { Check, AlignLeft, RefreshCw } from 'lucide-react';
 import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
@@ -88,7 +88,7 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
         return data;
       })
       .then((data) => setDraf(Array.isArray(data) ? data : []))
-      .catch((e) => setRalat(e.message || 'Gagal membaca senarai draf.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal membaca senarai draf.')))
       .finally(() => setMemuat(false));
     // `editorId`/`editorName` dikekalkan sebagai kebergantungan (bukan dihantar ke server lagi) —
     // ia pencetus muat semula apabila identiti sesi bertukar, cth log keluar lalu log masuk akaun

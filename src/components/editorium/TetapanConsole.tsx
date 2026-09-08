@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { statusLuputCutiSekolah } from '../../../core/utils/kitaranCutiSekolah.js';
 import {
   Lock, Newspaper, X, AlertTriangle, Save, RefreshCw, Check, Hourglass, Globe
@@ -299,7 +299,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       await saveSystemSettingsPatch({ glosSelariEnabled: next });
     } catch (e: any) {
       setGlosSelariEnabled(!next);
-      setGlosSelariSaveError(e.message || 'Gagal menyimpan tetapan Glos Selari.');
+      setGlosSelariSaveError(mesejRalat(e, 'Gagal menyimpan tetapan Glos Selari.'));
     } finally {
       setSavingGlosSelari(false);
     }
@@ -335,9 +335,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       setSchoolHolidays(cutiSah);
       addToast('success', 'Tetapan Jam Dunia disimpan.');
     } catch (e: any) {
-      const mesejRalat = e.message || 'Gagal menyimpan tetapan Jam Dunia.';
-      setWorldClockSaveError(mesejRalat);
-      addToast('error', mesejRalat);
+      const mesej = mesejRalat(e, 'Gagal menyimpan tetapan Jam Dunia.');
+      setWorldClockSaveError(mesej);
+      addToast('error', mesej);
     } finally {
       setSavingWorldClock(false);
     }
@@ -350,9 +350,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       await saveSystemSettingsPatch({ focusViewNotaMaxAksara, focusViewAutoAdvanceSec });
       addToast('success', 'Tetapan Focus View disimpan.');
     } catch (e: any) {
-      const mesejRalat = e.message || 'Gagal menyimpan tetapan Focus View.';
-      setFocusViewSaveError(mesejRalat);
-      addToast('error', mesejRalat);
+      const mesej = mesejRalat(e, 'Gagal menyimpan tetapan Focus View.');
+      setFocusViewSaveError(mesej);
+      addToast('error', mesej);
     } finally {
       setSavingFocusView(false);
     }
@@ -365,9 +365,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       await saveSystemSettingsPatch({ tickerOverlayTitleSize, tickerOverlayBriefSize });
       addToast('success', 'Tetapan paparan penuh Ticker disimpan.');
     } catch (e: any) {
-      const mesejRalat = e.message || 'Gagal menyimpan tetapan paparan penuh Ticker.';
-      setTickerOverlaySaveError(mesejRalat);
-      addToast('error', mesejRalat);
+      const mesej = mesejRalat(e, 'Gagal menyimpan tetapan paparan penuh Ticker.');
+      setTickerOverlaySaveError(mesej);
+      addToast('error', mesej);
     } finally {
       setSavingTickerOverlay(false);
     }
@@ -504,9 +504,9 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
       setRbacDirty(false);
       addToast('success', 'Kawalan Akses disimpan.');
     } catch (e: any) {
-      const mesejRalat = e.message || 'Gagal menyimpan matriks RBAC.';
-      setRbacSaveError(mesejRalat);
-      addToast('error', mesejRalat);
+      const mesej = mesejRalat(e, 'Gagal menyimpan matriks RBAC.');
+      setRbacSaveError(mesej);
+      addToast('error', mesej);
     } finally {
       setSavingRbac(false);
     }
@@ -1273,7 +1273,7 @@ function HalamanAwamPanel() {
         setKandungan(data?.content || '');
         setAktifFooter(data ? data.aktif !== 0 : true);
       })
-      .catch((e) => setRalat(e.message || 'Gagal memuatkan halaman.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal memuatkan halaman.')))
       .finally(() => setMemuat(false));
   };
 
@@ -1299,7 +1299,7 @@ function HalamanAwamPanel() {
       // sebentar (borang panjang, banyak medan); dinaikkan ke 6000ms.
       setTimeout(() => setMesej(''), 6000);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan halaman.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan halaman.'));
     } finally {
       setMenyimpan(false);
     }
@@ -1447,7 +1447,7 @@ function LabelSistemPanel() {
         return r.json();
       })
       .then((data) => setNilaiSemasa(data && typeof data === 'object' ? data : {}))
-      .catch((e) => setRalat(e.message || 'Gagal memuatkan kamus label.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal memuatkan kamus label.')))
       .finally(() => setMemuat(false));
   };
 
@@ -1476,7 +1476,7 @@ function LabelSistemPanel() {
       // 2026-08-07 (Audit §D2) — 2000ms terlalu pantas; dinaikkan ke 6000ms.
       setTimeout(() => setMesej(''), 6000);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan label.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan label.'));
     } finally {
       setMenyimpan(false);
     }
@@ -1503,7 +1503,7 @@ function LabelSistemPanel() {
       muatSemula();
       await muatPindaanLabel();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengembalikan nilai lalai.');
+      setRalat(mesejRalat(e, 'Gagal mengembalikan nilai lalai.'));
     } finally {
       setMenyimpan(false);
     }
@@ -1635,7 +1635,7 @@ function RupaEditoriumPanel() {
         return r.json();
       })
       .then((data) => { setSemasa({ ...RUPA_LALAI, ...data }); setSuntingan(null); })
-      .catch((e) => setRalat(e.message || 'Gagal memuatkan tetapan rupa Editorium.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal memuatkan tetapan rupa Editorium.')))
       .finally(() => setMemuat(false));
   };
 
@@ -1667,7 +1667,7 @@ function RupaEditoriumPanel() {
       setMesej(labelUi('toast.tetapan_disimpan'));
       setTimeout(() => setMesej(''), 6000);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan tetapan rupa Editorium.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan tetapan rupa Editorium.'));
     } finally {
       setMenyimpan(false);
     }

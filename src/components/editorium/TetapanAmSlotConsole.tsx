@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { AlertTriangle, Save } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -263,7 +263,7 @@ function DasarTerbitSendiriField() {
       setTimeout(() => setBerjaya(null), 4000);
     } catch (e: any) {
       setBenarkanSelfPublish(asal);
-      setRalat(e.message || 'Gagal menyimpan dasar terbit sendiri.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan dasar terbit sendiri.'));
     } finally {
       setMenyimpan(false);
     }
@@ -371,7 +371,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
       if (!simpan.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(`Lengah diagih (susunan lebar-sama-rata, bukan berurutan): ${dikemas.length} slot, 0-${dikemas.length - 1} saat.`);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengagih lengah carousel.');
+      setRalat(mesejRalat(e, 'Gagal mengagih lengah carousel.'));
     } finally {
       setMengagih(false);
     }
@@ -409,7 +409,7 @@ export const TetapanAmSlotConsole: React.FC = () => {
       // modal Urus Slot papar nilai lama sehingga muat semula penuh. Lihat medanLimitOverrides.ts.
       muatPindaanMedanLimit();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan.'));
     } finally {
       setMenyimpan(false);
     }

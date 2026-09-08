@@ -2,7 +2,7 @@ import React, { useRef, useState } from 'react';
 import { KeadaanKosong } from '../common/KeadaanKosong';
 import { Tooltip } from '../common/Tooltip';
 import { StatusBadge } from '../common/StatusBadge';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { X, Pin, Rss, CloudOff, KeyRound, UserCog, CheckCircle2, XCircle, LayoutGrid, Bell, AlertTriangle, Link2Off, Clock, ChevronDown, ChevronUp, Handshake, UserPlus } from 'lucide-react';
 import { useModalFokus } from '../../hooks/useModalFokus';
 
@@ -180,7 +180,7 @@ export const MaklumanDrawer: React.FC<MaklumanDrawerProps> = ({ nota, notifikasi
           return data;
         })
         .then((d) => setNotaArkib(Array.isArray(d) ? d.map((n: any) => ({ ...n, jenisSumber: 'nota_ketua_editor' as const })) : []))
-        .catch((e) => setRalatArkib(e.message || 'Gagal membaca nota terdahulu.'))
+        .catch((e) => setRalatArkib(mesejRalat(e, 'Gagal membaca nota terdahulu.')))
         .finally(() => setMemuatArkib(false));
     }
   };

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { X, Pencil } from 'lucide-react';
 import { labelUi } from '../../config/istilah';
 import { StatusBadge } from '../common/StatusBadge';
@@ -92,7 +92,7 @@ export const EditorialConsole: React.FC = () => {
       setIstilahBaharu('');
       muatIstilah();
     } catch (e: any) {
-      setRalatIstilah(e.message || 'Gagal menambah istilah.');
+      setRalatIstilah(mesejRalat(e, 'Gagal menambah istilah.'));
     } finally {
       setMenghantarIstilah(false);
     }
@@ -104,7 +104,7 @@ export const EditorialConsole: React.FC = () => {
       if (!res.ok) throw new Error('Gagal memadam istilah.');
       setIstilah((prev) => prev.filter((t) => t.id !== id));
     } catch (e: any) {
-      setRalatIstilah(e.message || 'Gagal memadam istilah.');
+      setRalatIstilah(mesejRalat(e, 'Gagal memadam istilah.'));
     } finally {
       setConfirmBuangIstilah('');
     }
@@ -171,7 +171,7 @@ export const EditorialConsole: React.FC = () => {
       setDialogGlosari(false);
       muatGlosari();
     } catch (err: any) {
-      setRalatGlosari(err.message || 'Gagal menyimpan istilah.');
+      setRalatGlosari(mesejRalat(err, 'Gagal menyimpan istilah.'));
     } finally {
       setMenghantarGlosari(false);
     }
@@ -183,7 +183,7 @@ export const EditorialConsole: React.FC = () => {
       if (!res.ok) throw new Error('Gagal memadam istilah.');
       setGlosari((prev) => prev.filter((g) => g.id !== id));
     } catch (e: any) {
-      setRalatGlosari(e.message || 'Gagal memadam istilah.');
+      setRalatGlosari(mesejRalat(e, 'Gagal memadam istilah.'));
     } finally {
       setConfirmBuangGlosari('');
     }
@@ -228,7 +228,7 @@ export const EditorialConsole: React.FC = () => {
       setEditGlosariId(null);
       muatGlosari();
     } catch (err: any) {
-      setRalatEditGlosari(err.message || 'Gagal mengemas kini istilah.');
+      setRalatEditGlosari(mesejRalat(err, 'Gagal mengemas kini istilah.'));
     } finally {
       setMenghantarEditGlosari(false);
     }
@@ -304,7 +304,7 @@ export const EditorialConsole: React.FC = () => {
       setDialogSenseTerbuka(false);
       muatGlosari();
     } catch (err: any) {
-      setRalatSense(err.message || 'Gagal menyimpan Sense.');
+      setRalatSense(mesejRalat(err, 'Gagal menyimpan Sense.'));
     } finally {
       setMenghantarSense(false);
     }
@@ -316,7 +316,7 @@ export const EditorialConsole: React.FC = () => {
       if (!res.ok) throw new Error('Gagal memadam Sense.');
       muatGlosari();
     } catch (e: any) {
-      setRalatSense(e.message || 'Gagal memadam Sense.');
+      setRalatSense(mesejRalat(e, 'Gagal memadam Sense.'));
     } finally {
       setConfirmBuangSenseId('');
     }
@@ -378,7 +378,7 @@ export const EditorialConsole: React.FC = () => {
       setDialogEjaan(false);
       muatEjaan();
     } catch (err: any) {
-      setRalatEjaan(err.message || 'Gagal menyimpan bentuk ejaan.');
+      setRalatEjaan(mesejRalat(err, 'Gagal menyimpan bentuk ejaan.'));
     } finally {
       setMenghantarEjaan(false);
     }
@@ -390,7 +390,7 @@ export const EditorialConsole: React.FC = () => {
       if (!res.ok) throw new Error('Gagal memadam bentuk ejaan.');
       setEjaan((prev) => prev.filter((x) => x.id !== id));
     } catch (e: any) {
-      setRalatEjaan(e.message || 'Gagal memadam bentuk ejaan.');
+      setRalatEjaan(mesejRalat(e, 'Gagal memadam bentuk ejaan.'));
     } finally {
       setConfirmBuangEjaan('');
     }
@@ -471,7 +471,7 @@ export const EditorialConsole: React.FC = () => {
       setDialogPemenggalan(false);
       muatPemenggalan();
     } catch (err: any) {
-      setRalatPemenggalan(err.message || 'Gagal menyimpan pengecualian pemenggalan.');
+      setRalatPemenggalan(mesejRalat(err, 'Gagal menyimpan pengecualian pemenggalan.'));
     } finally {
       setMenghantarPemenggalan(false);
     }
@@ -483,7 +483,7 @@ export const EditorialConsole: React.FC = () => {
       if (!res.ok) throw new Error('Gagal memadam pengecualian pemenggalan.');
       setPemenggalan((prev) => prev.filter((x) => x.id !== id));
     } catch (e: any) {
-      setRalatPemenggalan(e.message || 'Gagal memadam pengecualian pemenggalan.');
+      setRalatPemenggalan(mesejRalat(e, 'Gagal memadam pengecualian pemenggalan.'));
     } finally {
       setConfirmBuangPemenggalan('');
     }
@@ -530,7 +530,7 @@ export const EditorialConsole: React.FC = () => {
       setMesejAi(labelUi('toast.templat_ai_disimpan'));
       setTimeout(() => setMesejAi(''), 2400);
     } catch (e: any) {
-      setRalatAi(e.message || 'Gagal menyimpan templat AI.');
+      setRalatAi(mesejRalat(e, 'Gagal menyimpan templat AI.'));
     } finally {
       setMenyimpanAi(false);
     }

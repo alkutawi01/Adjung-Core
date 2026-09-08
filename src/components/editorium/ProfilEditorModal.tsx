@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { X } from 'lucide-react';
 import { MesejStatus } from '../common/MesejStatus';
 import { Button } from '../common/Button';
@@ -221,7 +221,7 @@ export const ProfilEditorModal: React.FC<ProfilEditorModalProps> = ({ profil, on
       // D2 (Audit UI/UX §D2): 2000ms terlalu pantas bagi editor yang mengalih pandangan seketika.
       setTimeout(() => setMesej(''), 6000);
     } catch (err: any) {
-      setRalat(err.message || 'Gagal menyimpan profil.');
+      setRalat(mesejRalat(err, 'Gagal menyimpan profil.'));
     } finally {
       setMenyimpan(false);
     }

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { mesejRalat } from '../../utils/bacaJson';
 import { Link, useSearchParams } from 'react-router-dom';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
 
@@ -55,7 +56,7 @@ export const HalamanLengkapkanPenajaan: React.FC = () => {
         setBuktiBayaranUrl(d.buktiBayaranUrl || '');
         setLogoUrl(d.logoUrl || '');
       })
-      .catch((e) => setRalatMuat(e.message || 'Pautan tidak sah.'))
+      .catch((e) => setRalatMuat(mesejRalat(e, 'Pautan tidak sah.')))
       .finally(() => setMemuat(false));
   }, [token]);
 
@@ -87,7 +88,7 @@ export const HalamanLengkapkanPenajaan: React.FC = () => {
       if (jenis === 'bukti') setBuktiBayaranUrl(data.url);
       else setLogoUrl(data.url);
     } catch (e: any) {
-      setRalat(e.message || 'Muat naik gagal, cuba lagi.');
+      setRalat(mesejRalat(e, 'Muat naik gagal, cuba lagi.'));
     } finally {
       (jenis === 'bukti' ? setMemuatNaikBukti : setMemuatNaikLogo)(false);
     }

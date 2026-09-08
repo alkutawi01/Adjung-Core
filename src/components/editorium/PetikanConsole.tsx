@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { BadgeCheck, Check, ChevronDown, ChevronRight, ClipboardPaste, Copy, Pencil, Plus, Power, Search, Trash2, TriangleAlert, X } from 'lucide-react';
 import { KATEGORI_PETIKAN, HAD_TEKS_PETIKAN, labelTerjemahan, adalahBahasaMelayu } from '../../../core/editorial/PetikanConfig.js';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -294,7 +294,7 @@ export const PetikanConsole: React.FC = () => {
         return data;
       })
       .then((d) => setSenarai(Array.isArray(d) ? d : []))
-      .catch((e) => setRalat(e.message || 'Gagal membaca senarai petikan.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal membaca senarai petikan.')))
       .finally(() => setMemuat(false));
   }, []);
 
@@ -344,7 +344,7 @@ export const PetikanConsole: React.FC = () => {
       setCiriAktif(!ciriAktif);
       lapor(!ciriAktif ? 'Ciri Petikan dihidupkan' : 'Ciri Petikan dimatikan');
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menukar togol ciri.');
+      setRalat(mesejRalat(e, 'Gagal menukar togol ciri.'));
     } finally {
       setMenukarTogol(false);
     }
@@ -383,7 +383,7 @@ export const PetikanConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan tetapan.');
       lapor('Tetapan Petikan dikemas kini.');
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan tetapan.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan tetapan.'));
     } finally {
       setMenyimpanTetapanLanjutan(false);
     }
@@ -409,7 +409,7 @@ export const PetikanConsole: React.FC = () => {
       );
       setTimeout(() => setNotaArahan(''), 8000);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyalin Arahan AI.');
+      setRalat(mesejRalat(e, 'Gagal menyalin Arahan AI.'));
     }
   };
 
@@ -451,7 +451,7 @@ export const PetikanConsole: React.FC = () => {
       setTampalDibuka(false);
       if (data.pendua > 0) lapor(`${data.pendua} petikan sudah wujud dalam koleksi dan dilangkau.`);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menghurai tampalan.');
+      setRalat(mesejRalat(e, 'Gagal menghurai tampalan.'));
     } finally {
       setMemproses(false);
     }
@@ -512,7 +512,7 @@ export const PetikanConsole: React.FC = () => {
       }
       muat();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan petikan.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan petikan.'));
     } finally {
       setMemproses(false);
     }
@@ -545,7 +545,7 @@ export const PetikanConsole: React.FC = () => {
         muat(); // jaring keselamatan — pelayan patut sentiasa pulangkan baris, tapi jangan senyap kalau tidak.
       }
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengemas kini status.');
+      setRalat(mesejRalat(e, 'Gagal mengemas kini status.'));
     } finally {
       setMemprosesSemakan(false);
     }
@@ -566,7 +566,7 @@ export const PetikanConsole: React.FC = () => {
         muat();
       }
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengemas kini petikan.');
+      setRalat(mesejRalat(e, 'Gagal mengemas kini petikan.'));
     }
   };
 
@@ -581,7 +581,7 @@ export const PetikanConsole: React.FC = () => {
       // sekiranya editor sedang padam item lain dalam senarai yang sama.
       setSenarai((s) => s.filter((p) => p.id !== id));
     } catch (e: any) {
-      setRalat(e.message || 'Gagal memadam petikan.');
+      setRalat(mesejRalat(e, 'Gagal memadam petikan.'));
     }
   };
 
@@ -641,7 +641,7 @@ export const PetikanConsole: React.FC = () => {
         muat();
       }
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan suntingan.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan suntingan.'));
     } finally {
       setMenyimpanSuntingan(false);
     }

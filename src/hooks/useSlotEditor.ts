@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { mesejRalat } from '../utils/bacaJson';
 import { ceilingForSlot } from '../../core/editorial/GeometryConfig.js';
 
 // Sistem tulis-kandungan Editorium (2026-07-29, permintaan pemilik projek) — MANDIRI sepenuhnya
@@ -271,10 +272,10 @@ export function useSlotEditor(editorName?: string) {
         // kali, cuma bawa terus err yang sama ke pemanggil.
         throw err;
       }
-      setSaveError('Ralat menyimpan slot: ' + (err.message || ''));
+      setSaveError('Ralat menyimpan slot: ' + (mesejRalat(err, '')));
       setSaveErrorIsConflict(false);
       setSaveErrorBolehSalinAI(false);
-      throw new Error('Ralat menyimpan slot: ' + (err.message || ''));
+      throw new Error('Ralat menyimpan slot: ' + (mesejRalat(err, '')));
     } finally {
       setIsSavingSlot(false);
     }

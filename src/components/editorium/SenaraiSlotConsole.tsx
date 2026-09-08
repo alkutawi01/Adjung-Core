@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { Check } from 'lucide-react';
 import { BidangIcon } from '../common/BidangIcon';
 import { Tooltip } from '../common/Tooltip';
@@ -267,7 +267,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       // Modal Tetapan Kad TAK PERNAH mount (perlukan slotTetapan+drafTetapan kedua-duanya),
       // jadi ralatTetapan sahaja senyap. Simpan slotIndex ni supaya banner halaman kekal
       // kelihatan + "Cuba Lagi" boleh cuba slot yang SAMA semula.
-      setRalatTetapan(e.message || 'Gagal memuatkan tetapan slot.');
+      setRalatTetapan(mesejRalat(e, 'Gagal memuatkan tetapan slot.'));
       setSlotTetapanGagalUntuk(slotIndex);
     }
   };
@@ -325,7 +325,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       setDrafTetapanAwal(null);
       setUpdatedAtAwalTetapan(null);
     } catch (e: any) {
-      setRalatTetapan(e.message || 'Gagal menyimpan tetapan slot.');
+      setRalatTetapan(mesejRalat(e, 'Gagal menyimpan tetapan slot.'));
     } finally {
       setMenyimpanTetapan(false);
     }
@@ -462,7 +462,7 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
       await muatPenugasan();
       setSlotDisunting(null);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan penugasan.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan penugasan.'));
     } finally {
       setMenyimpan(false);
     }

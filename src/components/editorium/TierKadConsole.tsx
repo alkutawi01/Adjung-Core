@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { AlertTriangle, RotateCcw, Save } from 'lucide-react';
 import { muatPindaanTier } from '../../config/tierOverrides';
 import { StatusBadge } from '../common/StatusBadge';
@@ -85,7 +85,7 @@ export const TierKadConsole: React.FC = () => {
       muat();
       muatPindaanTier();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menyimpan.');
+      setRalat(mesejRalat(e, 'Gagal menyimpan.'));
     } finally {
       setMenyimpan(null);
     }
@@ -107,7 +107,7 @@ export const TierKadConsole: React.FC = () => {
       muat();
       muatPindaanTier();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengembalikan nilai lalai.');
+      setRalat(mesejRalat(e, 'Gagal mengembalikan nilai lalai.'));
     } finally {
       setMenyimpan(null);
     }

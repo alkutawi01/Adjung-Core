@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { Archive, ArchiveRestore, Pencil, Upload } from 'lucide-react';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -164,7 +164,7 @@ export const PenajaConsole: React.FC = () => {
         return data;
       })
       .then((d) => setPermohonan(Array.isArray(d) ? d : []))
-      .catch((e) => setRalatPermohonan(e.message || 'Gagal membaca senarai permohonan.'))
+      .catch((e) => setRalatPermohonan(mesejRalat(e, 'Gagal membaca senarai permohonan.')))
       .finally(() => setMemuatPermohonan(false));
   }, []);
 
@@ -184,7 +184,7 @@ export const PenajaConsole: React.FC = () => {
         return data;
       })
       .then((d) => setSenarai(Array.isArray(d) ? d : []))
-      .catch((e) => setRalat(e.message || 'Gagal membaca senarai penaja.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal membaca senarai penaja.')))
       .finally(() => setMemuat(false));
   }, []);
 
@@ -287,7 +287,7 @@ export const PenajaConsole: React.FC = () => {
       setTimeout(() => setMesej(''), 6000);
       muat();
     } catch (err: any) {
-      setRalatBorang(err.message || 'Gagal menyimpan penaja.');
+      setRalatBorang(mesejRalat(err, 'Gagal menyimpan penaja.'));
     } finally {
       setMenyimpan(false);
     }
@@ -304,7 +304,7 @@ export const PenajaConsole: React.FC = () => {
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini penaja.');
       muat();
     } catch (err: any) {
-      setRalat(err.message || 'Gagal mengemas kini penaja.');
+      setRalat(mesejRalat(err, 'Gagal mengemas kini penaja.'));
     }
   };
 
@@ -641,7 +641,7 @@ function PermohonanPenajaModal({ permohonan, onTutup, onSelesai }: {
       if (!res.ok) throw new Error(data.error || 'Gagal merekodkan keputusan.');
       onSelesai();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal merekodkan keputusan.');
+      setRalat(mesejRalat(e, 'Gagal merekodkan keputusan.'));
     } finally {
       setMenghantar(false);
     }
@@ -656,7 +656,7 @@ function PermohonanPenajaModal({ permohonan, onTutup, onSelesai }: {
       if (!res.ok) throw new Error(data.error || 'Gagal mengesahkan bayaran.');
       onSelesai();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengesahkan bayaran.');
+      setRalat(mesejRalat(e, 'Gagal mengesahkan bayaran.'));
     } finally {
       setMenghantar(false);
     }
@@ -679,7 +679,7 @@ function PermohonanPenajaModal({ permohonan, onTutup, onSelesai }: {
       if (!res.ok) throw new Error(data.error || 'Gagal mengaktifkan penajaan.');
       onSelesai();
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mengaktifkan penajaan.');
+      setRalat(mesejRalat(e, 'Gagal mengaktifkan penajaan.'));
     } finally {
       setMenghantar(false);
     }

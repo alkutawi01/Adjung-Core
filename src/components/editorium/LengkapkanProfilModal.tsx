@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { MesejStatus } from '../common/MesejStatus';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { useModalFokus } from '../../hooks/useModalFokus';
@@ -66,7 +66,7 @@ export const LengkapkanProfilModal: React.FC<LengkapkanProfilProps> = ({ userId,
       if (!res.ok) throw new Error(data.error || 'Gagal menyimpan profil.');
       onSelesai({ ...nilai, termaDipersetujuiPada: data.user?.termaDipersetujuiPada || new Date().toISOString() });
     } catch (err: any) {
-      setRalat(err.message || 'Gagal menyimpan profil.');
+      setRalat(mesejRalat(err, 'Gagal menyimpan profil.'));
     } finally {
       setMenyimpan(false);
     }

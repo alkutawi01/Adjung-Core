@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { mesejRalat } from '../utils/bacaJson';
 import { ceilingForSlot } from '../../core/editorial/GeometryConfig.js';
 
 // Sama corak getLimitsForIndex() dalam useSlotEditor.ts — kekalkan override tersimpan (kalau
@@ -192,7 +193,7 @@ export function useTickerEditor() {
         setSaveError(data.error || 'Gagal menyimpan slot.');
       }
     } catch (err: any) {
-      setSaveError('Ralat menyimpan slot: ' + (err.message || ''));
+      setSaveError('Ralat menyimpan slot: ' + (mesejRalat(err, '')));
     } finally {
       setIsSavingSlot(false);
     }

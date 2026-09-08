@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { AlertTriangle, X, Search, Pin, Lock, SlidersHorizontal, ChevronDown, ChevronUp } from 'lucide-react';
 import { tierForSlot, TIER_LABELS, TIER_LABEL_IS_ENGLISH, TIER_SLOTS } from '../../../core/editorial/GeometryConfig.js';
 import { Tooltip } from '../common/Tooltip';
@@ -450,7 +450,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         status: statusMuktamad || activeItemModal.status,
       });
     } catch (err: any) {
-      setJadualError(err.message || 'Gagal simpan jadual.');
+      setJadualError(mesejRalat(err, 'Gagal simpan jadual.'));
     } finally {
       setSavingJadual(false);
     }
@@ -763,7 +763,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       if (activeItemModal && activeItemModal.id === id) {
         setActiveItemModal(previous.find(i => i.id === id) || null);
       }
-      const mesej = err.message || 'Gagal kemas kini status.';
+      const mesej = mesejRalat(err, 'Gagal kemas kini status.');
       setActionError(mesej);
       onToast?.('error', mesej);
     }
@@ -798,7 +798,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       onToast?.('success', 'Kandungan ditolak, kembali jadi draf.');
     } catch (err: any) {
       setItems(previous);
-      const mesej = err.message || 'Gagal tolak kandungan.';
+      const mesej = mesejRalat(err, 'Gagal tolak kandungan.');
       setActionError(mesej);
       onToast?.('error', mesej);
     }
@@ -819,7 +819,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       onToast?.('success', 'Kandungan dipindah ke Tong Sampah.');
     } catch (err: any) {
       setItems(previous);
-      const mesej = err.message || 'Gagal padam kandungan.';
+      const mesej = mesejRalat(err, 'Gagal padam kandungan.');
       setActionError(mesej);
       onToast?.('error', mesej);
     }
@@ -836,7 +836,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       onToast?.('success', 'Kandungan dipulihkan.');
     } catch (err: any) {
       setItems(previous);
-      const mesej = err.message || 'Gagal pulihkan kandungan.';
+      const mesej = mesejRalat(err, 'Gagal pulihkan kandungan.');
       setActionError(mesej);
       onToast?.('error', mesej);
     }
@@ -882,7 +882,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       onToast?.('success', 'Kandungan dipadam kekal.');
     } catch (err: any) {
       setItems(previous);
-      const mesej = err.message || 'Gagal padam kekal.';
+      const mesej = mesejRalat(err, 'Gagal padam kekal.');
       setActionError(mesej);
       onToast?.('error', mesej);
     }
@@ -928,7 +928,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         if (!res.ok) throw new Error(body.error || 'Tindakan gagal untuk kandungan ini.');
         berjaya++;
       } catch (err: any) {
-        gagal.push(err.message || 'Ralat tidak diketahui');
+        gagal.push(mesejRalat(err, 'Ralat tidak diketahui'));
       }
     }
     setPilihan(new Set());
@@ -968,7 +968,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
       setSuntingNota(false);
       onToast?.('success', 'Nota Editor disimpan.');
     } catch (err: any) {
-      const mesej = err.message || 'Gagal simpan nota.';
+      const mesej = mesejRalat(err, 'Gagal simpan nota.');
       setRalatNota(mesej);
       onToast?.('error', mesej);
     } finally {
@@ -1018,8 +1018,8 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         : 'Kandungan disiarkan semula.');
       setActiveItemModal(null);
     } catch (err: any) {
-      setActionError(err.message || 'Gagal siarkan semula.');
-      onToast?.('error', err.message || 'Gagal siarkan semula.');
+      setActionError(mesejRalat(err, 'Gagal siarkan semula.'));
+      onToast?.('error', mesejRalat(err, 'Gagal siarkan semula.'));
     } finally {
       setReactivating(false);
     }

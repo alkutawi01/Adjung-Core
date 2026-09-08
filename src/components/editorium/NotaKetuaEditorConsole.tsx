@@ -1,5 +1,5 @@
 ﻿import React, { useCallback, useEffect, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { Pin, PinOff, Archive, ArchiveRestore, Trash2, Pencil } from 'lucide-react';
 import { ModulTajuk } from '../common/ModulTajuk';
 import { PanelCard } from '../common/PanelCard';
@@ -112,7 +112,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
         return data;
       })
       .then((d) => setNota(Array.isArray(d) ? d : []))
-      .catch((e) => setRalat(e.message || 'Gagal membaca senarai nota.'))
+      .catch((e) => setRalat(mesejRalat(e, 'Gagal membaca senarai nota.')))
       .finally(() => setMemuat(false));
   }, [paparanArkib]);
 
@@ -168,7 +168,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
       muat();
       onBerubah?.();
     } catch (err: any) {
-      setRalatBorang(err.message || 'Gagal menyimpan nota.');
+      setRalatBorang(mesejRalat(err, 'Gagal menyimpan nota.'));
     } finally {
       setMenyimpan(false);
     }
@@ -195,7 +195,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
       muat();
       onBerubah?.();
     } catch (err: any) {
-      setRalat(err.message || 'Gagal mengemas kini nota.');
+      setRalat(mesejRalat(err, 'Gagal mengemas kini nota.'));
     }
   };
 
@@ -210,7 +210,7 @@ export const NotaKetuaEditorConsole: React.FC<NotaKetuaEditorConsoleProps> = ({
       muat();
       onBerubah?.();
     } catch (err: any) {
-      setRalat(err.message || 'Gagal memadam nota.');
+      setRalat(mesejRalat(err, 'Gagal memadam nota.'));
     }
   };
 

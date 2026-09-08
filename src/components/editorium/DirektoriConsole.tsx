@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { Search, Plus } from 'lucide-react';
 import { StatusBadge, StatusTone } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -180,7 +180,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       // tak kira sebab). Kini paparkan `error` sebenar bila ada.
       .then(async r => { if (!r.ok) { const d = await bacaJsonSelamat(r).catch(() => ({} as any)); throw new Error(d?.error || `HTTP ${r.status}`); } return r.json(); })
       .then(d => { setStaffList(Array.isArray(d) ? d : []); setRalat(''); })
-      .catch((e) => setRalat(e?.message ? `Gagal memuatkan senarai anggota: ${e.message}` : 'Gagal memuatkan senarai anggota.'))
+      .catch((e) => setRalat(e?.message ? `Gagal memuatkan senarai anggota: ${mesejRalat(e, '')}` : 'Gagal memuatkan senarai anggota.'))
       .finally(() => setMemuat(false));
   };
   useEffect(muatSemula, []);
@@ -201,7 +201,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       // Sama pembetulan seperti muatSemula() di atas — baca ralat sebenar sebelum lempar.
       .then(async r => { if (!r.ok) { const d = await bacaJsonSelamat(r).catch(() => ({} as any)); throw new Error(d?.error || `HTTP ${r.status}`); } return r.json(); })
       .then(d => { if (d && typeof d.amaranPertamaHari === 'number') setDasarAktif(d); })
-      .catch((e) => setRalatDasarAktif(e?.message ? `Gagal memuatkan Dasar Aktif Editorial: ${e.message}` : 'Gagal memuatkan Dasar Aktif Editorial.'))
+      .catch((e) => setRalatDasarAktif(e?.message ? `Gagal memuatkan Dasar Aktif Editorial: ${mesejRalat(e, '')}` : 'Gagal memuatkan Dasar Aktif Editorial.'))
       .finally(() => setMemuatDasarAktif(false));
   };
   useEffect(muatDasarAktif, []);
@@ -221,7 +221,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       onToast?.('success', 'Dasar Aktif Editorial dikemas kini. Semakan esok guna tempoh baharu.');
       muatSemula();
     } catch (e: any) {
-      setRalatDasarAktif(e.message || 'Gagal menyimpan Dasar Aktif Editorial.');
+      setRalatDasarAktif(mesejRalat(e, 'Gagal menyimpan Dasar Aktif Editorial.'));
     } finally {
       setMenyimpanDasarAktif(false);
     }
@@ -259,7 +259,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       })
       .catch((e) => {
         if (permohonanRequestStatusRef.current !== status) return;
-        setRalatPermohonan(e?.message ? `Gagal memuatkan senarai permohonan: ${e.message}` : 'Gagal memuatkan senarai permohonan.');
+        setRalatPermohonan(e?.message ? `Gagal memuatkan senarai permohonan: ${mesejRalat(e, '')}` : 'Gagal memuatkan senarai permohonan.');
       })
       .finally(() => { if (permohonanRequestStatusRef.current === status) setMemuatPermohonan(false); });
   };
@@ -307,7 +307,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       setKonfirmasiTamat(null);
       onToast?.('success', 'Akaun ditamatkan. Draf/Menunggu kepunyaannya dikekalkan.');
     } catch (e: any) {
-      setRalatTamat(e.message || 'Gagal mengemas kini status.');
+      setRalatTamat(mesejRalat(e, 'Gagal mengemas kini status.'));
     } finally {
       setMemproses(false);
     }
@@ -333,7 +333,7 @@ export const DirektoriConsole: React.FC<DirektoriConsoleProps> = ({
       setKonfirmasiTamat(null);
       onToast?.('success', `Akaun ditamatkan. ${data.drafDipadam} draf dan ${data.menungguDipadam} kandungan menunggu dipadam.`);
     } catch (e: any) {
-      setRalatTamat(e.message || 'Gagal memadam kandungan belum terbit.');
+      setRalatTamat(mesejRalat(e, 'Gagal memadam kandungan belum terbit.'));
     } finally {
       setMemproses(false);
     }
@@ -722,7 +722,7 @@ function ProfilAnggotaModal({
       if (!res.ok) throw new Error(data.error || 'Gagal mengemas kini status.');
       onUpdated({ ...staff, status });
     } catch (e: any) {
-      setRalatStatus(e.message || 'Gagal mengemas kini status.');
+      setRalatStatus(mesejRalat(e, 'Gagal mengemas kini status.'));
     }
   };
 
@@ -740,7 +740,7 @@ function ProfilAnggotaModal({
       onUpdated({ ...staff, autoTerbit });
       onBerjaya(autoTerbit ? 'Auto-terbit dihidupkan.' : 'Auto-terbit dimatikan.');
     } catch (e: any) {
-      setRalatAutoTerbit(e.message || 'Gagal mengemas kini togol auto-terbit.');
+      setRalatAutoTerbit(mesejRalat(e, 'Gagal mengemas kini togol auto-terbit.'));
     }
   };
 
@@ -755,7 +755,7 @@ function ProfilAnggotaModal({
       if (!res.ok) throw new Error(data.error || 'Gagal menyemak kandungan.');
       onSiapUntukTamat({ staff, draf: data.draf || [], menunggu: data.menunggu || [] });
     } catch (e: any) {
-      setRalatStatus(e.message || 'Gagal menyemak kandungan belum terbit.');
+      setRalatStatus(mesejRalat(e, 'Gagal menyemak kandungan belum terbit.'));
     } finally {
       setMemuatKonfirmasi(false);
     }
@@ -781,7 +781,7 @@ function ProfilAnggotaModal({
           : `Token jemputan dijana semula, tetapi e-mel GAGAL dihantar ke ${staff.email}. Semak konfigurasi e-mel sistem.`
       );
     } catch (e: any) {
-      setRalatHantarSemula(e.message || 'Gagal menghantar semula jemputan.');
+      setRalatHantarSemula(mesejRalat(e, 'Gagal menghantar semula jemputan.'));
     } finally {
       setMenghantarSemula(false);
     }
@@ -804,7 +804,7 @@ function ProfilAnggotaModal({
       onUpdated({ ...staff, roles });
       onBerjaya('Peranan dikemas kini.');
     } catch (e: any) {
-      setRalatPeranan(e.message || 'Gagal mengemas kini peranan.');
+      setRalatPeranan(mesejRalat(e, 'Gagal mengemas kini peranan.'));
     }
   };
 
@@ -1026,7 +1026,7 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
         );
       }
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menerima permohonan.');
+      setRalat(mesejRalat(e, 'Gagal menerima permohonan.'));
     } finally {
       setMemproses(false);
     }
@@ -1048,7 +1048,7 @@ function PermohonanModal({ permohonan, onTutup, onSelesai }: {
         data?.emelDihantar ? 'success' : 'error'
       );
     } catch (e: any) {
-      setRalat(e.message || 'Gagal menolak permohonan.');
+      setRalat(mesejRalat(e, 'Gagal menolak permohonan.'));
     } finally {
       setMemproses(false);
     }
@@ -1194,7 +1194,7 @@ function TambahAnggotaModal({ onTutup, onBerjaya }: { onTutup: () => void; onBer
       if (!res.ok) throw new Error(data.error || 'Gagal mencipta akaun.');
       onBerjaya(email, !!data.emelDihantar);
     } catch (err: any) {
-      setRalat(err.message || 'Gagal mencipta akaun.');
+      setRalat(mesejRalat(err, 'Gagal mencipta akaun.'));
     } finally {
       setMenyimpan(false);
     }

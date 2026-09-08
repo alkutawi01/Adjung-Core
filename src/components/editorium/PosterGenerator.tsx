@@ -1,4 +1,5 @@
 import React from 'react';
+import { mesejRalat } from '../../utils/bacaJson';
 import { Download, Loader2, RefreshCw } from 'lucide-react';
 import { EditorDialog } from '../common/EditorDialog';
 
@@ -293,7 +294,7 @@ export const PosterGenerator: React.FC<{ onTutup: () => void }> = ({ onTutup }) 
       }
       setItems(data.items);
     } catch (e: any) {
-      setRalat(e.message || 'Gagal mendapatkan kandungan.');
+      setRalat(mesejRalat(e, 'Gagal mendapatkan kandungan.'));
     }
   }, []);
 

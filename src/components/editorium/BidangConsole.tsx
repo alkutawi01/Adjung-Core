@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { bacaJsonSelamat } from '../../utils/bacaJson';
+import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { X, AlertTriangle, Check, Pencil, ChevronDown, ChevronUp, Upload } from 'lucide-react';
 import { BidangIcon, BIDANG_ICON_MAP, BIDANG_ICON_NAMES } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
@@ -107,7 +107,7 @@ export const BidangConsole: React.FC = () => {
       setBerjayaTogolStatus(jadiAktif ? `"${d.name}" dipulihkan.` : `"${d.name}" diarkibkan.`);
       setTimeout(() => setBerjayaTogolStatus(null), 4000);
     } catch (e: any) {
-      setRalatTogolStatus(e.message || 'Gagal mengemas kini status Bidang.');
+      setRalatTogolStatus(mesejRalat(e, 'Gagal mengemas kini status Bidang.'));
     } finally {
       setMenukarStatusId(null);
     }
@@ -237,7 +237,7 @@ export const BidangConsole: React.FC = () => {
       fetchActiveBidang();
       fetchSlotUsage();
     } catch (e: any) {
-      setRalatBidang(e.message || 'Gagal mengemas kini slot.');
+      setRalatBidang(mesejRalat(e, 'Gagal mengemas kini slot.'));
       fetchActiveBidang();
       fetchSlotUsage();
     } finally {
@@ -267,7 +267,7 @@ export const BidangConsole: React.FC = () => {
       setRenamingBidangId(null);
       fetchActiveBidang();
     } catch (e: any) {
-      setRalatBidang(e.message || 'Gagal menamakan semula Bidang.');
+      setRalatBidang(mesejRalat(e, 'Gagal menamakan semula Bidang.'));
     }
   };
 
@@ -683,7 +683,7 @@ function IkonWarnaModal({
       setWarnaDraf(null);
       onUpdated();
     } catch (e: any) {
-      setWarnaError(e.message || 'Gagal menetapkan warna.');
+      setWarnaError(mesejRalat(e, 'Gagal menetapkan warna.'));
     } finally {
       setSimpanWarna(false);
     }
@@ -703,7 +703,7 @@ function IkonWarnaModal({
       onUpdated();
       onTutup();
     } catch (e: any) {
-      setIkonError(e.message || 'Gagal menetapkan ikon.');
+      setIkonError(mesejRalat(e, 'Gagal menetapkan ikon.'));
     } finally {
       setSavingIconFor(null);
     }
@@ -747,7 +747,7 @@ function IkonWarnaModal({
       onUpdated();
       onTutup();
     } catch (e: any) {
-      setSvgUploadError(e.message || 'Gagal memuat naik SVG.');
+      setSvgUploadError(mesejRalat(e, 'Gagal memuat naik SVG.'));
     } finally {
       setUploadingSvg(false);
     }
@@ -895,7 +895,7 @@ function TambahBidangModal({ onTutup, onBerjaya }: { onTutup: () => void; onBerj
       if (!res.ok) throw new Error(data.error || 'Gagal menambah Bidang.');
       onBerjaya();
     } catch (e: any) {
-      setRalatTambahDesk(e.message || 'Gagal menambah Bidang.');
+      setRalatTambahDesk(mesejRalat(e, 'Gagal menambah Bidang.'));
     } finally {
       setAddingDesk(false);
     }
@@ -964,7 +964,7 @@ function StrategiWarnaModal({
       setMesejWarna(`${data.dikemas} Bidang aktif kini guna warna yang sama.`);
       fetchActiveBidang();
     } catch (e: any) {
-      setRalatWarna(e.message || 'Gagal menyelaraskan warna.');
+      setRalatWarna(mesejRalat(e, 'Gagal menyelaraskan warna.'));
     } finally {
       setMemprosesWarna(null);
     }
@@ -985,7 +985,7 @@ function StrategiWarnaModal({
       );
       fetchActiveBidang();
     } catch (e: any) {
-      setRalatWarna(e.message || 'Gagal mempelbagaikan warna.');
+      setRalatWarna(mesejRalat(e, 'Gagal mempelbagaikan warna.'));
     } finally {
       setMemprosesWarna(null);
     }

@@ -16,3 +16,22 @@ export async function bacaJsonSelamat(res: Response, mesejGagal = 'Gagal membaca
     throw new Error(mesejGagal);
   }
 }
+
+// Pelengkap bacaJsonSelamat() di atas — bug SAMA punca, lokasi BERBEZA (2026-09-08).
+// bacaJsonSelamat() tangkap kegagalan res.json() SELEPAS fetch() berjaya sambung ke pelayan.
+// Tapi fetch() itu SENDIRI juga boleh gagal (offline, DNS putus, CORS, pelayan mati terus)
+// — ini melempar TypeError browser MENTAH ("Failed to fetch" Chrome, "NetworkError when
+// attempting to fetch resource" Firefox/Safari) SEBELUM res wujud pun. Corak pemanggil di
+// seluruh Editorium ialah `catch (err) { setRalat(err.message || 'mesej Melayu') }` — sebab
+// TypeError.message tu SENTIASA ada nilai (bukan falsy), fallback Melayu tidak pernah
+// tercapai, teks Inggeris mentah bocor terus ke UI Bahasa Melayu (langgar CLAUDE.md).
+// Helper ni gantikan corak `err.message || 'mesej lalai'` — kesan sama bila err ialah ralat
+// pelayan biasa (Error dgn mesej Melayu sedia ada, cth dari bacaJsonSelamat/throw manual),
+// tapi tapis TypeError rangkaian mentah drpd browser kepada mesej Melayu generik.
+export function mesejRalat(err: any, mesejLalai: string): string {
+  if (err instanceof TypeError) {
+    console.error('mesejRalat: fetch() gagal (rangkaian/CORS), mesej browser mentah ditapis', err);
+    return 'Sambungan rangkaian terputus. Sila semak sambungan anda dan cuba lagi.';
+  }
+  return err?.message || mesejLalai;
+}
