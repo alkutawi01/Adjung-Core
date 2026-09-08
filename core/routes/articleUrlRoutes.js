@@ -110,6 +110,19 @@ const escapeHtml = (s) => String(s || '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
   .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
+// Selamatkan JSON-LD sebelum disisip dalam `<script>` (2026-09-08, dapatan bug-hunt) —
+// `JSON.stringify()` mentah TAK escape `</`, jadi tajuk/huraian editorial yang secara kebetulan
+// mengandungi rentetan literal "</script>" (cth kandungan yang bincang/petik tag HTML) TUTUP
+// blok JSON-LD lebih awal daripada dijangka, dan apa-apa HTML/skrip selepas ia dalam kandungan
+// terus DISISIP SEBAGAI HTML SEBENAR pada halaman pra-terap bot ni (tiada JS/sanitizer di pihak
+// pembaca — crawler/pelayar terus urai HTML mentah). Disahkan reproduce sebenar: tajuk
+// "Serangan </script><script>alert(1)</script> ujian" menutup <script type="application/ld+json">
+// awal dan `<script>alert(1)</script>` terbit sebagai elemen HTML tulen dalam output. Escape
+// setiap "<" sebagai `<` (corak piawai "JSON dalam <script>", digunakan Next.js/dsb.) —
+// JSON.parse() pembaca tak terjejas (escape Unicode standard, urai semula ke aksara asal), tapi
+// parser HTML tak lagi nampak jujukan "</" untuk cetuskan penutupan tag pramatang.
+const jsonLdKeSkripAman = (obj) => JSON.stringify(obj).replace(/</g, '\\u003c');
+
 // Potong ikut sempadan PERKATAAN (2026-08-27, dapatan audit SEO) — `.slice(n)` mentah boleh
 // potong tengah perkataan, hasilkan serpihan janggal dalam pratonton carian/perkongsian sosial.
 function potongIkutPerkataan(teks, had) {
@@ -188,7 +201,7 @@ ${gambar ? `<meta property="og:image" content="${gambar}" />` : ''}
 <meta name="twitter:card" content="${gambar ? 'summary_large_image' : 'summary'}" />
 <meta name="twitter:title" content="${tajuk}" />
 <meta name="twitter:description" content="${huraian}" />
-<script type="application/ld+json">${JSON.stringify(jsonLd)}</script>
+<script type="application/ld+json">${jsonLdKeSkripAman(jsonLd)}</script>
 </head>
 <body>
 <article>

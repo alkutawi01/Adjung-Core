@@ -70,3 +70,35 @@ test('binaHtmlBot - still HTML-escapes unsafe characters after markdown is strip
   // JSON-LD is a separate serialization context (valid JSON inside <script>, not HTML-escaped —
   // pre-existing, correct behaviour) so only the HTML-rendered fields are checked for escaping.
 });
+
+// Regresi 2026-09-08 — dapatan bug-hunt: JSON.stringify(jsonLd) mentah disisip terus dalam
+// <script type="application/ld+json"> TANPA escape "</" — tajuk/huraian editorial yang mengandungi
+// rentetan literal "</script>" (cth kandungan yang bincang/petik tag HTML) menutup blok JSON-LD
+// lebih awal, dan apa-apa selepasnya terbit sebagai HTML/skrip SEBENAR pada halaman pra-terap bot
+// ni (tiada JS/sanitizer pihak pembaca). Disahkan reproduce sebelum fix: `<script>alert(1)</script>`
+// dalam tajuk terbit sebagai elemen HTML tulen, bukan teks JSON. Dibaiki (jsonLdKeSkripAman() —
+// escape "<" jadi <, JSON.parse() pembaca tak terjejas).
+test('binaHtmlBot - "</script>" literal dalam tajuk tidak menutup blok JSON-LD lebih awal', () => {
+  const html = binaHtmlBot({
+    kandungan: {
+      ...kandunganUjian,
+      title: 'Serangan </script><script>alert(1)</script> ujian',
+      summary: 'ringkasan biasa',
+    },
+    url: 'https://brief.adjung.com/seni-visual/kandungan/abc123',
+    objectId: 'obj-3',
+  });
+
+  // Tiada elemen <script> HTML tulen tambahan disisip (selain SATU blok JSON-LD asal).
+  const bilanganTagScript = (html.match(/<script[ >]/g) || []).length;
+  assert.equal(bilanganTagScript, 1, 'hanya SATU tag <script> (JSON-LD) patut wujud, bukan skrip terinjeksi');
+
+  // <h1> (HTML-escaped) papar tajuk penuh yang selamat, BUKAN dipotong pada "</script>" pertama.
+  assert.match(html, /<h1>Serangan &lt;\/script&gt;&lt;script&gt;alert\(1\)&lt;\/script&gt; ujian<\/h1>/);
+
+  // Blok JSON-LD tetap JSON sah dan headline penuh terpulih tepat selepas JSON.parse().
+  const jsonLdMatch = html.match(/<script type="application\/ld\+json">([\s\S]*?)<\/script>/);
+  assert.ok(jsonLdMatch, 'JSON-LD block should exist and parse as valid JSON');
+  const jsonLd = JSON.parse(jsonLdMatch[1]);
+  assert.equal(jsonLd.headline, 'Serangan </script><script>alert(1)</script> ujian');
+});
