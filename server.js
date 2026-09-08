@@ -4751,7 +4751,27 @@ const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
     }
 
     if (tahapBaharu === 3) {
-      await dbRun("UPDATE users SET status = 'Tidak Aktif', isSuspended = 1, amaranTakAktifTahap = 3, updatedAt = ? WHERE id = ?", [new Date().toISOString(), u.id]);
+      // Pengawal `AND amaranTakAktifTahap = ?` (2026-09-08, dapatan audit — sama corak
+      // optimistic-concurrency macam `AND status = 'scheduled'` di runSchedulingTick()) —
+      // `rows` di atas ialah snapshot SELECT bermula tik ni; gelung ni sequential (setiap
+      // iterasi await hantar emel dahulu), jadi boleh ambil MASA sebenar merentasi tik yang
+      // sama. Kalau editor NI SENDIRI menerbitkan kandungan (PATCH /content/:id, contentRoutes.js
+      // ~baris 1394) DALAM tempoh tu, laluan tu terus reset lastPublishedAt+amaranTakAktifTahap=0
+      // (WHERE penName, bukan id) — pembetulan "saya baru terbit, jangan gantung saya". Tanpa
+      // pengawal ni, UPDATE gantungan tik ni (guna tahapBaharu STALE dikira dari data SEBELUM
+      // terbitan tu) tetap jalan & TULIS GANTI reset yang editor baru buat — akaun terus
+      // digantung SEBAIK SAHAJA dia menerbitkan kandungan untuk menyelamatkan diri, punca
+      // langsung bercanggah dengan niat editor. Pengawal `amaranTakAktifTahap` SAHAJA tak
+      // cukup bila tahapSemasa asal ialah 0 — laluan terbit turut reset ke 0, jadi 0=0 kekal
+      // padan walau terbitan baharu berlaku (guard "senyap gagal" kalau cuma medan tu disemak).
+      // `lastPublishedAt` ialah signal SEBENAR yang berubah pada setiap terbitan (termasuk
+      // dari 0->0), jadi turut disertakan — guna `IS` (bukan `=`) supaya NULL lawan NULL
+      // (editor tak pernah terbit langsung) turut sepadan betul, bukan gagal senyap SQL 3-nilai.
+      const hasilGantung = await dbRun(
+        "UPDATE users SET status = 'Tidak Aktif', isSuspended = 1, amaranTakAktifTahap = 3, updatedAt = ? WHERE id = ? AND amaranTakAktifTahap = ? AND lastPublishedAt IS ?",
+        [new Date().toISOString(), u.id, tahapSemasa, u.lastPublishedAt ?? null]
+      );
+      if (!hasilGantung || hasilGantung.changes === 0) continue; // tahap/lastPublishedAt berubah sejak SELECT (cth editor baru terbit) — langkau, tik lain nilai semula
       await logAudit(dbRun, {
         actorId: null, actorName: 'Sistem (Dasar Aktif)',
         action: 'akaun-digantung-tak-aktif', targetType: 'akaun', targetId: u.id,
@@ -4771,7 +4791,14 @@ const runSemakanTakAktif = async (dbAll, dbRun, dbGet) => {
         targetType: 'akaun', targetId: u.id,
       });
     } else {
-      await dbRun("UPDATE users SET amaranTakAktifTahap = ? WHERE id = ?", [tahapBaharu, u.id]);
+      // Pengawal sama seperti gantungan tahap 3 di atas (amaranTakAktifTahap + lastPublishedAt)
+      // — elak tik ni menulis-ganti reset ke-0 (editor baru terbit) dengan nilai amaran STALE,
+      // walau bukan gantungan (naik taraf amaran 1/2 palsu selepas editor sepatutnya dah bersih).
+      const hasilAmaran = await dbRun(
+        "UPDATE users SET amaranTakAktifTahap = ? WHERE id = ? AND amaranTakAktifTahap = ? AND lastPublishedAt IS ?",
+        [tahapBaharu, u.id, tahapSemasa, u.lastPublishedAt ?? null]
+      );
+      if (!hasilAmaran || hasilAmaran.changes === 0) continue; // tahap/lastPublishedAt berubah sejak SELECT — langkau
       await notify(dbRun, {
         userId: u.id, type: 'sistem_amaran_tak_aktif',
         title: tajuk,
