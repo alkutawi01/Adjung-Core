@@ -72,7 +72,18 @@ export function parseRssXml(xmlString) {
     const dateMatch = block.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i);
     let publishedAt = new Date().toISOString();
     if (dateMatch) {
-      const parsedDate = new Date(sanitizeHtmlText(dateMatch[1]));
+      // 2026-09-09 (dapatan bug-hunt) — semua medan lain (title/desc/link/guid) buang
+      // pembalut <![CDATA[...]]> DAHULU sebelum sanitizeHtmlText(). Medan tarikh ni
+      // terlepas langkah sama: sanitizeHtmlText() buang TAG HTML guna regex `<[^>]*>`,
+      // yang turut sepadan keseluruhan "<![CDATA[...]]>" (tiada `>` lain di antaranya)
+      // dan HAPUSKAN kandungan tarikh SEKALI — bukan cuma buang pembalut, seluruh tarikh
+      // hilang jadi rentetan kosong. new Date('') -> Invalid Date -> jatuh balik senyap
+      // ke SEKARANG (gelagat sengaja bagi tarikh rosak, lihat komen di atas) — tapi suapan
+      // yang bungkus pubDate dalam CDATA (corak lazim, cth banyak suapan Blogger/WordPress)
+      // silap dianggap tarikh rosak walhal ia SAH, item jadi bertarikh "sekarang" secara
+      // senyap (menjejaskan penapisan usia `maxNewsAgeHours` + tarikh dipaparkan).
+      const dateInner = dateMatch[1].replace(/<!\[CDATA\[([\s\S]*?)\]\]>/gi, '$1');
+      const parsedDate = new Date(sanitizeHtmlText(dateInner));
       if (!isNaN(parsedDate.getTime())) {
         publishedAt = parsedDate.toISOString();
       }
