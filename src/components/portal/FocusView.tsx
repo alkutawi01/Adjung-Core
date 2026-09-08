@@ -125,7 +125,10 @@ function KongsiButtons({ title, url, disalinBerjaya, onSalin }: { title: string;
     alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px',
     padding: 0, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)', textDecoration: 'none',
   };
-  const teks = encodeURIComponent(title);
+  // `title` boleh mengandungi sintaks `*condong*` mentah (medan Tajuk boleh ditogol condong
+  // sejak 2026-08-16) — bocor jadi asterisk literal dalam teks kongsi WhatsApp/X kalau tak
+  // dibuang dulu (sama punca/kesan seperti pembetulan <title>/og:title di atas fail ni).
+  const teks = encodeURIComponent(stripMarkdown(title));
   const laluan = encodeURIComponent(url);
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
@@ -753,10 +756,17 @@ export const FocusView: React.FC<FocusViewProps> = ({
     // kelihatan pada carian Google & pratonton perkongsian sosial sebenar, bukan cuma dalaman.
     // `stripMarkdown()` (utils.tsx) sudah wujud tepat untuk kegunaan ni (buang **/*/_/`/++/<u>/
     // pautan markdown, pulangkan teks dalamannya) tapi tak pernah disambungkan ke mana-mana.
+    // `title` turut boleh mengandungi sintaks condong/tebal mentah (medan Tajuk kini boleh
+    // ditogol *condong* via Ctrl/Cmd+I sejak 2026-08-16, lihat komen renderDenganGlosari() atas
+    // fail ni) — laluan paparan (glosariMudahAlih/glosariDesktop) proses ia melalui
+    // safeParseInline, tapi laluan SEO ni (macam descripsiBersih di atas) dahulu terus guna
+    // `title` mentah. Kesan SAMA seperti bug huraian panjang: asterisk literal bocor ke
+    // <title>/og:title/twitter:title/JSON-LD apabila tajuk artikel ada bahagian condong.
+    const tajukBersih = stripMarkdown(String(title || '')) || '';
     const descripsiBersih = stripMarkdown(text) || undefined;
     terapFocusSeo({
-      title: String(title || ''),
-      description: descripsiBersih || String(title || ''),
+      title: tajukBersih,
+      description: descripsiBersih || tajukBersih,
       publishedDate,
       desk,
       url: shareUrl || undefined,
