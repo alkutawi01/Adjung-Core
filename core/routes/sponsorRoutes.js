@@ -325,13 +325,31 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
 
   // GET /api/public/sponsors/semua — laluan AWAM, halaman /penaja. SEMUA penaja aktif (lama +
   // semasa), susun bulan terbaru dahulu.
+  //
+  // belumBermula (2026-09-09, bug-hunt) — laluan ni dahulu memulangkan SETIAP baris
+  // status='aktif' TANPA tapis sponsorAktifPadaMasa() langsung, tak macam /public/sponsors/semasa
+  // (footer) yang sudah betul tapis. Kesan sebenar: penaja julat-tarikh yang mulaTajaan MASIH DI
+  // MASA HADAPAN (cth kempen disediakan awal untuk minggu depan) terus dipaparkan nama+logo+URL
+  // klik di HalamanPenaja.tsx (awam) sebaik dicipta — mendedahkan penaja sebelum tempoh tajaan
+  // bermula, bertentangan falsafah ciri julat-tarikh (logo patut TEPAT ikut tempoh: "hilang TEPAT
+  // bila tamat" bermakna ia juga patut "muncul TEPAT bila mula", bukan awal). Halaman ni SENGAJA
+  // kekal papar penaja yang tamatTajaan SUDAH LEPAS (sejarah/arkib penuh, itulah tujuan laluan ni
+  // berbanding /semasa) — cuma penaja yang BELUM BERMULA yang disorok, guna semakan SAMA persis
+  // (mulaTajaan di masa hadapan) yang sudah dikongsi tajaanSudahLepas()/PenajaEligibility.js.
   router.get('/public/sponsors/semua', async (req, res) => {
     try {
       const rows = await dbAll(
         "SELECT * FROM sponsors WHERE status = 'aktif' ORDER BY bulan DESC, createdAt ASC"
       );
-      const petaSlot = await bacaPetaSlot(dbAll, (rows || []).map((r) => r.id));
-      res.json((rows || []).map((r) => barisKepadaPenajaAwam(r, petaSlot)));
+      const sekarang = Date.now();
+      const belumBermula = (r) => {
+        if (!r.mulaTajaan || !r.tamatTajaan) return false; // penaja bulanan lama — tiada julat, tak pernah "belum bermula"
+        const mula = new Date(r.mulaTajaan).getTime();
+        return !Number.isNaN(mula) && mula > sekarang;
+      };
+      const tampil = (rows || []).filter((r) => !belumBermula(r));
+      const petaSlot = await bacaPetaSlot(dbAll, tampil.map((r) => r.id));
+      res.json(tampil.map((r) => barisKepadaPenajaAwam(r, petaSlot)));
     } catch (err) {
       console.error('GET public/sponsors/semua error:', err);
       res.status(500).json({ error: 'Gagal membaca senarai penaja. ' + (err.message || '') });
