@@ -1868,7 +1868,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
                     </div>
                   ) : activeItemModal.note.trim() ? (
                     <div className="font-serif text-sm text-stone-700 leading-relaxed bg-amber-50 p-4 rounded border border-amber-200">
-                      {activeItemModal.note}
+                      {safeParseInline(activeItemModal.note)}
                       {activeItemModal.notaOleh && (
                         <div className="font-sans text-[10px] text-stone-500 mt-2 text-right">— {activeItemModal.notaOleh}</div>
                       )}
