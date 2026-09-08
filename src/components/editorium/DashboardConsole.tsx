@@ -268,12 +268,14 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
               cuma beratur slot (dah lulus).
               2026-09-08 (teguran Izzat, "double standard"): "semakan" dahulu SENTIASA dipaparkan
               (walau 0) tapi "slot kosong" cuma dipaparkan bila >0 — dua kategori sepatutnya
-              dilayan sama rata. Kini kedua-dua SENTIASA dipaparkan, wording tepat arahan Izzat:
-              "N menunggu semakan, N menunggu kekosongan". */}
-          <div className="text-[11px] text-stone-500 mt-2">
+              dilayan sama rata. Kini kedua-dua SENTIASA dipaparkan, DUA BARIS berasingan (bukan
+              satu ayat bergabung koma) ikut arahan Izzat. */}
+          <div className="text-[11px] text-stone-500 mt-2 leading-relaxed">
             {gagalMuatKandungan ? 'Gagal dimuatkan' : (
               <>
-                {statusKandungan.menungguSemakan} menunggu semakan, {statusKandungan.menungguSlotPenuh} menunggu kekosongan{statusKandungan.dijadualkan > 0 ? ` · ${statusKandungan.dijadualkan} dijadualkan` : ''}
+                <div>{statusKandungan.menungguSemakan} menunggu semakan</div>
+                <div>{statusKandungan.menungguSlotPenuh} menunggu kekosongan</div>
+                {statusKandungan.dijadualkan > 0 && <div>{statusKandungan.dijadualkan} dijadualkan</div>}
               </>
             )}
           </div>
