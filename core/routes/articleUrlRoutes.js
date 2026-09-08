@@ -302,15 +302,26 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
 
   router.get('/system/content/:objectId/url-kod', async (req, res) => {
     try {
+      // eo.categoryId dibekukan pada masa penciptaan objek — Bidang sebenar boleh ditukar
+      // kemudian (PATCH /content/:id, medan `desk`) tanpa mengemas kini eo.categoryId (corak
+      // sama seperti rssFeedRoutes.js/og.png di bawah). Guna atribut 'desk' LIVE revisi terkini
+      // dahulu (fallback categoryId hanya untuk objek lama yang tiada atribut desk langsung) —
+      // tanpa ni, laluan/bidangSlug kandungan yang Bidangnya ditukar selepas terbit kekal
+      // menunjuk Bidang LAMA selama-lamanya, bercanggah dengan kad OG (og.png, guna desk live).
       const obj = await dbGet(
         `SELECT eo.id as id, eo.categoryId as categoryId,
-                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title
+                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title,
+                (SELECT av.valueText FROM editorial_attribute_values av
+                   JOIN editorial_revisions er2 ON er2.id = av.revisionId
+                  WHERE av.objectId = eo.id AND av.attributeId = 'desk'
+                  ORDER BY er2.version DESC LIMIT 1) as deskLive
          FROM editorial_objects eo WHERE eo.id = ?`,
         [req.params.objectId]
       );
       if (!obj) return res.status(404).json({ error: 'Kandungan tidak dijumpai.' });
+      const bidang = obj.deskLive || obj.categoryId;
       const kod = await getOrCreateUrlKod(dbGet, dbRun, req.params.objectId);
-      res.json({ bidangSlug: slugBidang(obj.categoryId), kodPendek: kod, laluan: binaLaluanKandungan(obj.title, obj.categoryId, kod) });
+      res.json({ bidangSlug: slugBidang(bidang), kodPendek: kod, laluan: binaLaluanKandungan(obj.title, bidang, kod) });
     } catch (err) {
       console.error('GET url-kod error:', err);
       res.status(500).json({ error: 'Gagal jana kod URL. ' + err.message });
@@ -332,9 +343,15 @@ export function createPublicArticleRoute(dbAll, dbGet) {
       // terakhir — ekstrak dahulu supaya carian DB tak pernah bergantung pada slug (yang boleh
       // lapuk/tak padan lepas tajuk disunting, itu okay, cuma kosmetik).
       const kodSebenar = kodDaripadaParamLaluan(req.params.kodPendek);
+      // Sama nota "desk live" seperti /url-kod di atas — jangan bina laluan kanonikal drpd
+      // eo.categoryId beku, ia akan bercanggah dgn Bidang sebenar bila desk ditukar selepas terbit.
       const obj = await dbGet(
         `SELECT eo.id as id, eo.categoryId as categoryId,
-                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title
+                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title,
+                (SELECT av.valueText FROM editorial_attribute_values av
+                   JOIN editorial_revisions er2 ON er2.id = av.revisionId
+                  WHERE av.objectId = eo.id AND av.attributeId = 'desk'
+                  ORDER BY er2.version DESC LIMIT 1) as deskLive
          FROM editorial_objects eo WHERE eo.urlKod = ?`,
         [kodSebenar]
       );
@@ -358,7 +375,7 @@ export function createPublicArticleRoute(dbAll, dbGet) {
       // yang enjin carian anggap kandungan pendua di URL berbeza). Redirect utk SEMUA (bot MAHU
       // manusia) — pautan lama terus berfungsi (302 tak perlu, kandungan takkan berpindah lagi
       // lepas kod pertama kali dijana), cuma browser/bot dihantar ke bentuk kanonikal.
-      const laluanKanonikal = binaLaluanKandungan(obj.title, obj.categoryId, kodSebenar);
+      const laluanKanonikal = binaLaluanKandungan(obj.title, obj.deskLive || obj.categoryId, kodSebenar);
       if (`/${req.params.bidangSlug}/kandungan/${req.params.kodPendek}` !== laluanKanonikal) {
         const suku = req.originalUrl.split('?')[1];
         return res.redirect(301, suku ? `${laluanKanonikal}?${suku}` : laluanKanonikal);
