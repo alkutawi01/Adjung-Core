@@ -44,6 +44,25 @@ function denganKunciAktifkanPenaja(fn) {
   return giliran;
 }
 
+// Kunci penjanaan rujukan (2026-09-08, bug-hunt) — janaRujukan() baca id TERAKHIR (MAX) KEMUDIAN
+// INSERT baris baharu guna nombor seterusnya, bukan operasi atomik. Laluan
+// POST /public/permohonan-penaja TIADA auth (borang awam terbuka), jadi dua permohonan hampir
+// serentak (dua pemohon berlainan hantar dalam saat yang sama, atau borang klien double-submit)
+// kedua-duanya boleh baca "rujukan terakhir" YANG SAMA sebelum mana-mana sempat INSERT — kedua-dua
+// cuba INSERT `id` IDENTIK (PRIMARY KEY). SATU berjaya, SATU gagal `SQLITE_CONSTRAINT` yang
+// ditangkap sebagai ralat generik "Gagal menghantar permohonan" — permohonan pemohon kedua
+// HILANG terus (bukan dicipta dgn id lain), walau borang diisi penuh & sah. Disahkan reproduce
+// (scratch DB, dua submit() serentak: submission kedua gagal, satu baris sahaja tersimpan). Sama
+// corak kunci rantaian promise global (`denganKunciAktifkanPenaja` di atas,
+// `denganKunciKandungan`/`denganKunciPenugasanSlot` di modul lain) — trafik borang awam ni jarang
+// cukup tinggi utk serialisasi global jadi kesesakan.
+let rantaianKunciRujukanPenaja = Promise.resolve();
+function denganKunciRujukanPenaja(fn) {
+  const giliran = rantaianKunciRujukanPenaja.catch(() => {}).then(fn);
+  rantaianKunciRujukanPenaja = giliran.catch(() => {});
+  return giliran;
+}
+
 const HAD = {
   namaSebenar: 120,
   namaOrganisasi: 150,
@@ -142,20 +161,29 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         return res.status(409).json({ error: 'Permohonan dengan e-mel ini sedang dalam semakan. Sila tunggu keputusan.' });
       }
 
-      const id = await janaRujukan(dbGet);
+      // Kunci baca-rujukan-terakhir + INSERT jadi SATU unit (lihat komen denganKunciRujukanPenaja
+      // di atas) — tanpa ni, dua permohonan hampir serentak boleh jana `id` IDENTIK dan permohonan
+      // kedua hilang senyap dengan ralat generik. Kedua-dua langkah (baca MAX, INSERT) MESTI
+      // berada DALAM SATU panggilan denganKunciRujukanPenaja — kalau dipisah dua panggilan kunci
+      // berasingan, giliran kedua boleh mula (baca MAX yang sama) sebelum INSERT giliran pertama
+      // selesai, dan race asal berulang walau nampak "dikunci".
       const kini = new Date().toISOString();
-      await dbRun(
-        `INSERT INTO permohonan_penaja
-           (id, jenisPemohon, namaSebenar, namaOrganisasi, namaWakil, emel, laman, noPendaftaran,
-            aktivitiUtama, penerangan, pilihanPaparan, pilihanTajaan, catatan, status, createdAt)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
-        [
-          id, jenis, namaSebenar || null, namaOrganisasi || null, namaWakil || null, emel,
-          String(b.lamanRasmi || '').trim() || null, String(b.noPendaftaran || '').trim() || null,
-          aktivitiUtama || null, String(b.penerangan || '').trim() || null, pilihanPaparan,
-          String(b.pilihanTajaan || '').trim() || null, String(b.catatan || '').trim() || null, kini,
-        ]
-      );
+      const id = await denganKunciRujukanPenaja(async () => {
+        const rujukan = await janaRujukan(dbGet);
+        await dbRun(
+          `INSERT INTO permohonan_penaja
+             (id, jenisPemohon, namaSebenar, namaOrganisasi, namaWakil, emel, laman, noPendaftaran,
+              aktivitiUtama, penerangan, pilihanPaparan, pilihanTajaan, catatan, status, createdAt)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
+          [
+            rujukan, jenis, namaSebenar || null, namaOrganisasi || null, namaWakil || null, emel,
+            String(b.lamanRasmi || '').trim() || null, String(b.noPendaftaran || '').trim() || null,
+            aktivitiUtama || null, String(b.penerangan || '').trim() || null, pilihanPaparan,
+            String(b.pilihanTajaan || '').trim() || null, String(b.catatan || '').trim() || null, kini,
+          ]
+        );
+        return rujukan;
+      });
 
       try {
         const penerima = await dbAll(
