@@ -158,6 +158,18 @@ export function useTickerEditor() {
       aiPromptLanguage: config?.aiPromptLanguage || 'Bebas',
       aiPromptRegion: config?.aiPromptRegion || 'Global, Malaysia',
       aiPromptSource: config?.aiPromptSource || '',
+      // Kawalan serentak (2026-09-09, dapatan bug-hunt) — token versi `updatedAt` yang dihantar
+      // semula pada simpan supaya pelayan boleh kesan jika seseorang lain sudah simpan Ticker
+      // sejak borang ini dibuka (lihat slotsConfigRoutes.js POST /slots, corak SAMA seperti
+      // useSlotEditor.ts). Medan ni SEBELUM ni tidak pernah disertakan dalam formConfig Ticker —
+      // gerbang konflik 409 di pelayan (`if (slot.updatedAt) {...}`) semak nilai ni SEBELUM tulis;
+      // tanpanya, ia sentiasa `undefined` untuk Ticker sahaja (setiap slot bento LAIN, via
+      // useSlotEditor.ts, sentiasa hantar nilai sebenar), jadi semakan "lost update" yang
+      // melindungi SEMUA slot lain daripada dua penyunting menimpa simpanan serentak langsung
+      // TIDAK PERNAH berkuat kuasa untuk Ticker — dua Ketua Editor (atau Ketua Editor + enjin RSS
+      // Direct yang turut menulis lajur sama, lihat denganKunciTicker) boleh menimpa simpanan satu
+      // sama lain secara senyap tanpa amaran 409.
+      updatedAt: config?.updatedAt || null,
     });
     loadRssSources();
     loadReviewQueue();
