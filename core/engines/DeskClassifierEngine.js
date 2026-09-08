@@ -101,7 +101,27 @@ export function resolveDeskConflict(sortedDesks, normalizedText, globalExclusion
     }
   }
 
-  if (topDesk && topDesk.id === ID_DESK_EKONOMI) {
+  // PEMBETULAN (2026-09-09, dapatan bug-hunt, sambungan corak #170) — blok konflik
+  // teknologi-vs-perundangan di atas (85-102) memutasikan skor SECARA MENDALAM
+  // (topDesk.score -= 60, nasionalDesk.score += 45) tetapi pemeriksaan blok kedua ni
+  // dahulu terus baca `topDesk` (pembolehubah const yang ditetapkan SEKALI di baris 62,
+  // SEBELUM mutasi blok pertama berlaku) tanpa disusun/diambil semula. Kesan: kalau desk
+  // ASAL tertinggi ialah Sains & Teknologi (kena -60 sebab konflik perundangan/keselamatan),
+  // dan penurunan tu menjadikan Ekonomi (yang tak pernah disentuh blok pertama) juara
+  // SEBENAR yang baharu, blok Sukan-vs-Ekonomi di bawah ni tetap terlepas terus — ia masih
+  // banding `topDesk.id` (rujukan STALE, masih Sains & Teknologi) === ID_DESK_EKONOMI, yang
+  // sentiasa palsu. Konflik sukan-vs-ekonomi sebenar (kandungan ttg kejohanan SUKAN yang
+  // skor Ekonomi-nya kini tertinggi selepas penalti tech) tak pernah diselesaikan walaupun
+  // Ekonomi memang juara akhir. Disahkan reproduce: skrip simulasi (tech=70 kena -60 -> 10,
+  // ekonomi=65 kekal, sukan=10 tanpa penalti) tunjuk resolverTag tersasar kekal
+  // LEGAL_SECURITY_OVER_TECH walau juara skor akhir ialah Ekonomi dgn isyarat sukan wujud.
+  // Pembetulan: ambil semula juara SEBENAR (susun ikut skor terkini) sebelum semak konflik
+  // domain kedua, bukan guna rujukan `topDesk` yang ditetapkan sebelum mutasi blok pertama.
+  sortedDesks.sort((a, b) => b.score - a.score);
+  const topDeskSelepasKonflikPertama = sortedDesks[0];
+
+  if (topDeskSelepasKonflikPertama && topDeskSelepasKonflikPertama.id === ID_DESK_EKONOMI) {
+    const topDesk = topDeskSelepasKonflikPertama;
     if (hasSportsSignal && !/\b(saham|ringgit|inflasi|bank|cukai|pelaburan|bnm|kwsp|lhdn)\b/.test(text)) {
       resolverTag = 'SPORTS_OVER_ECONOMY';
       conflictNote = 'Konteks kejohanan/atlet dikesan. Konflik diselesaikan -> SUKAN';
