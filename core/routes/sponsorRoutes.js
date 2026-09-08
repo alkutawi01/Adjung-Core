@@ -68,6 +68,24 @@ const namaPaparPenaja = (r) => (r.anonymousNo ? `${r.name} ${angkaRom(r.anonymou
 // medan BAHARU `tajaanTamat` (bukan tulis balik `status` sedia ada 'aktif'/'arkib' — dua nilai tu
 // masih kekal fungsi TOGGLE tab Aktif/Arkib client-side, jangan pecahkan itu) supaya UI boleh papar
 // lencana amaran berasingan tanpa mengubah tab mana penaja tu tergolong.
+// tajaanTamat ISALAH SUDAH TAMAT, BUKAN "belum bermula lagi" (2026-09-09, susulan bug-hunt
+// sim42) — barisan asal tandakan tajaanTamat guna `!sponsorAktifPadaMasa(...)` sahaja, tapi
+// sponsorAktifPadaMasa() pulangkan false atas DUA sebab berlainan: (1) tamatTajaan sudah
+// berlalu (memang "Tamat", label betul), ATAU (2) mulaTajaan MASIH DI MASA HADAPAN (tajaan
+// dijadualkan, cth kempen minggu depan yang Pentadbir sediakan awal — belum bermula langsung).
+// Kesan pepijat: penaja julat-tarikh masa hadapan terus dipaparkan dengan lencana amaran
+// "Tamat" sebaik dicipta, sedangkan ia belum pun tayang — mengelirukan (nampak macam dah
+// luput). Semakan ni kini eksplisit tanya "adakah tamatTajaan sudah lepas SEKARANG", bukan
+// "adakah ia tak aktif sekarang atas apa jua sebab" — penaja belum bermula (mula > sekarang)
+// tak lagi terjebak dalam label yang sama.
+const tajaanSudahLepas = (sponsor, sekarang) => {
+  if (!sponsor || !sponsor.mulaTajaan || !sponsor.tamatTajaan) return false;
+  const masa = sekarang instanceof Date ? sekarang.getTime() : new Date(sekarang).getTime();
+  const tamat = new Date(sponsor.tamatTajaan).getTime();
+  if (Number.isNaN(masa) || Number.isNaN(tamat)) return false;
+  return tamat < masa;
+};
+
 const barisKepadaPenaja = (r, petaSlot, sekarang, bulanKini) => ({
   id: r.id,
   nama: namaPaparPenaja(r),
@@ -80,7 +98,7 @@ const barisKepadaPenaja = (r, petaSlot, sekarang, bulanKini) => ({
   tayangSemasaTransisi: r.tayangSemasaTransisi === 1,
   jumlahBayaran: r.jumlahBayaran || 0,
   status: r.status,
-  tajaanTamat: r.status === 'aktif' && !sponsorAktifPadaMasa(r, sekarang || new Date(), bulanKini || bulanSemasa()),
+  tajaanTamat: r.status === 'aktif' && tajaanSudahLepas(r, sekarang || new Date()),
   dikemasPada: r.updatedAt,
 });
 
