@@ -203,6 +203,16 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
   // sama rasional amKelajuan di atas: medan "Nisbah Penaja" di bawah kini OVERRIDE (kosong = ikut
   // ni), perlu tahu nilai am supaya slot yang tak override tunjuk nilai EFEKTIF sebenar.
   const [amNisbahPenajaTransisi, setAmNisbahPenajaTransisi] = useState(0);
+  // Mod Warna Panel (Seragam/Pelbagai) + paksa tetapan am (2026-09-09, bug-hunt) — Pratonton
+  // Tetapan Kad per-slot dahulu KIRA warna efektif guna `draf.warnaPanelOverride || amWarnaPanel`
+  // SAHAJA, terlepas terus dua gerbang ni yang FrontpageView.tsx (`warnaPanelUntukSlot()`) SENTIASA
+  // semak dahulu. Kesan sebenar: bila Ketua Editor tetapkan Mod Warna Panel = "Seragam" (warna am
+  // MESTI menang tanpa syarat, override slot diabaikan — lihat CLAUDE.md), Pratonton slot yang ada
+  // warna override tersimpan tetap papar warna override tu seolah-olah ia AKTIF, padahal frontpage
+  // sebenar papar warna am. "Pratonton (kesan sebenar slot ini)" jadi bohong tepat pada kombinasi
+  // tetapan ni.
+  const [amModWarnaPanel, setAmModWarnaPanel] = useState('pelbagai');
+  const [amPaksaTetapanAmSemuaSlot, setAmPaksaTetapanAmSemuaSlot] = useState(false);
   useEffect(() => {
     let dibatal = false;
     fetch('/api/system/slot-am-settings')
@@ -216,6 +226,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
         if (Array.isArray(d.jenisAnimasiRawakPool) && d.jenisAnimasiRawakPool.length) setAmJenisAnimasiRawakPool(d.jenisAnimasiRawakPool);
         if (Number(d.carouselTempohLalai) > 0) setAmCarouselTempohLalai(Number(d.carouselTempohLalai));
         if (Number.isInteger(Number(d.nisbahPenajaTransisi)) && Number(d.nisbahPenajaTransisi) >= 0) setAmNisbahPenajaTransisi(Number(d.nisbahPenajaTransisi));
+        setAmModWarnaPanel(d.modWarnaPanel === 'seragam' ? 'seragam' : 'pelbagai');
+        setAmPaksaTetapanAmSemuaSlot(d.paksaTetapanAmSemuaSlot === 1 || d.paksaTetapanAmSemuaSlot === true);
       })
       .catch(() => { /* tetapan am tak dapat dibaca — label kekal nilai lalai, bukan ralat */ });
     return () => { dibatal = true; };
@@ -721,6 +733,8 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
           amJenisAnimasiRawakPool={amJenisAnimasiRawakPool}
           amCarouselTempohLalai={amCarouselTempohLalai}
           amNisbahPenajaTransisi={amNisbahPenajaTransisi}
+          amModWarnaPanel={amModWarnaPanel}
+          amPaksaTetapanAmSemuaSlot={amPaksaTetapanAmSemuaSlot}
           menyimpan={menyimpanTetapan}
           ralat={ralatTetapan}
           ralatKonflik={ralatTetapanKonflik}
@@ -846,6 +860,8 @@ interface TetapanSlotModalProps {
   amJenisAnimasiRawakPool: string[];
   amCarouselTempohLalai: number;
   amNisbahPenajaTransisi: number;
+  amModWarnaPanel: string;
+  amPaksaTetapanAmSemuaSlot: boolean;
   menyimpan: boolean;
   ralat: string | null;
   ralatKonflik: boolean;
@@ -855,7 +871,7 @@ interface TetapanSlotModalProps {
 }
 
 const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
-  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, amCarouselTempohLalai, amNisbahPenajaTransisi, menyimpan, ralat, ralatKonflik,
+  slotIndex, bidangList, draf, setDraf, drafAwal, amWarnaPanel, amKelajuan, amJenis, amArah, amJenisAnimasiRawakPool, amCarouselTempohLalai, amNisbahPenajaTransisi, amModWarnaPanel, amPaksaTetapanAmSemuaSlot, menyimpan, ralat, ralatKonflik,
   onSalinDraf, onSimpan, onTutup,
 }) => {
   // Jenis/arah/kelajuan/warna EFEKTIF slot ni — override sendiri, atau jatuh balik ke tetapan am
@@ -866,7 +882,12 @@ const TetapanSlotModal: React.FC<TetapanSlotModalProps> = ({
   const jenisEfektifSlot = draf.jenisAnimasiOverride || amJenis;
   const arahEfektifSlot = draf.arahOverride || amArah;
   const kelajuanEfektifSlot = Number(draf.kelajuanOverride) > 0 ? Number(draf.kelajuanOverride) : amKelajuan;
-  const warnaEfektifSlot = draf.warnaPanelOverride || amWarnaPanel;
+  // Neraca SAMA PERSIS FrontpageView.tsx `warnaPanelUntukSlot()` — Mod Seragam ATAU paksa
+  // tetapan am mengabaikan override slot TANPA SYARAT (warna am menang), tak kira override
+  // tersimpan apa. Sebelum ni baris ni baca override secara membuta tanpa semak dua gerbang ni.
+  const warnaEfektifSlot = (amModWarnaPanel === 'seragam' || amPaksaTetapanAmSemuaSlot)
+    ? amWarnaPanel
+    : (draf.warnaPanelOverride || amWarnaPanel);
   // Nisbah EFEKTIF (2026-08-26, parity) — '' tidak boleh guna `||` (0 ialah nilai SAH "Adjung
   // sahaja", `0 || amNisbah` akan silap jatuh ke am walau editor sengaja pilih 0).
   const nisbahEfektifSlot = draf.nisbahPenajaTransisiOverride !== '' ? Number(draf.nisbahPenajaTransisiOverride) : amNisbahPenajaTransisi;
