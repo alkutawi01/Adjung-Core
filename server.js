@@ -3756,8 +3756,20 @@ const validateAndPrepareManualItems = async (slotIndex, manualSummary, slotConfi
       throw err;
     }
     // Had nisbah gloss interlinear (2026-08-12, keputusan Izzat) — lihat nota ContentBudget.js.
+    // `Penerangan` (2026-09-09, dapatan bug-hunt susulan #135/#136) — semakan ni asalnya cuma
+    // senaraikan tiga medan artikel biasa (Tajuk/Huraian ringkas/Huraian panjang), terlepas medan
+    // SEBENAR Slot Bar (item.penerangan, diisi borang "Penerangan" BarSlotManagerModal.tsx, tiada
+    // kaitan langsung dgn briefLong — lihat nota isBar di atas). Kesan sebenar: editor Bar boleh
+    // taip sintaks [label](gloss:makna) terus dalam Penerangan, LULUS pengesahan (suis
+    // GLOSS_AUTHORING_ENABLED=false sepatutnya sekat SEMUA simpanan baharu, tapi medan ni tak
+    // pernah disemak langsung), tersimpan, lalu terpapar MENTAH (kurungan siku/bulat literal
+    // kelihatan pembaca) di BarCardExpandedPanel.tsx — fail tu render `{item.penerangan}` terus
+    // sebagai teks, tiada laluan tokenize()/renderInterlinear langsung utk Bar. Ditambah di sini
+    // (harmless utk tier lain — item.penerangan sentiasa undefined, validateGlossLength langkau
+    // medan bukan-rentetan).
     const glossCheck = validateGlossLength({
       Tajuk: item.title, 'Huraian ringkas': item.summary, 'Huraian panjang': item.briefLong,
+      Penerangan: item.penerangan,
     });
     if (!glossCheck.isValid) {
       const err = new Error(`"${(item.title || '').slice(0, 40)}...": ${glossCheck.reason}`);
