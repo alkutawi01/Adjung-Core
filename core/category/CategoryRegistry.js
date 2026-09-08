@@ -153,6 +153,21 @@ class CategoryRegistry {
     return reg.color;
   }
 
+  // Cari warna Bidang TANPA mendaftar (bukan mutasi) — untuk laluan yang cuma PAPAR/BACA
+  // (cth GET poster), bukan cipta Bidang. registerCategory() di atas sengaja mendaftar
+  // Bidang baharu bila slug tak jumpa (betul untuk laluan tulis macam auto-daftar RSS/
+  // pipeline), tapi itu salah untuk laluan baca semata-mata — nama Bidang beku/lapuk pada
+  // kandungan lama (categoryId/desk dibekukan pada masa cipta, lihat nota posterRoutes.js)
+  // yang tak lagi padan slug SEMASA (Bidang telah dinamakan semula/digabung) akan diam-diam
+  // MENCIPTA Bidang PALSU baharu setiap kali laluan baca dipanggil (dapatan bug-hunt
+  // 2026-09-08) — gema pepijat "dua jenis maroon" yang disebut di atas, cuma punca berbeza.
+  // Fallback ke warna PERTAMA palet (bukan cipta) kalau slug memang tak jumpa langsung.
+  static async findCategoryColorReadOnly(db, category) {
+    const slug = this.getSlug(category);
+    const reg = await this.dbGet(db, "SELECT color FROM CategoryRegistry WHERE slug = ?", [slug]);
+    return reg ? reg.color : COLOR_PALETTE[0];
+  }
+
   static async incrementCategoryUsage(db, category) {
     if (!category || category.trim() === '') return;
     const slug = this.getSlug(category);

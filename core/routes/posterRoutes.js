@@ -49,7 +49,10 @@ export function createPosterRoutes(db, dbAll, dbGet, dbRun) {
       for (const r of rows) {
         const bidang = r.deskLive || r.categoryId || 'Umum';
         const kodPendek = await getOrCreateUrlKod(dbGet, dbRun, r.objectId).catch(() => null);
-        const warna = await CategoryRegistry.getCategoryColor(db, bidang);
+        // findCategoryColorReadOnly (bukan getCategoryColor) — laluan ni cuma PAPAR poster,
+        // bukan cipta Bidang; getCategoryColor mendaftar Bidang BAHARU diam-diam bila nama
+        // beku/lapuk tak padan slug semasa, mencemar Taksonomi (dapatan bug-hunt 2026-09-08).
+        const warna = await CategoryRegistry.findCategoryColorReadOnly(db, bidang);
         items.push({
           objectId: r.objectId,
           title: r.title || '',
