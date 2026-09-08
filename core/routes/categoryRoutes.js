@@ -151,7 +151,7 @@ export function createCategoryRoutes(db) {
       res.json({ success: true, category: reg });
     } catch (err) {
       console.error('Activate category error:', err);
-      res.status(500).json({ error: err.message || 'Failed to activate category.' });
+      res.status(500).json({ error: err.message || 'Gagal mengaktifkan Bidang baharu.' });
     }
   });
 
@@ -373,7 +373,7 @@ export function createCategoryRoutes(db) {
       res.json({ success: true });
     } catch (err) {
       console.error('Assign slot error:', err);
-      res.status(500).json({ error: err.message || 'Failed to assign slot.' });
+      res.status(500).json({ error: err.message || 'Gagal menetapkan slot.' });
     }
   });
 
