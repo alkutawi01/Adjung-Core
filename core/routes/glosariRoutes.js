@@ -148,7 +148,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       if (senseAwal) {
         senseDefinisi = (senseAwal.definisi || '').trim();
         senseAmSense = !!senseAwal.amSense;
-        senseBidangIds = Array.isArray(senseAwal.bidangIds) ? senseAwal.bidangIds.filter(Boolean) : [];
+        senseBidangIds = Array.isArray(senseAwal.bidangIds) ? [...new Set(senseAwal.bidangIds.filter(Boolean))] : [];
         if (!senseDefinisi) return res.status(400).json({ error: 'Huraian makna wajib diisi.' });
         if (senseDefinisi.length > HAD_MAKSUD) return res.status(400).json({ error: `Huraian makna tidak boleh melebihi ${HAD_MAKSUD} aksara.` });
       } else if (!maksud) {
@@ -353,6 +353,16 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
     return null;
   }
 
+  // bidangIds dinyahpendua ([...new Set(...)]) di SEMUA tiga tapak yang menerima array ni
+  // terus daripada badan permintaan (di sini, POST /glosari senseAwal, PATCH /glosari/sense/:id)
+  // -- 2026-09-09, dapatan bug-hunt. Punca: sahkanInvariantSense() sahkan kewujudan Bidang
+  // dengan `bidangSah.length !== bidangIds.length`, tapi bidangSah datang drpd SQL
+  // "WHERE id IN (...)" yang SQL sendiri nyahpendua (satu baris setiap id unik) manakala
+  // bidangIds ialah array MENTAH. categoryId SAH yang dihantar dua kali (pemilih Bidang
+  // berbilang UI tersilap/klik ganda) jadi panjang tak sepadan -> ditolak 400 palsu "Bidang
+  // ... tidak wujud" walau Bidang tu sememangnya wujud (disahkan reproduce, sim55). Tanpa
+  // nyahpendua di sini, kalau semakan tu tersasar lulus jua, INSERT gelung ke bawah akan
+  // langgar PRIMARY KEY (senseId, categoryId) glosari_sense_bidang -> 500 mentah.
   router.post('/glosari/:istilahId/sense', requirePermission('manageEditorial'), (req, res) => denganKunciSenseGlosari(async () => {
     const { istilahId } = req.params;
     try {
@@ -361,7 +371,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
 
       const definisi = (req.body?.definisi || '').trim();
       const amSense = !!req.body?.amSense;
-      const bidangIds = Array.isArray(req.body?.bidangIds) ? req.body.bidangIds.filter(Boolean) : [];
+      const bidangIds = Array.isArray(req.body?.bidangIds) ? [...new Set(req.body.bidangIds.filter(Boolean))] : [];
 
       if (!definisi) return res.status(400).json({ error: 'Definisi Sense wajib diisi.' });
       if (definisi.length > HAD_MAKSUD) return res.status(400).json({ error: `Definisi tidak boleh melebihi ${HAD_MAKSUD} aksara.` });
@@ -415,7 +425,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
 
       const definisi = (req.body?.definisi || '').trim();
       const amSense = !!req.body?.amSense;
-      const bidangIds = Array.isArray(req.body?.bidangIds) ? req.body.bidangIds.filter(Boolean) : [];
+      const bidangIds = Array.isArray(req.body?.bidangIds) ? [...new Set(req.body.bidangIds.filter(Boolean))] : [];
 
       if (!definisi) return res.status(400).json({ error: 'Definisi Sense wajib diisi.' });
       if (definisi.length > HAD_MAKSUD) return res.status(400).json({ error: `Definisi tidak boleh melebihi ${HAD_MAKSUD} aksara.` });
