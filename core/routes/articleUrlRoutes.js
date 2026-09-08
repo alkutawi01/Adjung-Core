@@ -269,8 +269,14 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
         iconSvg = kategoriRow?.iconSvg || null;
         iconName = kategoriRow?.icon || null;
       } catch { /* ikon pilihan sahaja — kad OG tetap jana tanpanya */ }
+      // Buang sintaks markdown SEBELUM hantar ke satori (2026-09-08, sambungan bug-hunt vein yang
+      // sama seperti binaHtmlBot()/buildRssXml() di atas) — janaOgImagePng() render tajuk terus ke
+      // piksel PNG (bukan HTML/DOM yang boleh safeParseInline), jadi sintaks *condong* mentah bocor
+      // KEKAL dalam imej (asterisk literal terbakar dalam PNG, disahkan visual sebelum fix ini) —
+      // paling teruk antara SEMUA laluan bocor markdown sebab hasilnya GAMBAR, tak boleh dibetulkan
+      // lepas fakta oleh crawler/pelayar macam teks HTML.
       const png = await janaOgImagePng({
-        title: kandungan.title, desk: kandungan.desk, articleUrl, topik: kandungan.topik, iconSvg, iconName,
+        title: stripMarkdownEsm(kandungan.title), desk: kandungan.desk, articleUrl, topik: stripMarkdownEsm(kandungan.topik), iconSvg, iconName,
       });
       res.set('Content-Type', 'image/png');
       res.set('Cache-Control', 'public, max-age=86400');
