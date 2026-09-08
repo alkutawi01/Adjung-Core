@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import { User, Entry, SystemSettings } from '../../types';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
-import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif } from '../../utils';
+import { parseInlineFormatting, isArabicText, parseInTheNews, getDeskAccentColor, parseWorldClockHolidays, safeParseInline, setGlosSelariAktif, setTypographyRulesAktif, stripMarkdown } from '../../utils';
 import { setPemenggalanPengecualian, SOFT_HYPHEN } from '../../../core/editorial/PemenggalSukuKata.js';
 import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
@@ -6297,7 +6297,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           visual={(focusItem.image && !imejFocusViewRosak.has(focusItem.image)) ? (
             <img
               src={focusItem.image}
-              alt={asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || ''}
+              alt={stripMarkdown(asPlainText(focusItem.titleString) || asPlainText(focusItem.title) || '')}
               loading="lazy"
               onError={(e) => {
                 // Sorok SERTA-MERTA (sebelum React sempat re-render) supaya ikon "imej rosak"

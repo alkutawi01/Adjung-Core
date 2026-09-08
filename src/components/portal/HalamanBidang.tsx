@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { BRAND, LOGO_SIZE } from '../../config/brand';
-import { safeParseInline } from '../../utils';
+import { safeParseInline, stripMarkdown } from '../../utils';
 import { getDisplayDate, formatSiaranDate, sumberAdjungSendiri, EditPensil } from './FrontpageView';
 import { FocusView } from './FocusView';
 import BriefNavigator, { type NavigatorField } from './BriefNavigator';
@@ -590,7 +590,7 @@ export function HalamanBidang() {
           visual={focusItem.image ? (
             <img
               src={focusItem.image}
-              alt={focusItem.title || ''}
+              alt={stripMarkdown(focusItem.title || '')}
               loading="lazy"
               onError={(e) => { e.currentTarget.style.display = 'none'; }}
             />
