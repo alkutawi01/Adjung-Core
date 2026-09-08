@@ -208,11 +208,16 @@ async function lukisPoster(canvas: HTMLCanvasElement, items: ItemPoster[]): Prom
   ctx.fillStyle = '#D6D3D1';
   ctx.fillRect(MARGIN, ruleY, SISI - MARGIN * 2, 1);
 
-  // 5 baris kandungan
+  // 5 baris kandungan — bilangan SEBENAR boleh kurang drpd 5 (portal baharu/tempoh penerbitan
+  // rendah, /api/system/poster/latest pulangkan LIMIT 5 tapi tak jamin tepat 5 baris approved
+  // wujud). Bahagi tinggi ikut BILANGAN SEBENAR (bukan 5 tetap) — dapatan bug-hunt 2026-09-09:
+  // divisor 5 hardcode buat baris terkumpul di ATAS sahaja bila item < 5, tinggalkan jurang
+  // kosong besar sebelum footer sepatutnya diagihkan sama rata merentasi kad segi empat 1080px.
   const FOOTER_TINGGI = 130;
   const areaAtas = ruleY + 34;
   const areaBawah = SISI - FOOTER_TINGGI;
-  const tinggiBaris = (areaBawah - areaAtas) / 5;
+  const bilanganBaris = Math.min(items.length, 5) || 1;
+  const tinggiBaris = (areaBawah - areaAtas) / bilanganBaris;
   const lebarPenuh = SISI - MARGIN * 2;
 
   items.slice(0, 5).forEach((item, i) => {
