@@ -3623,7 +3623,30 @@ const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n'
 //     dicipta/dikemas kini sebagai baris rasmi editorial_objects/editorial_revisions, dan
 //     DIKELUARKAN daripada manualSummary — ia sekarang rekod Indeks rasmi, bukan draf lagi.
 //   - Slot Bar dikecualikan (belum disokong ciri ni — kekal 100% tingkah laku lama).
-const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles, namaSayaSesi, actorIdSesi) => {
+// Diekstrak daripada syncManualObjectsForSlot (2026-09-09, dapatan bug-hunt) — BACAAN SAHAJA
+// (parseManualSummaryTemplate + semua semakan pengesahan + query dbGet/dbAll sedia-ada, TIADA
+// dbRun/INSERT/UPDATE langsung) supaya boleh dipanggil sebagai PRA-SEMAK oleh pemanggil
+// (slotsConfigRoutes.js POST /slots) SEBELUM sebarang slot dalam satu permintaan pukal ditulis.
+//
+// Punca pepijat sebenar: POST /api/system/slots terima TATASUSUNAN slot (`Array.isArray(req.body)
+// ? req.body : [req.body]`) dan menulis setiap slot SATU PADA SATU MASA dalam satu gelung
+// (slotsConfigRoutes.js). syncManualObjectsForSlot() sendiri SUDAH betul (semua semakan ni
+// berlaku SEBELUM `BEGIN TRANSACTION` fungsi tu, jadi SATU slot sentiasa semua-atau-tiada) — tapi
+// pengesahan ni cuma berlaku semasa slot itu SENDIRI diproses DALAM gelung tulis. Kalau permintaan
+// bawa >1 slot dan slot PERTAMA sah (sudah pun tertulis penuh ke DB, transaksinya sendiri sudah
+// COMMIT) manakala slot KEDUA gagal pengesahan ni (cth had bajet kad, Topik kosong, URL sumber tak
+// sah), laluan (slotsConfigRoutes.js) pulangkan 400 keseluruhan — tapi slot pertama KEKAL
+// tertulis. Ini melanggar invariant "semua-atau-tiada" yang sudah didokumenkan eksplisit di
+// slotsConfigRoutes.js untuk semakan Bidang/updatedAt (dibaiki lebih awal, bug #126) tapi
+// terlepas pengesahan kandungan (budget/Topik/URL/dll) yang berada di FUNGSI LAIN (server.js),
+// bukan di dalam fail laluan tu sendiri — sebab itu ia terlepas semakan sebelumnya.
+//
+// Sama corak "SEMAK SEMUA dahulu, tulis KEMUDIAN" seperti pipelineRoutes.js batch_paste — fungsi
+// ni ialah bahagian SEMAK yang dikongsi, dipanggil DUA kali: sekali pra-semak (buang hasilnya,
+// cuma nak tahu ia LULUS) untuk SETIAP slot sebelum gelung tulis bermula, sekali lagi (semula)
+// dalam syncManualObjectsForSlot() sendiri semasa gelung tulis sebenar berlaku (defense-in-depth,
+// sama pola macam semakan Bidang/updatedAt sedia ada di laluan yang sama).
+const validateAndPrepareManualItems = async (slotIndex, manualSummary, slotConfig, roles, namaSayaSesi) => {
   const items = parseManualSummaryTemplate(manualSummary || '', slotConfig);
   const isBar = TIER_SLOTS.BAR.includes(slotIndex);
 
@@ -3826,6 +3849,19 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
       }
     }
   }
+
+  return { items, isBar, publishItems, draftItems, isBarLikeRemoval, submittedIds, existingRows, existingIdSet, removedIds };
+};
+
+// Keeps editorial_objects/editorial_revisions/editorial_attribute_values in sync with a Manual-mode
+// slot's manualSummary, AND returns the manualSummary text that should actually be PERSISTED back
+// to slots_config (the caller, POST /api/system/slots, must use this return value instead of the
+// raw submitted text — see nota di situ). Semakan/pengesahan sebenar kini dikongsi dengan pra-semak
+// pukal (slotsConfigRoutes.js) melalui validateAndPrepareManualItems() di atas — lihat komen fungsi
+// tu untuk sejarah pepijat "simpanan pukal separa" yang menyebabkan pemisahan ni.
+const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, roles, namaSayaSesi, actorIdSesi) => {
+  const { items, isBar, publishItems, draftItems, isBarLikeRemoval, submittedIds, existingRows, existingIdSet, removedIds } =
+    await validateAndPrepareManualItems(slotIndex, manualSummary, slotConfig, roles, namaSayaSesi);
 
   const menungguKelulusan = [];
   // Hasil sebenar setiap kandungan diterbitkan sesi ni (LIFE-01, audit ChatGPT 2026-08-08) —
@@ -4506,7 +4542,7 @@ app.use('/api/auth', createAuthRoutes(dbGet, dbRun, dbAll));
 app.use('/api', createDbStateRoutes(dbAll, dbGet));
 app.use('/api', createEditoriumUiPrefsRoutes(dbRun, dbGet));
 app.use('/api/system', createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, runAllScheduledSlots));
-app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate));
+app.use('/api/system', createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate, validateAndPrepareManualItems));
 app.use('/api/system', createLayoutRoutes(db, dbAll, resolveSlotContent));
 app.use('/api/system', createContentRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api/system', createWorldClockRoutes(dbGet));

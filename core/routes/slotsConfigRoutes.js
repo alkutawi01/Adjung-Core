@@ -121,7 +121,7 @@ export const stampManualModeOnTickerBlocks = (rawText) => {
 // transaction, see Phase 1 of this session's server.js cleanup) and is passed in here rather than
 // moved, since moving it would also require moving parseManualSummaryTemplate, which
 // resolveSlotContent (server.js's render-time path) also depends on.
-export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate) {
+export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSlot, parseManualSummaryTemplate, validateAndPrepareManualItems) {
   const router = express.Router();
 
   // GET /api/system/slots (2026-09-02, dapatan audit keselamatan — laluan ni TIADA `requireAuth`
@@ -271,6 +271,33 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
             // Format ralat sepadan konvensyen sedia ada di seluruh laluan ni (`error` ialah
             // mesej terus dipapar, bukan kod) — client (useSlotEditor.ts) cuma baca `data.error`.
             return res.status(409).json({ error: mesej });
+          }
+        }
+      }
+
+      // Pra-semak kandungan Manual (2026-09-09, dapatan bug-hunt) — sama corak "semak SEMUA
+      // dahulu" seperti gelung Bidang/updatedAt di atas, tapi utk pengesahan kandungan (bajet
+      // kad, Topik wajib, format URL sumber, dll — validateAndPrepareManualItems() di server.js).
+      // Sebelum ni pengesahan ni cuma berlaku DALAM gelung tulis di bawah (dalam
+      // syncManualObjectsForSlot, dipanggil satu slot pada satu masa) — kalau permintaan bawa >1
+      // slot dan slot PERTAMA lulus (sudah tertulis, transaksinya sendiri sudah COMMIT) manakala
+      // slot KEDUA gagal pengesahan ni, laluan ni pulangkan 400 keseluruhan tapi slot pertama
+      // KEKAL tertulis — simpanan pukal SEPARA, sama pepijat yang dibaiki utk Bidang (bug #126)
+      // tapi terlepas pengesahan kandungan sebab ia berada di FUNGSI LAIN (server.js). Dipanggil
+      // di sini SEMATA-MATA utk kesan pengesahan (hasil dibuang) — panggilan SEBENAR yang
+      // menentukan apa ditulis kekal dalam gelung tulis di bawah (defense-in-depth, sama pola
+      // macam Bidang/updatedAt).
+      if (validateAndPrepareManualItems) {
+        for (const slot of slots) {
+          if (slot.contentMode === 'Manual' && slot.slotIndex >= 0 && typeof slot.manualSummary === 'string') {
+            try {
+              await validateAndPrepareManualItems(slot.slotIndex, slot.manualSummary, slot, req.session?.user?.roles, req.session?.user?.penName || req.session?.user?.username || '');
+            } catch (e) {
+              if (e.isValidationError) {
+                return res.status(400).json({ error: e.message, bolehSalinAI: !!e.bolehSalinAI });
+              }
+              console.warn(`Pra-semak kandungan Manual slot ${slot.slotIndex} gagal (bukan ralat pengesahan):`, e.message);
+            }
           }
         }
       }
