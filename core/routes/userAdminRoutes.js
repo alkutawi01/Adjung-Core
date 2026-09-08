@@ -55,7 +55,7 @@ async function cariKandunganBelumTerbit(dbAll, penName) {
     INNER JOIN (SELECT objectId, MAX(version) mv FROM editorial_revisions GROUP BY objectId) lv ON lv.objectId = eo.id
     INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.version = lv.mv
     INNER JOIN editorial_attribute_values eav ON eav.objectId = eo.id AND eav.revisionId = er.id AND eav.attributeId = 'editorName'
-    WHERE er.status = 'pending' AND eav.valueText = ?
+    WHERE er.status = 'pending' AND LOWER(TRIM(eav.valueText)) = LOWER(TRIM(?))
   `, [penName]);
   for (const r of rows || []) menunggu.push({ id: r.id, tajuk: r.title || '(tiada tajuk)' });
 
@@ -121,6 +121,19 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       // ke kiraan aktiviti editor ASAL selama-lamanya walau kandungan kini milik editor lain
       // sepenuhnya. Sekat kepada revisionId = MAX(version) objek tu sahaja, corak SAMA seperti
       // query "menunggu" di atas (baris ~53-59).
+      //
+      // Padanan LOWER(TRIM()) (2026-09-08, dapatan bug-hunt susulan pepijat sama-corak
+      // POST /content/:id/reject-to-draft) — kedua-dua query ni (sini DAN "menunggu" di atas)
+      // dahulu padan `eav.valueText = ?` TEPAT lawan `u.penName`/`penName` semasa. profileRoutes.js
+      // (PATCH /profile/:id, komen baris ~80) SENGAJA benarkan editor tukar penName ke huruf
+      // besar/kecil BERBEZA bagi nama SAMA ("ahmad zaki" -> "Ahmad Zaki") — selepas tukar begitu,
+      // baris `editorial_attribute_values.editorName` yang dicap masa terbit LAMA (huruf kecil
+      // asal) tak lagi padan penName semasa (huruf besar baharu) walau nama sebenar tak berubah,
+      // jadi kiraan "menunggu"/"aktiviti" senyap jatuh ke 0 untuk editor tu selepas dia tukar
+      // huruf besar/kecil nama pena sendiri. Disahkan pepijat sebenar via simulasi DB scratch
+      // (kiraan lama = 0, kiraan LOWER(TRIM()) = 1 bagi kes sama). Padanan kini konsisten dengan
+      // SETIAP tempat lain dalam projek ni yang banding penName/editorName (server.js baris ~3974,
+      // contentRoutes.js baris ~1395/1925, profileRoutes.js baris ~82/129).
       const staff = await Promise.all((users || []).map(async (u) => {
         const countRow = await dbGet(
           `SELECT COUNT(DISTINCT eav.objectId) AS cnt
@@ -128,7 +141,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
            INNER JOIN (SELECT objectId, MAX(version) mv FROM editorial_revisions GROUP BY objectId) lv
              ON lv.objectId = eav.objectId
            INNER JOIN editorial_revisions er ON er.objectId = eav.objectId AND er.version = lv.mv
-           WHERE eav.attributeId = 'editorName' AND eav.valueText = ? AND eav.revisionId = er.id`,
+           WHERE eav.attributeId = 'editorName' AND LOWER(TRIM(eav.valueText)) = LOWER(TRIM(?)) AND eav.revisionId = er.id`,
           [u.penName || '']
         );
         const roles = rolesByUser[u.id] || [];
