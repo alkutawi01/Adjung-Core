@@ -34,6 +34,23 @@ test('buildRssXml - escapes special characters in real editorial content', () =>
   assert.doesNotMatch(xml, /<title>[^<]*<Analisis>/);
 });
 
+test('buildRssXml - strips markdown syntax from title/summary before publishing', () => {
+  const xml = buildRssXml([
+    {
+      id: 'obj-3',
+      slotIndex: 2,
+      title: 'Instagram perkenal *logo* baharu',
+      summary: 'Instagram memperkenalkan *wordmark* baharu. [Lihat](gloss:123) juga contoh **penuh**.',
+      createdAt: '2026-09-01T00:00:00.000Z',
+    },
+  ], { siteUrl: 'https://example.com' });
+
+  assert.match(xml, /<title>Instagram perkenal logo baharu<\/title>/);
+  assert.match(xml, /<description>Instagram memperkenalkan wordmark baharu\. Lihat juga contoh penuh\.<\/description>/);
+  assert.doesNotMatch(xml, /\*/);
+  assert.doesNotMatch(xml, /gloss:/);
+});
+
 test('escapeXml - escapes XML special characters', () => {
   assert.equal(escapeXml('a & b < c > d "e" \'f\''), 'a &amp; b &lt; c &gt; d &quot;e&quot; &apos;f&apos;');
 });

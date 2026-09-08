@@ -10,6 +10,27 @@ import { binaLaluanKandungan, slugBidang } from '../editorial/UrlSlug.js';
 // src/config/istilah.ts) yang disiarkan, definisi sama seperti ulasan di /api/system/content/all
 // ("laluan awam layout/active hanya sentiasa hidangkan baris 'approved'").
 
+// Buang sintaks markdown (2026-09-08, dapatan bug-hunt — corak sama seperti bug briefLong-raw-
+// dalam-SEO-meta yang dibaiki di FocusView.tsx/stripMarkdown()) — Ctrl/Cmd+I (SlotManagerModal.tsx)
+// benarkan editor tanda *condong* terus dalam medan Tajuk/Huraian, dan parser pembaca sebenar
+// (safeParseInline, src/utils.tsx) tukar `*teks*` -> <em> untuk paparan skrin. Suapan RSS ni
+// sebelum ni hantar teks MENTAH (cuma escapeXml, tiada strip markdown) terus ke pembaca RSS luar
+// — disahkan bocor sebenar dgn kandungan approved sebenar dlm DB (cth "Instagram memperkenalkan
+// *wordmark* baharu..." terbit dgn asterisk mentah kekal dlm <description>). Salinan ringkas
+// stripMarkdown() (src/utils.tsx) — fail ni laluan Node ESM tulen, tak boleh import terus modul
+// TSX yang bawa React/JSX sebagai kebergantungan transitif.
+const stripMarkdownRss = (text) => {
+  if (!text) return '';
+  return String(text)
+    .replace(/(\*\*\*|___)(.*?)\1/g, '$2')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/`(.*?)`/g, '$1')
+    .replace(/\+\+(.*?)\+\+/g, '$1')
+    .replace(/<u>(.*?)<\/u>/g, '$1')
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1');
+};
+
 // Elak XML pecah bila tajuk/huraian sebenar ada aksara istimewa (&, <, >, kuasa dua, kuasa
 // tunggal) — templat-string mentah TIDAK selamat untuk kandungan editorial sebenar.
 export const escapeXml = (str) => {
@@ -42,9 +63,9 @@ export const buildRssXml = (items, { siteUrl }) => {
     const link = it.link || `${siteUrl}/?slot=${encodeURIComponent(it.slotIndex)}&item=${encodeURIComponent(it.id)}`;
     const guid = `adjung-${it.id}`;
     return `    <item>
-      <title>${escapeXml(it.title)}</title>
+      <title>${escapeXml(stripMarkdownRss(it.title))}</title>
       <link>${escapeXml(link)}</link>
-      <description>${escapeXml(it.summary)}</description>
+      <description>${escapeXml(stripMarkdownRss(it.summary))}</description>
       <pubDate>${toRfc822(it.createdAt)}</pubDate>
       <guid isPermaLink="false">${escapeXml(guid)}</guid>
     </item>`;
