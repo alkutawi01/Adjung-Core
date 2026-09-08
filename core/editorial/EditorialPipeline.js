@@ -18,6 +18,7 @@ import { gantiBlokModTicker } from '../routes/contentRoutes.js';
 // blok mod lain yang ditulis serentak. SUSUNAN KUNCI: lihat nota di contentRoutes.js.
 import { denganKunciTicker } from '../utils/kunciKandungan.js';
 import { fetchSelamat, RalatUrlTakSelamat } from '../utils/urlSafety.js';
+import { isSafeHttpUrl } from '../sources/SourceSanitizer.js';
 
 const CONTENT_POOL_MAX_ITEMS = 30; // Bound prompt token cost regardless of how many sources are configured.
 const CONTENT_POOL_MAX_CONTENT_CHARS = 400; // Per-item content cap — enough for editorial judgment, not full article reprint.
@@ -445,7 +446,14 @@ ${slot.sourcesList.trim()}
         const poolItem = contentPool[(item.sourceIndex | 0) - 1];
         let url, source;
         if (poolItem) {
-          url = poolItem.url || '#';
+          // 2026-09-09 (sama kelas pepijat kritikal dgn isSafeHttpUrl RssDirectEngine.js
+          // 2026-09-08) — poolItem.url datang terus drpd SourceTransformer.js (FeedTransformer/
+          // JsonFeedTransformer/RestApiTransformer), yang TAK PERNAH sahkan skema URL langsung
+          // (tiada sanitizeUrlText, tiada semakan http/https). Suapan RSS/JSON/REST jahat boleh
+          // hantar "javascript:alert(document.cookie)" sebagai <link>/url, dan laluan pipeline AI
+          // ni terus simpan ia sebagai atribut 'url' kandungan Ticker — dipaparkan terus sebagai
+          // `<a href>` awam. Gerbang guna isSafeHttpUrl sama seperti laluan RSS Direct.
+          url = isSafeHttpUrl(poolItem.url) ? poolItem.url : '#';
           source = (item.source || actualProviderName).trim();
         } else {
           source = (item.source || actualProviderName).trim();
@@ -550,7 +558,10 @@ ${slot.sourcesList.trim()}
     const poolItemForUrl = contentPool[(parsedJson.sourceIndex | 0) - 1];
     let finalSourceUrl;
     if (poolItemForUrl) {
-      finalSourceUrl = poolItemForUrl.url || '#';
+      // 2026-09-09 — sama pepijat kritikal seperti laluan Ticker di atas: poolItemForUrl.url
+      // datang mentah drpd SourceTransformer.js, tiada semakan skema langsung. Gerbang guna
+      // isSafeHttpUrl sebelum simpan sebagai atribut 'url' kandungan slot (dipaparkan `<a href>`).
+      finalSourceUrl = isSafeHttpUrl(poolItemForUrl.url) ? poolItemForUrl.url : '#';
     } else {
       const claimedUrl = groundingUrls[0] || parsedJson.source_url || aiSourceUrl || '#';
       finalSourceUrl = await verifyUrlReachable(claimedUrl) ? claimedUrl : '#';
