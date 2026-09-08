@@ -68,7 +68,14 @@ const HAD = {
   namaOrganisasi: 150,
   namaWakil: 120,
   emel: 160,
-  laman: 300,
+  // Medan sebenar borang klien ialah `lamanRasmi` (HalamanMohonPenaja.tsx, "Laman web / media
+  // sosial rasmi") — `laman` ialah nama medan HONEYPOT tersembunyi (selalu kosong bagi
+  // penghantar sebenar, lihat semakan b.laman di bawah), BUKAN medan laman web. Kekeliruan nama
+  // ni (dapatan bug-hunt 2026-09-08) menyebabkan gelung had di bawah menyemak had aksara pada
+  // medan HONEYPOT (yang tak bermakna, sentiasa kosong) bukan medan laman web sebenar —
+  // `lamanRasmi` terus TIADA had aksara langsung di pelayan (had 300 klien hanya kosmetik,
+  // dipintas terus via panggilan API terus/curl).
+  lamanRasmi: 300,
   noPendaftaran: 60,
   aktivitiUtama: 200,
   penerangan: 300,
