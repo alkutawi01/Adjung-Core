@@ -201,8 +201,17 @@ export function deduplicateRssItems(items) {
 
   for (const item of items) {
     const titleKey = item.title.toLowerCase().trim();
-    if (!seenGuids.has(item.rssGuid) && !seenTitles.has(titleKey)) {
-      seenGuids.add(item.rssGuid);
+    // rssGuid kosong ('') ialah fallback SAH bagi item yang langsung tiada <link>/<guid> dalam
+    // suapan (feed ringkas/separa — bukan jarang dalam suapan RSS sebenar) — BUKAN "ID" sebenar
+    // artikel tu. Sebelum ni (dapatan bug-hunt 2026-09-08) rssGuid='' dianggap sama seperti guid
+    // sebenar: artikel PERTAMA yang tiada guid menandakan '' sebagai "sudah dilihat", jadi SETIAP
+    // artikel SETERUSNYA yang turut tiada guid — walau tajuk langsung tak berkaitan — digugurkan
+    // senyap sebagai "pendua" cuma sebab berkongsi ketiadaan guid yang sama. Guid kosong TAK PERNAH
+    // boleh membuktikan dua item sama; hanya tajuk (`seenTitles`) yang patut menentukan pendua bila
+    // guid tiada.
+    const guidBermakna = item.rssGuid && seenGuids.has(item.rssGuid);
+    if (!guidBermakna && !seenTitles.has(titleKey)) {
+      if (item.rssGuid) seenGuids.add(item.rssGuid);
       seenTitles.add(titleKey);
       uniqueItems.push(item);
     }

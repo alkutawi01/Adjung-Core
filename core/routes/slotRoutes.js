@@ -1412,7 +1412,14 @@ export async function executeDirectRssFetch(dbAll, dbGet, dbRun) {
               id, rssGuid, title, formattedBrief, briefTruncated, source, originalUrl, category, rawCategory, publishedAt, score, scoreBreakdown, deskBreakdown, secondaryDesk, secondaryScore, decision, status, createdAt
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
           `, [
-            itemId, item.rssGuid, cleanedTitle, cleanedBrief, item.briefTruncated ? 1 : 0,
+            // item.rssGuid || null (2026-09-08, bug-hunt sim18) — item TANPA <link>/<guid> jatuh
+            // balik ke rssGuid='' (RssDirectEngine.js). Lajur ni `UNIQUE` (server.js) dan SQLite
+            // membezakan NULL (setiap NULL dianggap unik, TAK bertembung) drpd '' (rentetan kosong
+            // ialah NILAI, bertembung ANTARA SATU SAMA LAIN) — jadi walau deduplicateRssItems()
+            // sudah dibetulkan supaya tak gugurkan artikel kedua yg tiada guid, `INSERT OR IGNORE`
+            // di sini tetap senyap menolak artikel KEDUA dst yang berkongsi rssGuid='' pada lapisan
+            // DB. Tukar '' -> NULL supaya keunikan hanya dikuatkuasakan bila guid SEBENAR wujud.
+            itemId, item.rssGuid || null, cleanedTitle, cleanedBrief, item.briefTruncated ? 1 : 0,
             source.sourceName, item.link, assignedDesk, rawCategory || 'TIADA TAG',
             item.publishedAt, scoreResult.score, JSON.stringify(scoreResult.scoreBreakdown),
             JSON.stringify(deskClassification),
