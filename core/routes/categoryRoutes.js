@@ -3,6 +3,7 @@ import { sanitizeSvgMarkup } from '../utils/sanitizeSvg.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requirePermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { denganKunciKategori } from '../utils/kunciKandungan.js';
 
 // Senarai putih ketat untuk ikon SVG custom Bidang (muat naik admin) — tiada <script>, tiada
 // pengendali on*, tiada href/xlink:href/style (jadi tiada laluan javascript:/url() tersembunyi).
@@ -81,8 +82,13 @@ export function createCategoryRoutes(db) {
     }
   });
 
-  // POST /api/system/categories/rename
-  router.post('/categories/rename', requirePermission('manageEditorial'), async (req, res) => {
+  // POST /api/system/categories/rename — denganKunciKategori (2026-09-09, dapatan bug-hunt) —
+  // renameCategory() boleh jatuh ke mergeCategories() (bila slug sasaran dah wujud), yang
+  // membuka BEGIN TRANSACTION SENDIRI atas sambungan sqlite3 DIKONGSI. Laluan ni dahulu langsung
+  // TIADA kunci — permintaan serentak ke sini/ke /categories/merge boleh bertindih transaksi
+  // (SIBLING pepijat "cannot start a transaction within a transaction" yang dibaiki di
+  // POST /glosari). Lihat komen penuh di kunciKandungan.js.
+  router.post('/categories/rename', requirePermission('manageEditorial'), (req, res) => denganKunciKategori(async () => {
     try {
       const { oldName, newName } = req.body;
       if (!oldName || !newName) return res.status(400).json({ error: 'Parameter nama lama atau nama baharu tiada.' });
@@ -93,10 +99,18 @@ export function createCategoryRoutes(db) {
       console.error('Rename category error:', err);
       res.status(500).json({ error: 'Gagal menamakan semula Bidang.' });
     }
-  });
+  }));
 
-  // POST /api/system/categories/merge
-  router.post('/categories/merge', requirePermission('manageEditorial'), async (req, res) => {
+  // POST /api/system/categories/merge — denganKunciKategori (2026-09-09, dapatan bug-hunt) —
+  // mergeCategories() (CategoryRegistry.js) membuka BEGIN TRANSACTION SENDIRI atas sambungan
+  // sqlite3 DIKONGSI, TANPA sebarang kunci sebelum ni. Dua permintaan serentak (dua editor klik
+  // "Gabung Bidang", atau klik dua kali pantas) — transaksi kedua bermula semasa transaksi
+  // pertama masih terbuka, sqlite3 lontar "cannot start a transaction within a transaction"
+  // sebagai 500 generik. SIBLING pepijat persis POST /glosari yang dibaiki sebelum ni; kunci
+  // sama corak (`denganKunciKandungan`/`denganKunciTicker`) tapi rantaian BERASINGAN sebab
+  // domain data (Bidang) tak bertindih editorial_revisions/slots_config. Disahkan reproduce +
+  // pembetulan hujung-ke-hujung di `.simulasi/sim54-kategori-transaksi-serentak.mjs`.
+  router.post('/categories/merge', requirePermission('manageEditorial'), (req, res) => denganKunciKategori(async () => {
     try {
       const { sourceCategory, targetCategory } = req.body;
       if (!sourceCategory || !targetCategory) return res.status(400).json({ error: 'Parameter Bidang sumber atau Bidang sasaran tiada.' });
@@ -107,7 +121,7 @@ export function createCategoryRoutes(db) {
       console.error('Merge categories error:', err);
       res.status(500).json({ error: 'Gagal menggabungkan Bidang.' });
     }
-  });
+  }));
 
   // GET /api/system/categories/active — senarai Bidang tertutup (Taksonomi), setiap satu
   // disertakan nombor slot yang diperuntukkan untuknya.

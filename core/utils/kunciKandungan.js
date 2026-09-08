@@ -35,4 +35,23 @@ export function denganKunciTicker(fn) {
   return giliran;
 }
 
+// Kunci CategoryRegistry BERASINGAN (2026-09-09, dapatan bug-hunt) — `POST /categories/merge`
+// dan `POST /categories/rename` (categoryRoutes.js) panggil `CategoryRegistry.mergeCategories()`/
+// `renameCategory()` (core/category/CategoryRegistry.js) yang membuka `BEGIN TRANSACTION`
+// SENDIRI pada sambungan sqlite3 DIKONGSI, TANPA sebarang kunci — SIBLING pepijat persis
+// `POST /glosari` yang dibaiki sebelum ni (unwrapped BEGIN TRANSACTION + sambungan dikongsi =
+// "cannot start a transaction within a transaction" bila dua permintaan bertindih). Dua editor
+// klik "Gabung Bidang"/"Namakan Semula Bidang" serentak (atau satu klik dua kali pantas) cukup
+// mencetuskannya. Disahkan reproduce SEBENAR (scratch DB, N permintaan serentak ke
+// /categories/merge) -- lihat `.simulasi/sim54-kategori-transaksi-serentak.mjs`. Kunci
+// BERASINGAN drpd denganKunciKandungan (Bidang/CategoryRegistry ialah domain data lain drpd
+// editorial_revisions/slots_config, tiada sebab saling menyekat).
+let rantaianKunciKategori = Promise.resolve();
+
+export function denganKunciKategori(fn) {
+  const giliran = rantaianKunciKategori.catch(() => {}).then(fn);
+  rantaianKunciKategori = giliran.catch(() => {});
+  return giliran;
+}
+
 export default denganKunciKandungan;
