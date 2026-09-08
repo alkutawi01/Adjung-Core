@@ -446,9 +446,9 @@ ${slot.sourcesList.trim()}
         let url, source;
         if (poolItem) {
           url = poolItem.url || '#';
-          source = (item.source || provider.name).trim();
+          source = (item.source || actualProviderName).trim();
         } else {
-          source = (item.source || provider.name).trim();
+          source = (item.source || actualProviderName).trim();
           const claimedUrl = (groundingUrls.length > 0 ? groundingUrls[idx % groundingUrls.length] : (item.url || '#')).trim();
           url = (await verifyUrlReachable(claimedUrl)) ? claimedUrl : '#';
         }
@@ -560,7 +560,7 @@ ${slot.sourcesList.trim()}
     // tercicir di sini, laluan pipeline AI, sebab ia tak sedia semasa audit asal itu. Rentetan
     // tarikh rekaan terus terpapar sebagai atribusi/citation kad BAR sebenar tanpa syarat,
     // sama seperti bug asal — kosong sebenar konsisten dgn fix asal, bukan reka tarikh.
-    const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '') : provider.name;
+    const finalSource = isBarSlot ? (parsedJson.source || parsedJson.date || '') : actualProviderName;
 
     // Tarikh Sumber (2026-09-04, dasar "Format + kewajipan Tarikh Sumber" — lihat CLAUDE.md)
     // sebelum ni TIDAK PERNAH disimpan untuk kandungan laluan pipeline AI ni — attributesToSave
