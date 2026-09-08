@@ -4813,9 +4813,24 @@ app.use((err, req, res, next) => {
 // jejak. Log dahulu supaya sebab kegagalan dapat disemak, kemudian keluar (proses pengurus
 // seperti PM2 patut mulakan semula) — meneruskan proses selepas keadaan tak diketahui lebih
 // berbahaya daripada gagal bersih.
+//
+// Susulan (2026-09-09, bug-hunt REAL) — versi asal panggil `process.exit(1)` TERUS di sini,
+// memintas `gracefulShutdown()` (lihat bawah) SEPENUHNYA. `gracefulShutdown()` cuma didaftar
+// untuk SIGTERM/SIGINT (isyarat luaran pm2/deploy) — exception tak tertangkap ialah LALUAN
+// KETIGA proses boleh mati, dan ia tak pernah singgah kod yang panggil `httpServer.close()`.
+// Kesan: kalau ralat sync tak tertangkap berlaku semasa handler Express memproses SATU
+// request (cth panggilan pustaka pihak ketiga yang throw, bukan reject promise), permintaan
+// LAIN yang sedang berjalan serentak pada sambungan lain turut digugurkan senyap — proses
+// exit serta-merta tanpa beri peluang request tu selesai, sama pepijat #176 tapi dicetuskan
+// oleh exception, bukan isyarat pm2. **Dibaiki**: guna `gracefulShutdown()` yang sama (kunci
+// tunggal `httpServer.close()` -> `db.close()` -> exit) supaya laluan mati NI turut hormati
+// permintaan sedang berjalan, dengan had masa singkat berasingan (2s, bukan 10s biasa) sebagai
+// jaring keselamatan — keadaan proses selepas exception tak tertangkap tak boleh dipercayai
+// sepenuhnya (state APLIKASI mungkin rosak), jadi jangan tunggu lama macam shutdown bersih
+// biasa; matlamatnya sekadar beri peluang PENDEK request lain siap sebelum keluar paksa.
 process.on('uncaughtException', (err) => {
   console.error('uncaughtException:', err);
-  process.exit(1);
+  gracefulShutdown('uncaughtException', 2000);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('unhandledRejection:', reason);
@@ -4841,14 +4856,36 @@ process.on('unhandledRejection', (reason) => {
 // `db.close()` dipanggil. Had masa 10 saat (`forceExitTimer`) sebagai jaring keselamatan kalau
 // ada request tersekat (cth panggilan AI luaran perlahan) — proses tetap keluar supaya pm2
 // tak tunggu selama-lamanya, tapi kes biasa (request pantas) kini selesai dengan bersih dahulu.
-const gracefulShutdown = (signal) => {
+const gracefulShutdown = (signal, forceExitMs = 10000) => {
   console.log(`${signal} diterima — menutup pelayan...`);
   const forceExitTimer = setTimeout(() => {
-    console.error('Penutupan bersih tamat masa (10s) — keluar paksa.');
+    console.error(`Penutupan bersih tamat masa (${forceExitMs}ms) — keluar paksa.`);
     process.exit(1);
-  }, 10000);
+  }, forceExitMs);
   forceExitTimer.unref();
+  // httpServer.close() sahaja tunggu SEMUA soket, termasuk sambungan keep-alive YANG SEDANG
+  // MENGANGGUR (bukan cuma request aktif) — disahkan via ujian sebenar bahawa callback close()
+  // TAK tercetus selagi soket menganggur tu belum tamat sendiri, walau tiada langsung request
+  // berjalan (Node tak hantar `Connection: close` automatik pada respons request YANG SUDAH
+  // BERJALAN semasa `.close()` dipanggil — disahkan baca kod Node sendiri + ujian langsung).
+  // `closeIdleConnections()` (Node >=18.2, projek ni sasar >=20.18.1) tutup HANYA soket
+  // menganggur PADA SAAT dipanggil sahaja — soket dgn request AKTIF ketika tu tak disentuh
+  // (selesai normal), TAPI soket tu sendiri jadi "menganggur semula" lepas responsnya siap dan
+  // tak ditangkap oleh SATU panggilan closeIdleConnections() di awal. Ujian sebenar (in-flight
+  // request keep-alive 300ms) sahkan: SATU panggilan awal sahaja -> close() masih tersekat
+  // beribu milisaat (tunggu keepAliveTimeout ~5s), BUKAN closeIdleConnections() SENDIRI yang
+  // tak berfungsi. Dibaiki: ulang panggilan `closeIdleConnections()` secara berkala (200ms)
+  // sepanjang tempoh tunggu close() — setiap soket yang baru siap request lalu jadi menganggur
+  // ditangkap pada pusingan seterusnya, jadi laluan CEPAT (semua request aktif siap -> keluar)
+  // jadi laluan BIASA, bukan `forceExitTimer` (10s/2s) yang patut jaring keselamatan jarang,
+  // bukan laluan lazim setiap shutdown.
+  if (typeof httpServer.closeIdleConnections === 'function') {
+    httpServer.closeIdleConnections();
+    var idleSweepTimer = setInterval(() => httpServer.closeIdleConnections(), 200);
+    idleSweepTimer.unref();
+  }
   httpServer.close((httpErr) => {
+    if (idleSweepTimer) clearInterval(idleSweepTimer);
     if (httpErr) console.error('Ralat menutup pelayan HTTP:', httpErr);
     db.close((err) => {
       if (err) console.error('Ralat menutup pangkalan data:', err);
