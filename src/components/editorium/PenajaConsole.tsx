@@ -41,6 +41,13 @@ interface Penaja {
   // (maklumat sensitif, laluan awam sengaja tak pulangkan medan ni — lihat sponsorRoutes.js).
   jumlahBayaran: number;
   status: 'aktif' | 'arkib';
+  // tajaanTamat (2026-09-09, bug-hunt) — dikira ON-READ oleh pelayan (sponsorRoutes.js,
+  // sponsorAktifPadaMasa), TIDAK ditulis ke DB. `status` sendiri KEKAL 'aktif' selepas
+  // tamatTajaan berlalu (tiada cron mengemas kininya, keputusan sengaja — lihat komen
+  // pelayan) supaya penaja tu terus tergolong tab "Penaja Aktif" (bukan hilang senyap ke
+  // Arkib tanpa tindakan Pentadbir), tapi UI perlu isyarat ia sebenarnya sudah tak tayang
+  // di laman awam (logoUrl sudah hilang di sana, sponsorAktifPadaMasa gerbang laluan awam).
+  tajaanTamat?: boolean;
   dikemasPada: string;
 }
 
@@ -551,6 +558,13 @@ export const PenajaConsole: React.FC = () => {
                         tone={p.status === 'aktif' ? 'success' : 'neutral'}
                         label={bulanRingkas(p.bulan)}
                       />
+                      {/* Lencana "Tamat" (2026-09-09, bug-hunt) — p.status tetap 'aktif' selepas
+                          tamatTajaan berlalu (tiada cron, lihat sponsorRoutes.js), jadi tanpa
+                          lencana ni penaja yang logonya SUDAH hilang dari laman awam kelihatan
+                          tak berbeza drpd penaja yang benar-benar masih tayang. */}
+                      {p.tajaanTamat && (
+                        <StatusBadge tone="warning" label="Tamat" />
+                      )}
                       {p.tayangSemasaTransisi && (
                         <span className="font-mono text-[9px] uppercase tracking-wider font-bold text-stone-400">Transisi diaktifkan</span>
                       )}

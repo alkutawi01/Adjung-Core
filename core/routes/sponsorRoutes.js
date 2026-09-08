@@ -55,7 +55,20 @@ const sahSenaraiSlot = (arr) => Array.isArray(arr) && arr.every((n) => Number.is
 // terus ke `nama` di sini (SATU tempat, dipakai admin dan awam serentak) — tiada perubahan skema.
 const namaPaparPenaja = (r) => (r.anonymousNo ? `${r.name} ${angkaRom(r.anonymousNo)}` : r.name);
 
-const barisKepadaPenaja = (r, petaSlot) => ({
+// tajaanTamat (2026-09-09, bug-hunt) — Editorium (PenajaConsole.tsx) memaparkan penaja ikut
+// lajur `status` MENTAH ('aktif'/'arkib') sahaja, tak pernah baca mulaTajaan/tamatTajaan.
+// TIADA cron/setInterval yang mengemas kini `status` bila tamatTajaan berlalu (tak macam
+// permohonan_penaja, yang GET /system/permohonan-penaja sengaja kira status='tamat' ON-READ —
+// lihat komen di situ). Kesan sebenar: penaja julat-tarikh yang tamatTajaan-nya sudah lepas terus
+// dipaparkan di bawah "Penaja Aktif" dengan lencana hijau `success` SELAMANYA (logoUrl sudah pun
+// hilang dari laman awam sebenar, sebab sponsorAktifPadaMasa() — yang gerbang KEDUA-DUA laluan
+// awam — sudah kira ia tak aktif ikut tarikh). Pentadbir tak ada isyarat visual langsung penaja tu
+// perlu diarkibkan/diperbaharui — kena buka borang Sunting satu-satu untuk perasan tarikh sudah
+// lepas. Dibaiki: kira status TAMAT on-read (sama falsafah permohonan_penaja), pulangkan sebagai
+// medan BAHARU `tajaanTamat` (bukan tulis balik `status` sedia ada 'aktif'/'arkib' — dua nilai tu
+// masih kekal fungsi TOGGLE tab Aktif/Arkib client-side, jangan pecahkan itu) supaya UI boleh papar
+// lencana amaran berasingan tanpa mengubah tab mana penaja tu tergolong.
+const barisKepadaPenaja = (r, petaSlot, sekarang, bulanKini) => ({
   id: r.id,
   nama: namaPaparPenaja(r),
   logoUrl: r.logoUrl || '',
@@ -67,14 +80,15 @@ const barisKepadaPenaja = (r, petaSlot) => ({
   tayangSemasaTransisi: r.tayangSemasaTransisi === 1,
   jumlahBayaran: r.jumlahBayaran || 0,
   status: r.status,
+  tajaanTamat: r.status === 'aktif' && !sponsorAktifPadaMasa(r, sekarang || new Date(), bulanKini || bulanSemasa()),
   dikemasPada: r.updatedAt,
 });
 
 // Baris AWAM — SENGAJA tanpa jumlahBayaran (2026-08-05, permintaan Izzat: had ni disimpan utk
 // kegunaan dalaman/visualisasi kotak akan datang, bukan angka rasmi terus terdedah kepada
 // pembaca sebelum reka bentuk visualisasi disahkan).
-const barisKepadaPenajaAwam = (r, petaSlot) => {
-  const { jumlahBayaran, ...baki } = barisKepadaPenaja(r, petaSlot);
+const barisKepadaPenajaAwam = (r, petaSlot, sekarang, bulanKini) => {
+  const { jumlahBayaran, tajaanTamat, ...baki } = barisKepadaPenaja(r, petaSlot, sekarang, bulanKini);
   return baki;
 };
 
@@ -111,7 +125,9 @@ export function createSponsorRoutes(dbAll, dbRun, dbGet) {
     try {
       const rows = await dbAll('SELECT * FROM sponsors ORDER BY bulan DESC, createdAt DESC');
       const petaSlot = await bacaPetaSlot(dbAll, (rows || []).map((r) => r.id));
-      res.json((rows || []).map((r) => barisKepadaPenaja(r, petaSlot)));
+      const sekarang = new Date();
+      const bulanKini = bulanSemasa();
+      res.json((rows || []).map((r) => barisKepadaPenaja(r, petaSlot, sekarang, bulanKini)));
     } catch (err) {
       console.error('GET system/sponsors error:', err);
       res.status(500).json({ error: 'Gagal membaca senarai penaja. ' + (err.message || '') });
