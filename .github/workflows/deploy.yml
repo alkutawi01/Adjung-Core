@@ -42,6 +42,22 @@ jobs:
           script: |
             set -e
             cd /var/www/adjung-brief
+            # Checkpoint WAL dulu sebelum `cp` — pepijat SAMA PERSIS yang dibaiki pada backup
+            # berjadual harian & backup pra-migrasi boot-time (server.js): `cp` mentah terhadap
+            # `adjung.db` semasa pelayan LIVE masih berjalan (pm2 belum restart lagi ketika baris
+            # ni jalan) boleh tercicir baris terkini yang masih duduk dalam `-wal`, jadikan backup
+            # "jaring keselamatan sebelum deploy" senyap tak lengkap. Guna node_modules/sqlite3
+            # sedia ada (dari deploy SEBELUM ni — baris ni jalan SEBELUM `npm install`) supaya
+            # tak bergantung pada CLI `sqlite3` yang mungkin tak dipasang di droplet. Checkpoint
+            # gagal TIDAK boleh menghalang deploy (falsafah sama macam backup berjadual/boot).
+            node -e "
+              const sqlite3 = require('./node_modules/sqlite3').verbose();
+              const db = new sqlite3.Database('adjung.db');
+              db.run('PRAGMA wal_checkpoint(TRUNCATE);', (err) => {
+                if (err) console.warn('[Backup Pra-Deploy] wal_checkpoint gagal:', err.message);
+                db.close(() => process.exit(0));
+              });
+            " || echo "[Backup Pra-Deploy] langkau checkpoint (node_modules/sqlite3 belum wujud?)"
             cp adjung.db "adjung.db.backup-$(date +%Y%m%d-%H%M%S)-auto-deploy"
             git pull
             npm install
