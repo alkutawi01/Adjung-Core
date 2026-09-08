@@ -154,7 +154,21 @@ export function pisahkanGlosari(
  *  (keputusan Izzat: gaya halus, bukan menjerit). `cursor-help` + Tooltip sedia ada projek
  *  (sokong hover DAN fokus papan kekunci). Format tooltip MUKTAMAD (Izzat, docs v3 Seksyen 7):
  *  "{Istilah}: (Bidang) {definisi}" bila Sense KHUSUS diguna, "{Istilah}: {definisi}" selainnya
- *  (Sense am / maksud lama — TIADA label Bidang). */
+ *  (Sense am / maksud lama — TIADA label Bidang).
+ *
+ *  `tabIndex={0}` (dapatan bug-hunt, 2026-09-08) — komen di atas ("sokong ... fokus papan
+ *  kekunci") sebelum ni ASPIRASI sahaja: `<span>` polos TIDAK PERNAH boleh terima fokus tanpa
+ *  `tabIndex`, jadi Tab papan kekunci langkau terus lepas istilah glosari (Tooltip.tsx pasang
+ *  `onFocus`/`onBlur` tapi elemen tu tak boleh capai keadaan fokus langsung), DAN pada skrin
+ *  sentuh (disahkan suntik peristiwa touchstart/touchend/click sebenar ke span dalam pelayar
+ *  sebenar) ketukan tak buat APA-APA — Tooltip.tsx cuma dengar onMouseOver (yang skrin sentuh
+ *  tak pernah cetuskan) dan onFocus (yang span tak boleh terima). Ciri tooltip glosari ni
+ *  LANGSUNG tidak boleh dicapai pada telefon, walaupun garis putus-putus visual kelihatan sama
+ *  seperti desktop — pembaca telefon (majoriti trafik portal berita) tak pernah dapat lihat
+ *  definisi walau cuba ketuk berkali-kali. `tabIndex={0}` jadikan span boleh terima fokus —
+ *  pelayar SEBENARNYA fokus elemen boleh-fokus bila diketik (iOS Safari/Android Chrome, tak
+ *  perlu pengendali sentuh tersendiri), jadi `onFocus` Tooltip.tsx sedia ada terus berfungsi
+ *  untuk KEDUA-DUA Tab papan kekunci DAN ketukan skrin sentuh serentak. */
 export const IstilahGlosariSpan: React.FC<{ teks: string; istilah: string; resolusi: HasilResolusiGlosari }> = ({ teks, istilah, resolusi }) => {
   const namaTerkawal = hurufBesarAwal(istilah.trim());
   const isiTooltip = resolusi.namaBidang
@@ -163,7 +177,8 @@ export const IstilahGlosariSpan: React.FC<{ teks: string; istilah: string; resol
   return (
     <Tooltip text={isiTooltip}>
       <span
-        className="cursor-help border-b border-dotted border-current/50"
+        tabIndex={0}
+        className="cursor-help border-b border-dotted border-current/50 focus:outline-none"
         style={{ color: 'inherit' }}
       >
         {teks}
