@@ -448,6 +448,13 @@ ${slot.sourcesList.trim()}
           await dbRun("UPDATE system_settings SET inTheNewsText = ? WHERE id = 'settings-main'", [formattedText]);
         });
       }
+      // Simpan sourceHash Ticker (2026-09-08, dapatan bug-hunt — lihat nota SourceCache.js
+      // isHashUnchanged) supaya cache-skip pool sumber berfungsi untuk Ticker juga, bukan cuma
+      // slot biasa. Simpan walau textItems kosong (semua item ditolak budget) -- pool sumber
+      // yang sama akan hasilkan keputusan sama pada larian akan datang, jadi tetap layak dilangkau.
+      if (sourceHash) {
+        await dbRun("UPDATE system_settings SET tickerSourceHash = ? WHERE id = 'settings-main'", [sourceHash]);
+      }
 
       // Track AI Usage Logs for Ticker
       const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [provider.id, modelToUse]);

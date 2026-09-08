@@ -2923,7 +2923,15 @@ const initEditorialOS = (dbConn) => {
                                                         // semasa INSERT) supaya /slot_costs boleh kumpul terus ikut lajur ni, tanpa
                                                         // JOIN silang langsung.
                                                         dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN slotIndex INTEGER", () => {
-                                                          resolve();
+                                                          // tickerSourceHash (2026-09-08, dapatan bug-hunt) -- lihat nota
+                                                          // di SourceCache.js isHashUnchanged(): cache-skip Content Pool
+                                                          // Ticker (slotIndex -1) sebelum ni sentiasa cari baris
+                                                          // editorial_attribute_values yang tak pernah wujud utk Ticker
+                                                          // (ia tulis terus ke inTheNewsText, bukan cipta editorial_objects),
+                                                          // jadi AI dipanggil SETIAP larian walau pool sumber tak berubah.
+                                                          dbConn.run("ALTER TABLE system_settings ADD COLUMN tickerSourceHash TEXT", () => {
+                                                            resolve();
+                                                          });
                                                         });
                                                       });
                                                     });
