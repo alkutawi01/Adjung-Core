@@ -932,6 +932,37 @@ const initializeSchema = () => {
               // ALTER TABLE selamat diulang, sama corak macam jumlahBayaran di atas.
               db.run("ALTER TABLE sponsors ADD COLUMN mulaTajaan TEXT", () => {});
               db.run("ALTER TABLE sponsors ADD COLUMN tamatTajaan TEXT", () => {});
+
+              // anonymousNo (2026-08-30, modul "Mohon Jadi Penaja" — reka bentuk dikunci selepas 10
+              // pusingan perbincangan Izzat/ChatGPT, rujuk core/routes/permohonanPenajaRoutes.js) —
+              // nombor kekal "Hamba Allah N" untuk penaja individu yang pilih tanpa nama. Diberi
+              // SEKALI sahaja semasa PENGAKTIFAN PERTAMA (bukan semasa lulus permohonan, supaya
+              // permohonan gagal/ditolak tidak "membakar" nombor), tidak pernah dikitar semula walau
+              // penaja tamat/diarkibkan. Label "Hamba Allah VII" dijana daripada nombor ni semasa
+              // paparan sahaja (angka Rom) — jangan simpan teks Rom terus.
+              //
+              // PEMBETULAN (2026-09-08, dapatan bug-hunt) — statement ni DAHULU berada DI LUAR
+              // callback CREATE TABLE sponsors ni (sebagai sibling selepas CREATE sponsor_slots),
+              // sama corak pepijat yang sudah didokumenkan+dibaiki di atas untuk
+              // rss_editorial_settings/rss_ticker_items ("ALTER dipanggil sebelum jadual sasaran
+              // wujud"). Disahkan reproduce SEBENAR (log timestamp pelayan sebenar terhadap DB
+              // buangan segar): db.serialize() TIDAK menjamin urutan strict antara db.run() yang
+              // dipanggil serentak secara segerak dalam skop yang sama bila salah satu statement
+              // (CREATE TABLE sponsors, berbilang lajur) makan masa penyediaan lebih lama drpd
+              // statement lain (ALTER ringkas) yang dipanggil SELEPASNYA dalam kod sumber —
+              // callback ALTER anonymousNo (dahulu di luar sini) menembak dan gagal senyap dengan
+              // "SQLITE_ERROR: no such table: sponsors" LEBIH AWAL drpd callback CREATE TABLE
+              // sponsors sendiri sempat jalan. Kesan: lajur `anonymousNo` TIDAK PERNAH wujud pada
+              // mana-mana pemasangan/klon BAHARU (`() => {}` menelan ralat sepenuhnya) — modul
+              // "Hamba Allah N" (POST .../aktifkan, permohonanPenajaRoutes.js) akan gagal 500
+              // "no such column: anonymousNo" sebaik sahaja penaja individu pilih paparan tanpa
+              // nama. Dipindah masuk callback CREATE TABLE sponsors ni (sama macam
+              // jumlahBayaran/mulaTajaan/tamatTajaan di atas, yang disahkan SELAMAT sebab hanya
+              // berjalan SELEPAS sponsors wujud) — jangan sekali-kali letak ALTER TABLE sebagai
+              // sibling selepas CREATE TABLE jadual sasarannya dalam fail ni; letak ia DI DALAM
+              // callback CREATE TABLE tu supaya urutan dijamin oleh struktur kod, bukan diharap
+              // pada nasib penjadualan db.serialize().
+              db.run("ALTER TABLE sponsors ADD COLUMN anonymousNo INTEGER", () => {});
             });
 
             // sponsor_slots (2026-08-30, permintaan Izzat) — skop PER-SLOT untuk penaja: baris
@@ -946,15 +977,6 @@ const initializeSchema = () => {
                 FOREIGN KEY (sponsorId) REFERENCES sponsors(id) ON DELETE CASCADE
               )
             `, () => {});
-
-            // anonymousNo (2026-08-30, modul "Mohon Jadi Penaja" — reka bentuk dikunci selepas 10
-            // pusingan perbincangan Izzat/ChatGPT, rujuk core/routes/permohonanPenajaRoutes.js) —
-            // nombor kekal "Hamba Allah N" untuk penaja individu yang pilih tanpa nama. Diberi
-            // SEKALI sahaja semasa PENGAKTIFAN PERTAMA (bukan semasa lulus permohonan, supaya
-            // permohonan gagal/ditolak tidak "membakar" nombor), tidak pernah dikitar semula walau
-            // penaja tamat/diarkibkan. Label "Hamba Allah VII" dijana daripada nombor ni semasa
-            // paparan sahaja (angka Rom) — jangan simpan teks Rom terus.
-            db.run("ALTER TABLE sponsors ADD COLUMN anonymousNo INTEGER", () => {});
 
             // permohonan_penaja (2026-08-30) — aliran permohonan awam "Mohon Jadi Penaja",
             // BERASINGAN drpd jadual sponsors aktif (sama prinsip permohonan_editor vs users:

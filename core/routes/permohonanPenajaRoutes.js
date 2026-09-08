@@ -507,38 +507,69 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
         ? (rekod.pilihanPaparan === 'hamba_allah' ? null : rekod.namaSebenar)
         : rekod.namaOrganisasi;
 
+      // PEMBETULAN (2026-09-08, dapatan bug-hunt) — dahulu SIRI dbRun() berasingan (tulis
+      // `sponsors`, DELETE+INSERT `sponsor_slots`, UPDATE `permohonan_penaja`) TANPA transaksi.
+      // `sponsor_slots` ada PRIMARY KEY (sponsorId, slotIndex) — kalau `slotIndexes` daripada
+      // req.body mengandungi nilai BERULANG (typo klien/borang gabung senarai dua kali/panggilan
+      // API terus), INSERT kedua bagi pasangan sama langgar PK dan throw. Disahkan reproduce
+      // SEBENAR (scratch DB, slotIndexes:[3,3]): DELETE sponsor_slots (dah commit, sebab bukan
+      // transaksi) + INSERT/UPDATE `sponsors` (status='aktif', DAH commit) berjaya, tapi
+      // kegagalan pada INSERT kedua sponsor_slots batalkan SELEBIHNYA fungsi — UPDATE akhir
+      // `permohonan_penaja.status='aktif'` TAK PERNAH jalan. Keadaan tertinggal: `sponsors`
+      // kata 'aktif', `permohonan_penaja` masih 'dibayar' tanpa sponsorId, dan skop slot penaja
+      // hilang/separa — percubaan semula (tanpa sponsorSediaAdaId) akan cipta baris `sponsors`
+      // KEDUA untuk penaja yang sama sebab gerbang "sudah pernah diaktifkan" baca sponsorId yang
+      // tak pernah tersimpan. Dibaiki dua lapis: (1) `slotIndexes` dinyahduplikat SEBELUM ditulis
+      // (punca paling realistik dielakkan terus), (2) SEMUA tulisan langkah ni (sponsors,
+      // sponsor_slots, permohonan_penaja) dibungkus SATU transaksi BEGIN/COMMIT/ROLLBACK (corak
+      // sama `mergeCategories()`, CategoryRegistry.js) supaya kegagalan mana-mana langkah
+      // membatalkan KESEMUANYA, bukan tinggalkan keadaan separa merentasi tiga jadual.
+      const skopSlot = Array.isArray(slotIndexes)
+        ? [...new Set(slotIndexes.filter((n) => Number.isInteger(n)))]
+        : [];
+
       let sponsorId = sponsorSediaAdaId || null;
-      if (sponsorId) {
-        const sponsorSediaAda = await dbGet('SELECT id, anonymousNo FROM sponsors WHERE id = ?', [sponsorId]);
-        if (!sponsorSediaAda) return res.status(404).json({ error: 'Penaja sedia ada tidak dijumpai untuk dipautkan.' });
-        await dbRun(
-          `UPDATE sponsors SET logoUrl = ?, url = ?, bulan = ?, mulaTajaan = ?, tamatTajaan = ?, jumlahBayaran = ?, status = 'aktif', updatedAt = ? WHERE id = ?`,
-          [rekod.logoUrl || '', rekod.laman || '', bulanSemasa, mulaTajaan, tamatTajaan, rekod.jumlahDipersetujui || 0, kini.toISOString(), sponsorId]
-        );
-      } else {
-        sponsorId = `penaja-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-        let anonymousNo = null;
-        if (rekod.jenisPemohon === 'individu' && rekod.pilihanPaparan === 'hamba_allah') {
-          const maxRow = await dbGet('SELECT MAX(anonymousNo) as maxNo FROM sponsors');
-          anonymousNo = (maxRow?.maxNo || 0) + 1;
+      await dbRun('BEGIN TRANSACTION');
+      try {
+        if (sponsorId) {
+          const sponsorSediaAda = await dbGet('SELECT id, anonymousNo FROM sponsors WHERE id = ?', [sponsorId]);
+          if (!sponsorSediaAda) {
+            await dbRun('ROLLBACK');
+            return res.status(404).json({ error: 'Penaja sedia ada tidak dijumpai untuk dipautkan.' });
+          }
+          await dbRun(
+            `UPDATE sponsors SET logoUrl = ?, url = ?, bulan = ?, mulaTajaan = ?, tamatTajaan = ?, jumlahBayaran = ?, status = 'aktif', updatedAt = ? WHERE id = ?`,
+            [rekod.logoUrl || '', rekod.laman || '', bulanSemasa, mulaTajaan, tamatTajaan, rekod.jumlahDipersetujui || 0, kini.toISOString(), sponsorId]
+          );
+        } else {
+          sponsorId = `penaja-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          let anonymousNo = null;
+          if (rekod.jenisPemohon === 'individu' && rekod.pilihanPaparan === 'hamba_allah') {
+            const maxRow = await dbGet('SELECT MAX(anonymousNo) as maxNo FROM sponsors');
+            anonymousNo = (maxRow?.maxNo || 0) + 1;
+          }
+          await dbRun(
+            `INSERT INTO sponsors (id, name, logoUrl, url, bulan, mulaTajaan, tamatTajaan, tayangSemasaTransisi, jumlahBayaran, anonymousNo, status, createdAt, updatedAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'aktif', ?, ?)`,
+            [sponsorId, namaPapar || 'Hamba Allah', rekod.logoUrl || '', rekod.laman || '', bulanSemasa, mulaTajaan, tamatTajaan, rekod.jumlahDipersetujui || 0, anonymousNo, kini.toISOString(), kini.toISOString()]
+          );
         }
-        await dbRun(
-          `INSERT INTO sponsors (id, name, logoUrl, url, bulan, mulaTajaan, tamatTajaan, tayangSemasaTransisi, jumlahBayaran, anonymousNo, status, createdAt, updatedAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, 'aktif', ?, ?)`,
-          [sponsorId, namaPapar || 'Hamba Allah', rekod.logoUrl || '', rekod.laman || '', bulanSemasa, mulaTajaan, tamatTajaan, rekod.jumlahDipersetujui || 0, anonymousNo, kini.toISOString(), kini.toISOString()]
-        );
-      }
 
-      const skopSlot = Array.isArray(slotIndexes) ? slotIndexes.filter((n) => Number.isInteger(n)) : [];
-      if (skopSlot.length > 0) {
-        await dbRun('DELETE FROM sponsor_slots WHERE sponsorId = ?', [sponsorId]);
-        for (const slotIndex of skopSlot) {
-          await dbRun('INSERT INTO sponsor_slots (sponsorId, slotIndex) VALUES (?, ?)', [sponsorId, slotIndex]);
+        if (skopSlot.length > 0) {
+          await dbRun('DELETE FROM sponsor_slots WHERE sponsorId = ?', [sponsorId]);
+          for (const slotIndex of skopSlot) {
+            await dbRun('INSERT INTO sponsor_slots (sponsorId, slotIndex) VALUES (?, ?)', [sponsorId, slotIndex]);
+          }
         }
-      }
 
-      await dbRun('UPDATE permohonan_penaja SET status = ?, sponsorId = ?, diaktifkanPada = ?, updatedAt = ? WHERE id = ?',
-        ['aktif', sponsorId, kini.toISOString(), kini.toISOString(), rekod.id]);
+        await dbRun('UPDATE permohonan_penaja SET status = ?, sponsorId = ?, diaktifkanPada = ?, updatedAt = ? WHERE id = ?',
+          ['aktif', sponsorId, kini.toISOString(), kini.toISOString(), rekod.id]);
+
+        await dbRun('COMMIT');
+      } catch (errTransaksi) {
+        try { await dbRun('ROLLBACK'); } catch (rollbackErr) { console.error('Rollback gagal (aktifkan penaja):', rollbackErr.message); }
+        throw errTransaksi;
+      }
 
       await hantarEmel({
         to: rekod.emel,
