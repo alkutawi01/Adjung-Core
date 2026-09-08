@@ -26,8 +26,7 @@ export const KataLaluanInput = React.forwardRef<HTMLInputElement, React.InputHTM
           type="button"
           onClick={() => setTunjuk((t) => !t)}
           aria-label={tunjuk ? 'Sembunyikan kata laluan' : 'Tunjukkan kata laluan'}
-          tabIndex={-1}
-          className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer"
+          className="absolute right-2 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600 cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
         >
           {tunjuk ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
         </button>
