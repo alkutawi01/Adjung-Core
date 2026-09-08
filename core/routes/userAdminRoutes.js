@@ -22,6 +22,26 @@ const ROLE_IDS_SAH = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'edi
 const BAR_SLOTS = new Set(TIER_SLOTS.BAR);
 const samaNama = (a, b) => (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
+// Kunci "jangan biar sistem terkunci daripada dirinya sendiri" (2026-09-09, bug-hunt) — kebenaran
+// `manageAccounts` (urus akaun, termasuk laluan status/peranan DI SINI) DAN `manageRbac` (matriks
+// Kawalan Akses, TetapanConsole.tsx) kedua-duanya HANYA dipegang peranan 'pentadbir' ikut lalai
+// (core/middleware/auth.js DEFAULT_ROLE_PERMISSIONS). Kalau akaun 'pentadbir' AKTIF terakhir
+// digantung/ditamatkan (PATCH .../status) atau ditarik balik peranan 'pentadbir' (PATCH .../roles)
+// tanpa 'pentadbir' aktif LAIN kekal, TIADA SESIAPA lagi boleh urus akaun ATAU kebenaran — bahkan
+// akaun 'pentadbir' yang baru digantung sendiri pun tak boleh log masuk balik urus diri sendiri.
+// Satu-satunya jalan keluar ialah edit terus adjung.db (di luar aplikasi). Semak dahulu SEBELUM
+// tindakan ni dibenarkan, sama falsafah macam "mesti pegang sekurang-kurangnya satu peranan" di
+// PATCH .../roles yang sedia ada.
+async function adaPentadbirAktifLain(dbGet, idDikecualikan) {
+  const baris = await dbGet(
+    `SELECT COUNT(*) AS n FROM user_roles ur
+     INNER JOIN users u ON u.id = ur.userId
+     WHERE ur.roleId = 'pentadbir' AND u.isSuspended = 0 AND u.id != ?`,
+    [idDikecualikan]
+  );
+  return (baris?.n || 0) > 0;
+}
+
 // Draf/Menunggu tak diterbitkan kepunyaan seorang editor (2026-08-05, permintaan Izzat: "kalau
 // editor tu dah dibuang, adakah kandungan yg berstatus menunggu dan draf masih ada? saya rasa yg
 // arkib sahaja dikekalkan") — dipanggil oleh GET (kira/senarai sahaja) DAN POST (padam sebenar) di
@@ -364,12 +384,23 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       if (!STATUS_SAH.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${STATUS_SAH.join(', ')}.` });
       }
-      const sedia = await dbGet('SELECT id, penName, username, status AS statusLama FROM users WHERE id = ?', [id]);
+      const sedia = await dbGet('SELECT id, penName, username, status AS statusLama, isSuspended AS isSuspendedLama FROM users WHERE id = ?', [id]);
       if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
 
       // isSuspended (disemak semasa log masuk, authRoutes.js) diselaraskan ikut status — Tidak
       // Aktif/Ditamatkan menyekat log masuk, Aktif/Cuti tidak.
       const isSuspended = (status === 'Tidak Aktif' || status === 'Ditamatkan') ? 1 : 0;
+
+      // Sekatan pentadbir aktif terakhir (lihat komen adaPentadbirAktifLain() di atas) — cuma
+      // relevan bila akaun ni AKAN digantung (statusLama aktif -> isSuspended baharu 1) DAN ia
+      // sendiri pegang peranan 'pentadbir'. Akaun bukan-pentadbir/dah pun digantung tak terjejas.
+      if (isSuspended === 1 && sedia.isSuspendedLama === 0) {
+        const rolesSedia = await dbAll('SELECT roleId FROM user_roles WHERE userId = ?', [id]);
+        const iniPentadbir = (rolesSedia || []).some((r) => r.roleId === 'pentadbir');
+        if (iniPentadbir && !(await adaPentadbirAktifLain(dbGet, id))) {
+          return res.status(400).json({ error: 'Tidak boleh gantung/tamatkan akaun ini — ia satu-satunya akaun Pentadbir aktif yang tinggal. Lantik Pentadbir lain dahulu.' });
+        }
+      }
       const kini = new Date().toISOString();
       // Dapatan bug-hunt (2026-09-03): Pentadbir "aktifkan semula" akaun yang digantung Dasar
       // Aktif Editorial (amaranTakAktifTahap=3) TIDAK PERNAH direset di sini sebelum ni.
@@ -566,8 +597,20 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       if (roles.length === 0) {
         return res.status(400).json({ error: 'Akaun mesti pegang sekurang-kurangnya satu peranan.' });
       }
-      const sedia = await dbGet('SELECT id FROM users WHERE id = ?', [id]);
+      const sedia = await dbGet('SELECT id, isSuspended FROM users WHERE id = ?', [id]);
       if (!sedia) return res.status(404).json({ error: 'Akaun tidak dijumpai.' });
+
+      // Sekatan pentadbir aktif terakhir (lihat komen adaPentadbirAktifLain() di atas) — cuma
+      // relevan bila akaun ni AKTIF sekarang, PEGANG 'pentadbir' sekarang, dan set peranan BAHARU
+      // tak lagi termasuk 'pentadbir'. Akaun yang dah digantung tak dikira (dah pun tak boleh
+      // manageAccounts walau roles dia apa sekalipun).
+      if (sedia.isSuspended === 0 && !roles.includes('pentadbir')) {
+        const rolesSediaAda = await dbAll('SELECT roleId FROM user_roles WHERE userId = ?', [id]);
+        const iniPentadbir = (rolesSediaAda || []).some((r) => r.roleId === 'pentadbir');
+        if (iniPentadbir && !(await adaPentadbirAktifLain(dbGet, id))) {
+          return res.status(400).json({ error: 'Tidak boleh tarik balik peranan Pentadbir daripada akaun ini — ia satu-satunya akaun Pentadbir aktif yang tinggal. Lantik Pentadbir lain dahulu.' });
+        }
+      }
 
       await dbRun('DELETE FROM user_roles WHERE userId = ?', [id]);
       for (const roleId of roles) {
