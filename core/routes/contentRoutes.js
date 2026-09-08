@@ -1099,10 +1099,23 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
         // Bidang terkunci per-slot, Topik wajib — bila tajuk/huraian diedit, kandungan dipindah
         // ke slot lain, ATAU kandungan sedang diaktifkan semula (archived/rejected -> approved/
-        // pending, cth "Siarkan Semula" di Indeks). Bukan tindakan status-sahaja lain (Tolak/
-        // Arkib pada kandungan lama tak perlu sepadan Bidang). Kecuali slot BAR.
-        const reactivating = status !== undefined
-          && ['approved', 'pending'].includes(status)
+        // pending/scheduled, cth "Siarkan Semula" di Indeks). Bukan tindakan status-sahaja lain
+        // (Tolak/Arkib pada kandungan lama tak perlu sepadan Bidang). Kecuali slot BAR.
+        // PEMBETULAN (2026-09-08, dapatan bug-hunt, corak sama vein status-vs-effectiveStatus) —
+        // semakan asal baca `status` MENTAH (medan request terus), terlepas laluan reaktivasi
+        // TERSIRAT: Ketua Editor/Penolong PATCH scheduledPublishAt SAHAJA (tanpa `status`) pada
+        // kandungan 'archived'/'rejected' — resolveEffectiveStatus() pulangkan 'scheduled' utk
+        // kes ni (lihat Scheduling.js, cawangan SET), tapi `status` mentah kekal `undefined`,
+        // jadi `reactivating` tak pernah `true` dan validateBidangTopik() di bawah terus
+        // dilangkau sepenuhnya. Kandungan lama (arkib sebelum Topik wajib, atau Bidang slot dah
+        // bertukar sejak diarkibkan) boleh masuk semula giliran terbit — automatik jadi 'approved'
+        // apabila jadual sampai — tanpa langsung disemak Bidang/Topik, padahal SETIAP laluan lain
+        // ke status hidup (PATCH status='approved' terus, restore versi) kuatkuasakan semakan ni.
+        // Dibetulkan guna `effectiveStatusAwal` (dikira di atas) dan turut kira 'scheduled'
+        // sebagai destinasi reaktivasi (ia MEMANG akan jadi 'approved' automatik tanpa semakan
+        // manusia kedua).
+        const reactivating = effectiveStatusAwal !== undefined
+          && ['approved', 'pending', 'scheduled'].includes(effectiveStatusAwal)
           && ['archived', 'rejected'].includes(rev.status);
         // `topik`/`desk` MESTI turut mencetuskan semakan (2026-08-07, ditemui oleh simulasi
         // pintas-peraturan): sebelum ni senarai pencetus cuma title/summary/slotIndex/reactivating,
