@@ -55,8 +55,19 @@ export function createSitemapRoutes(dbAll, dbGet, dbRun) {
 
       // Kandungan hidup (status 'approved', versi terkini per objek), tak termasuk Ticker
       // (slotIndex -1, tiada laluan URL sendiri — lihat nota EAV Ticker di server.js).
+      // eo.categoryId dibekukan pada MASA PENCIPTAAN objek — Bidang sebenar boleh ditukar
+      // kemudian (contentRoutes.js PATCH /content/:id, medan `desk`) tanpa sekali-kali mengemas
+      // kini eo.categoryId (corak sama seperti articleUrlRoutes.js/rssFeedRoutes.js — lihat nota
+      // "AUAT-003"/bidangSebelum di contentRoutes.js). Sitemap ni sebelum ni bina <loc> terus atas
+      // eo.categoryId BEKU — kandungan yang Bidangnya ditukar selepas terbit disenaraikan dgn URL
+      // segmen Bidang LAMA, bercanggah dgn rel=canonical/og:url sebenar halaman tu (crawler
+      // Google indeks URL 404/redirect-chain, bukan URL sebenar) — dapatan bug-hunt 2026-09-08,
+      // vein sama yang dah dibaiki 5 kali di 2 fail lain. Dibaiki: sertakan atribut 'desk' revisi
+      // terkini, guna itu dahulu (fallback categoryId hanya utk objek lama tiada atribut desk).
       const rows = await dbAll(`
-        SELECT eo.id, eo.categoryId, er.createdAt, er.title
+        SELECT eo.id, eo.categoryId, er.createdAt, er.title,
+               (SELECT av.valueText FROM editorial_attribute_values av
+                WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'desk') as deskLive
         FROM editorial_objects eo
         INNER JOIN editorial_revisions er ON er.objectId = eo.id
         INNER JOIN (
@@ -76,7 +87,7 @@ export function createSitemapRoutes(dbAll, dbGet, dbRun) {
         const kod = await getOrCreateUrlKod(dbGet, dbRun, row.id).catch(() => null);
         if (!kod) continue; // Jana gagal (amat jarang) — lompat entri ni, jangan pecahkan sitemap.
         urls.push({
-          loc: `${baseUrl}${binaLaluanKandungan(row.title, row.categoryId, kod)}`,
+          loc: `${baseUrl}${binaLaluanKandungan(row.title, row.deskLive || row.categoryId, kod)}`,
           lastmod: row.createdAt ? new Date(row.createdAt).toISOString().slice(0, 10) : undefined,
           changefreq: 'weekly',
           priority: '0.7',
