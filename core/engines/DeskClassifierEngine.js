@@ -47,7 +47,28 @@ export function resolveDeskConflict(sortedDesks, normalizedText, globalExclusion
 
   const topDesk = sortedDesks[0];
 
-  if (topDesk && (topDesk.deskName === 'Sains & Teknologi' || topDesk.deskName === 'Teknologi')) {
+  // PEMBETULAN (2026-09-08, dapatan bug-hunt, corak SAMA renameActiveCategory/manualDesk/
+  // targetDesksExcluded) — resolusi konflik domain di bawah ni dahulu memadan
+  // `topDesk.deskName`/`d.deskName` terhadap NAMA desk yang dihardcode terus dalam kod
+  // ('Sains & Teknologi', 'Ekonomi', 'Nasional', 'Semasa', 'Sukan'). `deskName` ialah lajur
+  // BOLEH DIUBAH (adjung_desks, PUT /api/system/adjung-desks/:id) — apabila Ketua Editor
+  // namakan-semula desk (cth "Ekonomi" -> "Ekonomi & Kewangan"), padanan string ni senyap
+  // BERHENTI terpakai (tiada ralat), resolusi konflik domain (imigresen/keselamatan vs Sains
+  // & Teknologi, sukan vs Ekonomi) terus tak aktif untuk kandungan seterusnya. Disahkan
+  // reproduce: simulasi rename atas salinan DB scratch tunjuk resolverTag jatuh drpd
+  // SPORTS_OVER_ECONOMY -> STANDARD_WEIGHTED_MATCH selepas nama sahaja ditukar, id kekal sama.
+  // TIDAK macam manualDesk/targetDesksExcluded (lajur DATA, boleh dikemas kini via cascade),
+  // ni ID dihardcode dalam KOD sumber itu sendiri, jadi pembetulan ialah padan `d.id` (lajur
+  // adjung_desks yang TIDAK PERNAH berubah walau nama ditukar — cuma PUT deskName sahaja,
+  // lihat slotRoutes.js) bukan `d.deskName`. ID sebenar (`desk-eko-2` dsb.) disahkan terus
+  // drpd `adjung_desks` semasa siasatan ni.
+  const ID_DESK_TEKNOLOGI = 'desk-tek-5'; // Sains & Teknologi
+  const ID_DESK_NASIONAL = 'desk-nas-3';
+  const ID_DESK_SEMASA = 'desk-sem-12';
+  const ID_DESK_EKONOMI = 'desk-eko-2';
+  const ID_DESK_SUKAN = 'desk-suk-11';
+
+  if (topDesk && topDesk.id === ID_DESK_TEKNOLOGI) {
     if (hasLegalSecuritySignal && !hasTechHardwareSignal) {
       resolverTag = 'LEGAL_SECURITY_OVER_TECH';
       conflictNote = 'Isu imigresen/keselamatan/perundangan dikesan tanpa konteks khusus AI/biometrik. Konflik diselesaikan -> NASIONAL';
@@ -55,7 +76,7 @@ export function resolveDeskConflict(sortedDesks, normalizedText, globalExclusion
       topDesk.score -= 60;
       topDesk.negativeMatches.push('konflik: domain perundangan/keselamatan (-60)');
 
-      const nasionalDesk = sortedDesks.find(d => d.deskName === 'Nasional') || sortedDesks.find(d => d.deskName === 'Semasa');
+      const nasionalDesk = sortedDesks.find(d => d.id === ID_DESK_NASIONAL) || sortedDesks.find(d => d.id === ID_DESK_SEMASA);
       if (nasionalDesk) {
         nasionalDesk.score += 45;
         nasionalDesk.matchedKeywords.push('resolusi_konflik: domain perundangan/keselamatan (+45)');
@@ -66,13 +87,13 @@ export function resolveDeskConflict(sortedDesks, normalizedText, globalExclusion
     }
   }
 
-  if (topDesk && topDesk.deskName === 'Ekonomi') {
+  if (topDesk && topDesk.id === ID_DESK_EKONOMI) {
     if (hasSportsSignal && !/\b(saham|ringgit|inflasi|bank|cukai|pelaburan|bnm|kwsp|lhdn)\b/.test(text)) {
       resolverTag = 'SPORTS_OVER_ECONOMY';
       conflictNote = 'Konteks kejohanan/atlet dikesan. Konflik diselesaikan -> SUKAN';
 
       topDesk.score -= 30;
-      const sukanDesk = sortedDesks.find(d => d.deskName === 'Sukan');
+      const sukanDesk = sortedDesks.find(d => d.id === ID_DESK_SUKAN);
       if (sukanDesk) {
         sukanDesk.score += 40;
         sukanDesk.matchedKeywords.push('resolusi_konflik: sukan (+40)');
