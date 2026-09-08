@@ -309,6 +309,38 @@ export const TetapanAmSlotConsole: React.FC = () => {
   const [berjaya, setBerjaya] = useState<string | null>(null);
   const [mengagih, setMengagih] = useState(false);
 
+  // Token kawalan serentak bagi "Agih Lengah Bertingkat" (2026-09-09, dapatan bug-hunt — bug
+  // sama corak yang dibaiki di SenaraiSlotConsole.tsx pada 2026-09-08). DAHULU: `updatedAt`
+  // dibaca via GET /api/system/slots SEBAT-SEBAT sebelum POST, DALAM fungsi agihLengahBertingkat
+  // yang sama — jadi semakan serentak pelayan (slotsConfigRoutes.js, "Fasa 6") banding nilai yang
+  // BARU SAHAJA dibaca dengan DB SEMASA, yang mesti sentiasa sepadan dirinya sendiri (tiada
+  // jendela masa untuk suntingan konflik SEBENAR berlaku di antaranya) — gerbang tu tak boleh
+  // gagal langsung, walau editor lain betul-betul sudah simpan slot sejak panel ni dibuka.
+  // KINI: token dibaca SEKALI semasa panel dimuatkan (muatSlotsAwal(), sama titik masa dgn
+  // muat() tetapan am di bawah), disimpan berasingan drpd `semua` yang dibaca semula sebelum
+  // POST (elak menimpa medan lain yang mungkin berubah — sebab asal GET itu masih sah). POST
+  // guna medan LAIN daripada bacaan segar tapi `updatedAt` daripada peta ni supaya 409 sebenar
+  // dikesan. Disegar semula selepas simpan berjaya (muatSlotsAwal() dipanggil semula) supaya
+  // klik kedua/ketiga berturutan oleh Ketua Editor yang sama tidak disekat palsu oleh token yang
+  // sudah "dibelanjakan".
+  const [updatedAtAwalSlots, setUpdatedAtAwalSlots] = useState<Record<number, string | null>>({});
+
+  const muatSlotsAwal = () => {
+    fetch('/api/system/slots')
+      .then(r => (r.ok ? r.json() : null))
+      .then((rows: any[]) => {
+        if (!Array.isArray(rows)) return;
+        const peta: Record<number, string | null> = {};
+        for (const r of rows) {
+          if (r && typeof r.slotIndex === 'number') peta[r.slotIndex] = r.updatedAt || null;
+        }
+        setUpdatedAtAwalSlots(peta);
+      })
+      .catch(() => { /* token konkurensi cuma tambahan — kegagalan tak halang panel dibuka */ });
+  };
+
+  useEffect(muatSlotsAwal, []);
+
   // Susunan LEBAR-SAMA-RATA (2026-08-26, permintaan Izzat: "pastikan tiada pertukaran animasi
   // yg berlaku serentak atau berdekatan (mcm slot 1 pada saat pertama, slot 2 pada saat 2, ni
   // terlalu dekat, nak yg jauh mcm mula2 slot 30, kemudian slot 1, pastu slot 10, yg bertukar)")
@@ -361,15 +393,31 @@ export const TetapanAmSlotConsole: React.FC = () => {
       // urutanLebar[peringkat] = kedudukan; jadi peringkatUntukKedudukan ialah songsangan urutanLebar.
       const peringkatUntukKedudukan = new Array(slotBerkaitan.length);
       urutanLebar.forEach((kedudukan, peringkat) => { peringkatUntukKedudukan[kedudukan] = peringkat; });
-      const dikemas = slotBerkaitan.map((s: any, i: number) => ({ ...s, carouselDelay: peringkatUntukKedudukan[i] }));
+      // `updatedAt` timpa dgn token dibaca semasa PANEL DIMUATKAN (updatedAtAwalSlots), BUKAN
+      // `s.updatedAt` daripada bacaan segar di atas — lihat komen di deklarasi
+      // updatedAtAwalSlots kenapa bacaan segar tu tak boleh dihantar terus sebagai token
+      // konkurensi. Slot yang entah bagaimana tiada dalam peta (cth slot baharu ditambah lepas
+      // panel dimuatkan) jatuh balik ke bacaan segar — lebih baik gerbang tu redundant utk kes
+      // tepi jarang berbanding sekat operasi ni terus.
+      const dikemas = slotBerkaitan.map((s: any, i: number) => ({
+        ...s,
+        carouselDelay: peringkatUntukKedudukan[i],
+        updatedAt: Object.prototype.hasOwnProperty.call(updatedAtAwalSlots, s.slotIndex)
+          ? updatedAtAwalSlots[s.slotIndex]
+          : s.updatedAt,
+      }));
       const simpan = await fetch('/api/system/slots', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(dikemas),
       });
-      const data = await simpan.json();
+      const data = await bacaJsonSelamat(simpan);
       if (!simpan.ok) throw new Error(data.error || 'Gagal menyimpan.');
       setBerjaya(`Lengah diagih (susunan lebar-sama-rata, bukan berurutan): ${dikemas.length} slot, 0-${dikemas.length - 1} saat.`);
+      // Segar semula token konkurensi (2026-09-09) — POST /api/system/slots tak pulangkan baris
+      // terkini, jadi klik kedua berturutan tanpa muat semula ni akan hantar token yang dah
+      // "dibelanjakan" oleh klik pertama, kena 409 palsu walau tiada editor lain terlibat.
+      muatSlotsAwal();
     } catch (e: any) {
       setRalat(mesejRalat(e, 'Gagal mengagih lengah carousel.'));
     } finally {
