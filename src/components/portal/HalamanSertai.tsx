@@ -31,6 +31,17 @@ const LABEL_KELAS = 'font-sans text-xs font-semibold text-stone-700';
 const NOTA_KELAS = 'font-sans text-[11px] text-stone-500 mt-1';
 const RALAT_MEDAN_KELAS = 'font-sans text-[11px] text-[#a8241f] mt-1';
 
+// Had bilangan Bidang minat boleh dipilih (2026-09-09, bug-hunt) — pelayan
+// (permohonanEditorRoutes.js, POST /public/permohonan-editor) senyap memotong `bidangMinat`
+// kepada 10 item pertama (`.slice(0, 10)`) sebelum simpan, tapi borang ni (32 Bidang aktif
+// sebenar dlm sistem, jauh melebihi 10) tak pernah beritahu pemohon had ni — pemohon yang
+// pilih lebih 10 Bidang nampak SEMUA butang dia klik bertukar warna terpilih (tiada isyarat
+// visual apa-apa ditolak), dapat mesej "Permohonan diterima sistem", tapi Ketua Editor
+// sebenarnya cuma nampak 10 Bidang PERTAMA (ikut turutan klik, bukan makna) semasa semakan —
+// selebihnya hilang senyap tanpa jejak, walhal pemohon yakin semuanya direkodkan. MESTI sepadan
+// nombor `.slice(0, 10)` di permohonanEditorRoutes.js — ubah kedua-dua tempat serentak.
+export const HAD_BIDANG_MINAT = 10;
+
 // Senarai negeri/wilayah tetap (2026-08-25, teguran Izzat: "takkanlah boleh masukkan mcm ni
 // kan? kena auto validate kan?") — Negeri kini pilihan senarai, bukan teks bebas. Senarai SAMA
 // disemak semula di pelayan (permohonanEditorRoutes.js, NEGERI_SAH) supaya tidak boleh dipintas.
@@ -119,9 +130,11 @@ export const HalamanSertai: React.FC = () => {
   }, []);
 
   const togolBidang = (nama: string) => {
-    setBidangMinat((prev) =>
-      prev.includes(nama) ? prev.filter((b) => b !== nama) : [...prev, nama]
-    );
+    setBidangMinat((prev) => {
+      if (prev.includes(nama)) return prev.filter((b) => b !== nama);
+      if (prev.length >= HAD_BIDANG_MINAT) return prev; // had dikuatkuasakan — lihat komen HAD_BIDANG_MINAT
+      return [...prev, nama];
+    });
   };
 
   const hantar = async (e: React.FormEvent) => {
@@ -258,23 +271,30 @@ export const HalamanSertai: React.FC = () => {
 
             <div>
               <span className={LABEL_KELAS}>Bidang yang anda berminat untuk menyumbang *</span>
-              <p className={NOTA_KELAS}>Pilih satu atau lebih. Maklumat ini membantu Ketua Editor menentukan slot yang sesuai untuk anda.</p>
+              <p className={NOTA_KELAS}>
+                Pilih satu atau lebih (maksimum {HAD_BIDANG_MINAT}). Maklumat ini membantu Ketua Editor
+                menentukan slot yang sesuai untuk anda.
+              </p>
               <div className="mt-2 flex flex-wrap gap-2">
                 {senaraiBidang.length === 0 && (
                   <span className="font-sans text-xs text-stone-400">Memuatkan senarai Bidang…</span>
                 )}
                 {senaraiBidang.map((b) => {
                   const dipilih = bidangMinat.includes(b.name);
+                  const dilumpuhkan = !dipilih && bidangMinat.length >= HAD_BIDANG_MINAT;
                   return (
                     <button
                       key={b.id}
                       type="button"
                       onClick={() => togolBidang(b.name)}
+                      disabled={dilumpuhkan}
                       aria-pressed={dipilih}
-                      className={`px-3 py-1.5 rounded-full border font-sans text-xs font-semibold transition-colors cursor-pointer ${
+                      className={`px-3 py-1.5 rounded-full border font-sans text-xs font-semibold transition-colors ${
                         dipilih
-                          ? 'bg-[#802334] border-[#802334] text-white'
-                          : 'bg-white border-stone-300 text-stone-600 hover:border-[#802334] hover:text-[#802334]'
+                          ? 'bg-[#802334] border-[#802334] text-white cursor-pointer'
+                          : dilumpuhkan
+                          ? 'bg-stone-50 border-stone-200 text-stone-300 cursor-not-allowed'
+                          : 'bg-white border-stone-300 text-stone-600 hover:border-[#802334] hover:text-[#802334] cursor-pointer'
                       }`}
                     >
                       {b.name}
@@ -282,6 +302,10 @@ export const HalamanSertai: React.FC = () => {
                   );
                 })}
               </div>
+              <p className={NOTA_KELAS}>
+                {bidangMinat.length}/{HAD_BIDANG_MINAT} dipilih
+                {bidangMinat.length >= HAD_BIDANG_MINAT ? ' — had maksimum dicapai.' : '.'}
+              </p>
             </div>
 
             <div>
