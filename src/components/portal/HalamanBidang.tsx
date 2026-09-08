@@ -195,7 +195,22 @@ export function HalamanBidang() {
     // /bidang/buku dan /bidang/sains, cuma tukar param). Tanpa reset ni, pembaca yang tinggalkan
     // Bidang lain selepas beberapa klik "Lihat Lagi", kemudian klik ke Bidang BAHARU, akan
     // mendarat dengan kandungan Koleksi Terdahulu Bidang LAMA masih terpapar.
+    //
+    // PEMBETULAN SUSULAN (2026-09-09, dapatan bug-hunt): pembetulan asal di atas cuma reset
+    // `koleksi`, terlepas `terkini`/`totalKeseluruhan` — dua state SAMA corak, sama punca (slug
+    // bertukar tanpa unmount). `status` ditetapkan 'memuat' serta-merta (baris atas), jadi paparan
+    // rangka pemuatan menutup kilasan sepanjang tempoh tu — tetapi effect KEDUA (muat artikel
+    // TERKINI, bergantung `status === 'sedia'`) hanya jalan SELEPAS fetch metadata Bidang baharu
+    // ni selesai dan `status` bertukar balik 'sedia'. Antara `status` bertukar 'sedia' dan fetch
+    // artikel TERKINI baharu itu SENDIRI selesai, render beralih ke cabang senarai (bukan lagi
+    // rangka pemuatan) sedangkan `terkini` MASIH memegang artikel Bidang LAMA — pembaca nampak
+    // tajuk/ikon Bidang BAHARU tapi senarai artikel Bidang LAMA sekejap. `totalKeseluruhan` (nilai
+    // LAMA) turut memutuskan sama ada effect Koleksi Terdahulu bahkan patut fetch langsung
+    // (`totalKeseluruhan <= PER_PAGE` guna nilai stale ni), jadi Bidang baharu yang sebenarnya ada
+    // Koleksi Terdahulu boleh terlepas fetch pertamanya kalau Bidang LAMA kebetulan <= PER_PAGE.
     setKoleksi([]);
+    setTerkini([]);
+    setTotalKeseluruhan(0);
     Promise.all([
       fetch(`/api/bidang/${encodeURIComponent(slug)}`).then((r) => (r.ok ? r.json() : Promise.reject(r.status))),
       fetch('/api/system/categories/active').then((r) => (r.ok ? r.json() : [])).catch(() => []),
