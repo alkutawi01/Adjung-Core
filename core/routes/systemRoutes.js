@@ -361,6 +361,26 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Kawalan Akses" (manageRbac). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
           });
         }
+
+        // Sekatan kunci-diri KEDUA (2026-09-09, dapatan bug-hunt — instans lain vein sama seperti
+        // sekatan manageRbac di atas, TIDAK dilindungi semakan tu). Laluan `/system/settings`
+        // digerbang requirePermission('manageSettings') di PERINGKAT ROUTE (baris atas fungsi ni)
+        // SEBELUM langsung sampai ke semakan manageRbac — dua kebenaran berbeza dikenakan pada
+        // laluan yang SAMA (manageSettings di gerbang luar, manageRbac khusus utk rolePermissions
+        // di dalam). Semakan manageRbac di atas cuma pastikan seseorang BOLEH SAMPAI ke cabang
+        // rolePermissions (lepas gerbang luar) selepas simpan — tapi kalau matriks yang disimpan
+        // buang manageSettings daripada SEMUA peranan sekali gus, gerbang LUAR sendiri (baris
+        // requirePermission('manageSettings') di atas) akan tolak SESIAPA — termasuk pemegang
+        // manageRbac — sebelum sempat capai cabang ni langsung. Hasilnya SAMA seperti kes
+        // manageRbac (satu-satunya pemulihan ialah edit terus adjung.db), cuma laluan kuncinya
+        // berbeza (gerbang luar, bukan cabang dalam). Tolak simpanan yang akan tinggalkan SIFAR
+        // peranan dengan manageSettings=true, sama falsafah persis semakan manageRbac di atas.
+        const masihAdaManageSettings = s.rolePermissions.some((r) => r && r.permissions && r.permissions.manageSettings === true);
+        if (!masihAdaManageSettings) {
+          return res.status(400).json({
+            error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Tetapan Sistem" (manageSettings). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya, walaupun masih ada peranan dengan manageRbac. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
+          });
+        }
       }
 
       // Julat sah medan berangka (SETTINGS-VALIDATION-001, audit #44.4, 2026-08-13) — sebelum ni
