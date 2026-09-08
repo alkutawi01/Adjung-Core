@@ -3687,10 +3687,9 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
   // (2026-08-02). Disemak SEBELUM transaksi bermula (sama corak semakan bajet/pengesahan di
   // atas — semua-atau-tiada, gagal satu item tolak keseluruhan simpanan, bukan simpanan
   // separa). Ketua Editor/Penolong (manageEditorial) KEKAL penuh.
-  // `editAll` (2026-09-03) — sama escape penuh macam `manageEditorial` di sini (lihat gerbang
-  // pemilikan contentRoutes.js): editor dengan `editAll` lepas keseluruhan blok ni, `editOwn`
-  // di bawah pun tak terpakai baginya.
-  if (isBarLikeRemoval && !hasPermission(roles, 'manageEditorial') && !hasPermission(roles, 'editAll')) {
+  // `editAll` DIBUANG (2026-09-08, keputusan pemilik produk, dapatan bug-hunt) — redundant dengan
+  // `manageEditorial` pada setiap peranan matriks lalai (lihat nota gerbang contentRoutes.js).
+  if (isBarLikeRemoval && !hasPermission(roles, 'manageEditorial')) {
     for (const item of items) {
       if (!item.uuid || !existingIdSet.has(item.uuid)) continue; // bukan kemas kini di tempat
       const editorNameRow = await dbGet(

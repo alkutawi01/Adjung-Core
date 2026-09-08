@@ -822,13 +822,13 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // yg boleh edit, terbit, atau draf". Corak sama macam gerbang Nota Editor di bawah — Ketua
       // Editor/Penolong (manageEditorial) KEKAL penuh (tindakan Indeks — arkib/tolak/dsb. perlu
       // terus berfungsi), Editor biasa hanya boleh sunting kandungan sendiri.
-      // `editAll` (2026-09-03, keputusan pemilik produk) — togol RBAC wujud sejak lama di
-      // TetapanConsole.tsx tapi pelayan tak pernah baca nilainya, jadi ia ilusi kawalan. Kini
-      // ia escape gerbang pemilikan SAMA macam `manageEditorial` (bukan sekadar buang sekatan
-      // separa) — editor dengan `editAll` boleh sunting/arkib/tolak kandungan editor lain,
-      // `editOwn` di bawah pun tak terpakai baginya sebab dia dah lepas keseluruhan blok ni.
-      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')
-        && !hasPermission(req.session?.user?.roles, 'editAll')) {
+      // `editAll` (2026-09-03) DIBUANG (2026-09-08, keputusan pemilik produk, dapatan bug-hunt) —
+      // togol RBAC wujud di TetapanConsole.tsx, sempat diwayarkan sesi 2026-09-03 sebagai escape
+      // gerbang pemilikan berasingan daripada `manageEditorial`, tapi disahkan lekat SELARI
+      // `manageEditorial` pada SETIAP peranan matriks lalai (Ketua Editor, Penolong Ketua Editor)
+      // — tiada peranan yang ada satu tanpa yang lain, jadi ia kuasa berlebihan (redundant), bukan
+      // konsep berbeza. `manageEditorial` sahaja sudah cukup gerbang blok ni.
+      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
         const penulisSedia = await penulisAsalKandungan(dbGet, id, rev.id);
         const namaSayaSedia = namaSayaSesi(req);
         if (!namaSepadan(penulisSedia, namaSayaSedia)) {
@@ -865,10 +865,10 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       if (note !== undefined) {
         const penulisAsal = await penulisAsalKandungan(dbGet, id, rev.id);
         const sayaKetuaEditorAtauPenolong = hasPermission(req.session?.user?.roles, 'manageEditorial');
-        // `editAll` (2026-09-03) — sama escape pemilikan macam gerbang PATCH di atas.
-        const sayaEditAll = hasPermission(req.session?.user?.roles, 'editAll');
+        // `editAll` DIBUANG (2026-09-08) — lihat nota gerbang PATCH di atas, redundant dengan
+        // `manageEditorial` pada setiap peranan matriks lalai.
         const sayaPenulisAsal = namaSepadan(penulisAsal, namaSayaSesi(req));
-        if (!sayaPenulisAsal && !sayaKetuaEditorAtauPenolong && !sayaEditAll) {
+        if (!sayaPenulisAsal && !sayaKetuaEditorAtauPenolong) {
           return res.status(403).json({
             error: 'Nota Editor cuma boleh ditulis penulis asal kandungan ini atau Ketua Editor/Penolong Ketua Editor, daripada Indeks.',
           });
@@ -1496,11 +1496,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // dengan keputusan Izzat 2026-08-08 yang gerbang pemilikan PATCH dibina untuk kuatkuasakan.
       // Dibaiki menggunakan revisi TERKINI (bukan revisi lama yang dipulihkan) sebagai rujukan
       // pemilikan — penulis kandungan sekarang, bukan siapa menulis versi lama tu.
-      // `editAll` (2026-09-03) — sama escape penuh macam `manageEditorial` di sini (lihat gerbang
-      // PATCH di atas): editor dengan `editAll` lepas keseluruhan blok ni, `editOwn` di bawah pun
-      // tak terpakai baginya.
-      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')
-        && !hasPermission(req.session?.user?.roles, 'editAll')) {
+      // `editAll` DIBUANG (2026-09-08) — lihat nota gerbang PATCH di atas, redundant dengan
+      // `manageEditorial` pada setiap peranan matriks lalai.
+      if (!hasPermission(req.session?.user?.roles, 'manageEditorial')) {
         const penulisSedia = await penulisAsalKandungan(dbGet, id, revTerkini ? revTerkini.id : oldRev.id);
         if (!namaSepadan(penulisSedia, namaSayaSesi(req))) {
           return res.status(403).json({

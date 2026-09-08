@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth, requirePermission, loadRolePermissions } from '../middleware/auth.js';
+import { requireAuth, requirePermission, loadRolePermissions, hasPermission } from '../middleware/auth.js';
 import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
@@ -323,6 +323,25 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
   router.post('/system/settings', requirePermission('manageSettings'), async (req, res) => {
     try {
       const s = req.body;
+
+      // Gerbang `manageRbac` (2026-09-08, dapatan bug-hunt — keputusan Izzat) — `rolePermissions`
+      // ialah matriks Kawalan Akses SEBENAR (siapa boleh buat apa merentasi seluruh sistem), jauh
+      // lebih sensitif daripada tetapan sistem lain yang laluan ni juga simpan (Jam Dunia, RSS,
+      // Arahan AI, dll). Sebelum ni sesiapa dengan `manageSettings` (Pentadbir) boleh tulis medan
+      // ni sama macam medan biasa lain — togol `manageRbac` sendiri wujud dalam TetapanConsole.tsx
+      // (matriks RBAC) tapi tak pernah disemak pelayan (fasad, sama pepijat `editAll`/`manageRbac`
+      // ditemui sesi ni). Diperkukuh: `manageSettings` KEKAL diperlukan untuk masuk laluan ni
+      // (escape gerbang route tak berubah), tapi `rolePermissions` khususnya perlu `manageRbac`
+      // TAMBAHAN — Pentadbir yang dinyahaktifkan `manageRbac` (oleh Pentadbir lain via matriks)
+      // boleh terus urus tetapan sistem biasa tapi TAK boleh ubah SIAPA dapat kuasa apa. Ini
+      // sengaja BUKAN corak OR (manageEditorial ATAU publish di contentRoutes.js) — matriks RBAC
+      // ialah punca kuasa itu sendiri, jadi hanya kunci `manageRbac` eksplisit yang patut buka
+      // ia, bukan escape hatch am `manageSettings` sahaja.
+      if (s.rolePermissions !== undefined && !hasPermission(req.session?.user?.roles, 'manageRbac')) {
+        return res.status(403).json({
+          error: 'Anda tiada kebenaran mengubah matriks Kawalan Akses (RBAC). Hubungi Pentadbir dengan kebenaran "Urus Kawalan Akses".',
+        });
+      }
 
       // Julat sah medan berangka (SETTINGS-VALIDATION-001, audit #44.4, 2026-08-13) — sebelum ni
       // medan ni cuma `Number(v)` tanpa sebarang semakan: rentetan sampah jadi NaN dan tersimpan

@@ -39,7 +39,6 @@ interface RbacMatrixRow {
   permissions: {
     viewAll: boolean;
     editOwn: boolean;
-    editAll: boolean;
     publish: boolean;
     reject: boolean;
     assignSlot: boolean;
@@ -69,7 +68,7 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     roleName: 'Pentadbir',
     isImmutableAdmin: false,
     permissions: {
-      viewAll: true, editOwn: false, editAll: false, publish: false,
+      viewAll: true, editOwn: false, publish: false,
       reject: false, assignSlot: false, manageSettings: true, manageRbac: true,
       manageEditorial: false, manageAccounts: true, manageEditorNotes: false,
       viewAuditLog: true
@@ -80,7 +79,7 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     roleName: 'Ketua Editor',
     isImmutableAdmin: true,
     permissions: {
-      viewAll: true, editOwn: true, editAll: true, publish: true,
+      viewAll: true, editOwn: true, publish: true,
       reject: true, assignSlot: true, manageSettings: false, manageRbac: false,
       manageEditorial: true, manageAccounts: false, manageEditorNotes: true,
       viewAuditLog: true
@@ -91,7 +90,7 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     roleName: 'Penolong Ketua Editor',
     isImmutableAdmin: false,
     permissions: {
-      viewAll: true, editOwn: true, editAll: true, publish: true,
+      viewAll: true, editOwn: true, publish: true,
       reject: true, assignSlot: true, manageSettings: false, manageRbac: false,
       manageEditorial: true, manageAccounts: false, manageEditorNotes: false,
       viewAuditLog: true
@@ -102,7 +101,7 @@ const DEFAULT_RBAC_MATRIX: RbacMatrixRow[] = [
     roleName: 'Editor',
     isImmutableAdmin: false,
     permissions: {
-      viewAll: true, editOwn: true, editAll: false, publish: true,
+      viewAll: true, editOwn: true, publish: true,
       reject: false, assignSlot: false, manageSettings: false, manageRbac: false,
       manageEditorial: false, manageAccounts: false, manageEditorNotes: false,
       viewAuditLog: false
@@ -481,7 +480,7 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
         // secara lalai, itu Pentadbir; kunci "tak boleh dibuang" yang bermakna sekarang ialah
         // kuasa editorial supaya Ketua Editor tak sesekali terkunci keluar daripada kerja
         // editorial sendiri melalui klik tersilap).
-        if (row.isImmutableAdmin && (permKey === 'viewAll' || permKey === 'editAll' || permKey === 'publish' || permKey === 'reject')) {
+        if (row.isImmutableAdmin && (permKey === 'viewAll' || permKey === 'publish' || permKey === 'reject')) {
           addToast('error', 'Ketua Editor tidak dibenarkan menarik semula kuasa editorial teras daripada akaun sendiri.');
           return row;
         }
@@ -1125,7 +1124,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                   <th className="p-3 min-w-36">Peranan Editorial</th>
                   <th className="p-3 text-center">Lihat Semua</th>
                   <th className="p-3 text-center">Sunting Saya</th>
-                  <th className="p-3 text-center">Sunting Semua</th>
                   <th className="p-3 text-center">Siar</th>
                   <th className="p-3 text-center">Tolak</th>
                   <th className="p-3 text-center">Agihan Slot</th>
@@ -1152,9 +1150,6 @@ export const TetapanConsole: React.FC<TetapanConsoleProps> = ({
                     </td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={row.permissions.editOwn} onChange={() => handleTogglePermission(row.roleId, 'editOwn')} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer" />
-                    </td>
-                    <td className="p-3 text-center">
-                      <input type="checkbox" checked={row.permissions.editAll} onChange={() => handleTogglePermission(row.roleId, 'editAll')} disabled={kunciEditorial} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50" />
                     </td>
                     <td className="p-3 text-center">
                       <input type="checkbox" checked={row.permissions.publish} onChange={() => handleTogglePermission(row.roleId, 'publish')} disabled={kunciEditorial} className="rounded border-stone-300 text-Adjung-maroon w-4 h-4 cursor-pointer disabled:opacity-50" />

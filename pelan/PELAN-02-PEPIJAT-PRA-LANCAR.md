@@ -29,6 +29,14 @@
 `core/routes/contentRoutes.js:843, 915-934` — `POST /content/:id/revisions/:revisionId/restore` hanya `requireAuth` (PATCH pada kandungan sama ada semakan `editAll`/pemilikan). Tambahan: INSERT revisi + salin atribut + UPDATE objek tanpa `BEGIN TRANSACTION` — kegagalan separuh jalan tinggalkan revisi tanpa atribut (Bidang/URL/sumber hilang senyap).
 **Baikan:** pasang gerbang sama seperti PATCH `/content/:id`; bungkus keseluruhan dalam transaksi.
 
+**KEMAS KINI 2026-09-08 (gerbang kebenaran sahaja):** Bahagian gerbang kebenaran laluan ni
+sudah dibaiki sejak sesi 2026-08-18/2026-09-03 (semakan pemilikan + `manageEditorial` dipasang).
+Rujukan `editAll` di atas kini USANG — togol `editAll` DIBUANG (keputusan pemilik produk,
+disahkan redundant dengan `manageEditorial` pada setiap peranan matriks lalai, sesi bug-hunt
+2026-09-08); gerbang laluan ni kini `manageEditorial` sahaja. Isu **transaksi** (INSERT/UPDATE
+tanpa `BEGIN TRANSACTION`) BELUM disahkan dibaiki — sila `Grep` semula sebelum anggap #3 selesai
+sepenuhnya.
+
 ### #4 Tetapan Tier boleh diubah mana-mana editor
 `core/routes/tierSettingsRoutes.js:66, 117` — `POST /tier-settings` & `/tier-settings/reset` hanya `requireAuth`, sedangkan ia mengawal had aksara SEMUA slot setier (tunjang Falsafah #1).
 **Baikan:** `requirePermission('manageEditorial')`.
