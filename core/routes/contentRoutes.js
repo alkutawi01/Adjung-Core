@@ -914,6 +914,26 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // konsisten sepanjang fungsi — diisi 'slot_penuh' di bawah kalau berkenaan.
       let sebabMenungguBaharu = '';
 
+      // Jadual Terbit — status BERKESAN dikira AWAL di sini (bukan lepas gerbang had slot di
+      // bawah, macam sebelum ni) — PEMBETULAN (2026-09-08, dapatan bug-hunt, corak sama vein
+      // status-vs-effectiveStatus). Gerbang had bilangan kandungan AKTIF seslot di bawah dahulu
+      // baca pemboleh ubah `status` MENTAH (medan request terus), bukan status BERKESAN. Ini
+      // betul untuk kelulusan eksplisit (`status: 'approved'`) tapi TERLEPAS satu laluan sah lain
+      // ke 'approved': BATAL Jadual Terbit (PATCH hantar `scheduledPublishAt: ''` sahaja, TANPA
+      // `status`, pada kandungan sedang 'scheduled') — resolveEffectiveStatus() pulangkan
+      // 'approved' utk kes ni (lihat Scheduling.js), tapi `status` (mentah) kekal `undefined`,
+      // jadi gerbang had slot di bawah (`status === 'approved'`) tak pernah tercetus. Kandungan
+      // terus jadi 'approved' walau slot dah PENUH — memintas hadKandunganSlot sepenuhnya,
+      // padahal SETIAP laluan lain ke 'approved' (PATCH eksplisit, restore versi) dikuatkuasakan
+      // had ni. Disahkan pepijat sebenar via simulasi DB (scratch): slot dgn hadKandunganSlot=1
+      // + 1 kandungan approved sedia ada; kandungan KEDUA berstatus 'scheduled' di slot sama —
+      // PATCH `{scheduledExpiresAt: undefined, scheduledPublishAt: ''}` (batal jadual) sebelum
+      // pembetulan terus jadikannya 'approved' (2 aktif serentak, had dilanggar); selepas
+      // pembetulan ia betul jatuh ke 'pending'/'slot_penuh'. Kini gerbang guna `effectiveStatus`
+      // (dikira SEBELUM gerbang, bukan lepas) supaya kedua-dua laluan (eksplisit + batal-jadual
+      // tersirat) dilayan sama rata.
+      const effectiveStatusAwal = resolveEffectiveStatus({ scheduledPublishAt, status, currentStatus: rev.status });
+
       // Same hard-block as every other content path: an edit can never push a slot's title+brief
       // over its tier's budget, no matter which screen the edit came from.
       const objRow = await dbGet("SELECT slotIndex, categoryId FROM editorial_objects WHERE id = ?", [id]);
@@ -1128,7 +1148,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         // keputusan manusia kedua diperlukan). Kira APPROVED SAHAJA (bukan approved+pending macam
         // POST /content di bawah, laluan penciptaan berasingan) — 'pending' memang dijangka
         // beratur menunggu giliran, bukan sebahagian had "aktif serentak".
-        if (status === 'approved' && rev.status !== 'approved' && !TIER_SLOTS.BAR.includes(targetSlotIndex)) {
+        if (effectiveStatusAwal === 'approved' && rev.status !== 'approved' && !TIER_SLOTS.BAR.includes(targetSlotIndex)) {
           const { hadKandunganSlot } = getAmSettings();
           if (hadKandunganSlot > 0) {
             const kiraanAktif = await dbGet(`
@@ -1157,8 +1177,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // pulih ke 'approved') dikira oleh resolveEffectiveStatus() (core/editorial/Scheduling.js) —
       // satu sumber kebenaran kongsi supaya diuji terus tanpa DB/HTTP (tests/scheduling.test.js).
       // Status eksplisit yang client hantar sentiasa dihormati (cth padam jadual serentak paksa
-      // 'approved') — lihat komen di fungsi tu utk sejarah pepijat #36.2.
-      let effectiveStatus = resolveEffectiveStatus({ scheduledPublishAt, status, currentStatus: rev.status });
+      // 'approved') — lihat komen di fungsi tu utk sejarah pepijat #36.2. Dikira AWAL di atas
+      // (`effectiveStatusAwal`, sebelum gerbang had bilangan kandungan aktif seslot) supaya
+      // gerbang tu turut nampak transisi BATAL-jadual tersirat ke 'approved' — guna semula
+      // nilai yang sama di sini, bukan kira dua kali.
+      let effectiveStatus = effectiveStatusAwal;
       // Slot penuh (dua jenis Menunggu, lihat nota di atas) — tulis-ganti niat 'approved' kepada
       // 'pending' SEBELUM apa-apa penulisan DB berlaku, supaya SETIAP laluan tulis di bawah
       // (edit kandungan MAHUPUN status-sahaja) secara automatik hormati sekatan ni tanpa perlu
