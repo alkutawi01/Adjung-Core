@@ -1575,14 +1575,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
               supaya lajur ni still ada label seragam dgn 2 lajur lain -- kandungan bawahnya
               (tarikh sahaja) tetap papar. */}
           {publishedDate && (
-            <span style={{ position: 'relative', lineHeight: 1.5, textAlign: 'right' }}>
+            <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px', lineHeight: 1.5, textAlign: 'right' }}>
               {/* Butang sunting (2026-09-08, arahan Izzat — dipindah dari masthead atas ke sini,
-                  bucu kanan-atas lajur "Editor", supaya letaknya sepadan konteks: pautan pantas
-                  utk editor sunting kandungan ni, letak betul-betul di atas nama editor/tarikh
-                  yang ia edit). */}
+                  bucu kanan-atas lajur "Editor". Cubaan pertama guna posisi mutlak (-top-6)
+                  bertindih dgn garis <hr> pembahagi kolofon di atas (ruang padding-top kolofon
+                  cuma ~18px, tak cukup utk anjakan 24px) — dibetulkan ke ALIRAN BIASA (flex
+                  column, bukan absolute) supaya ikon ambil ruang sebenar dlm lajur ni, tak
+                  sesekali bertindih elemen luar lajur. */}
               {role && objectId && (
-                <span style={{ position: 'absolute', top: 0, right: 0, display: 'inline-flex', width: 20, height: 20 }}>
-                  <EditPensil objectId={objectId} role={role} posisi="-top-6 right-0" />
+                <span style={{ position: 'relative', display: 'inline-flex', width: 20, height: 20 }}>
+                  <EditPensil objectId={objectId} role={role} posisi="top-0 left-0" />
                 </span>
               )}
               <span style={{ ...micro, display: 'block' }}>Editor</span>
