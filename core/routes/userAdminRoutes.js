@@ -215,6 +215,18 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       if (!e) {
         return res.status(400).json({ error: 'Emel diperlukan.' });
       }
+      // Format SAMA seperti POST /api/auth/change-email (authRoutes.js) — laluan tu tolak emel
+      // tak sah bila editor sendiri TUKAR emel kemudian, tapi laluan INI (Ketua Editor CIPTA
+      // akaun kali pertama) tak pernah semak format langsung sebelum ni. Kesan sebenar: emel
+      // tak sah (cth "bukan-emel", tiada @/domain) diterima 200, jemputan gagal dihantar senyap
+      // (hantarEmel() gugur/gagal ikut pembekal), DAN akaun tu terus "guna" alamat rosak tu
+      // buat selama-lamanya — POST semula emel yang SAMA (walau dieja betul) akan 409 sbb emel
+      // asal dah "digunakan", tiada laluan UI pulihkan (lihat komen hantar-semula-jemputan di
+      // bawah, sama isu). 2026-09-09, bug-hunt.
+      const emelSah = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+      if (!emelSah) {
+        return res.status(400).json({ error: 'Format emel tidak sah.' });
+      }
       const rolesToAssign = Array.isArray(roles) ? roles.filter((r) => ROLE_IDS_SAH.includes(r)) : [];
       if (rolesToAssign.length === 0) {
         return res.status(400).json({ error: 'Pilih sekurang-kurangnya satu peranan.' });
