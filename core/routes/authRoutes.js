@@ -32,6 +32,12 @@ const verifyPassword = (plain, stored) => {
   return a.length === b.length && crypto.timingSafeEqual(a, b);
 };
 
+// Hash palsu tetap (2026-09-08, bug-hunt) — dipakai HANYA untuk kekalkan kos CPU scrypt bila
+// akaun tidak wujud langsung (lihat panggilan verifyPassword(password, DUMMY_HASH_UNTUK_MASA)
+// di /login). Salt tetap sengaja (tiada risiko keselamatan — hash ni tak pernah sepadan kata
+// laluan sebenar sesiapa, tujuan tunggal ialah kekalkan MASA pengiraan, bukan sulitkan apa-apa).
+const DUMMY_HASH_UNTUK_MASA = hashPassword('dummy-tetap-untuk-samakan-masa-scrypt');
+
 export function createAuthRoutes(dbGet, dbRun, dbAll) {
   const router = express.Router();
 
@@ -59,7 +65,16 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         message: 'Butiran log masuk tidak tepat. Sila semak nama pengguna/emel dan kata laluan anda.',
       });
 
+      // Kebocoran masa (2026-09-08, bug-hunt) — badan respons DUA-DUA kes ("akaun tak wujud" vs
+      // "kata laluan salah") memang sudah SAMA (fix di atas, 2026-08-07), tapi MASA pengiraan
+      // tidak. Dahulu `!userRow` pulang SERTA-MERTA (tiada scrypt langsung) manakala akaun wujud
+      // + kata laluan salah jalankan scryptSync PENUH (~40ms diukur, jauh lebih perlahan drpd
+      // lookup DB) sebelum pulang — jurang ~40ms ni cukup untuk penyerang bezakan akaun wujud
+      // drpd tidak walau mesej sama (disahkan simulasi masa sebenar: 0ms lawan ~39ms). Dibaiki:
+      // akaun tak wujud tetap jalankan verifyPassword() (lawan hash palsu tetap di atas) supaya
+      // KEDUA-DUA laluan bayar kos scrypt yang sama, walau hasilnya sentiasa `false`.
       if (!userRow) {
+        verifyPassword(password, DUMMY_HASH_UNTUK_MASA);
         return gagalLogMasuk();
       }
 
