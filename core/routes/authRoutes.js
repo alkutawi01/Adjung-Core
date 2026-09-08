@@ -7,6 +7,7 @@ import { semakStatusToken, janaTokenTamatTempoh, STATUS_TOKEN, perluTetapkanIden
 import { logAudit } from '../audit/AuditLog.js';
 import { baseUrlEmel } from '../utils/baseUrl.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
+import { HAD_PEN_NAME } from './profileRoutes.js';
 
 // Password hashing — scrypt via Node's built-in crypto. Format: "scrypt$<saltHex>$<hashHex>".
 // Exported so server.js's DB seeding step can hash the initial Chief Editor account's random
@@ -454,6 +455,16 @@ export function createAuthRoutes(dbGet, dbRun, dbAll) {
         // (sim31): username "a" diterima 200 sebelum pembetulan ni.
         if (u.length < 3) {
           return res.status(400).json({ error: 'ID pengguna mesti sekurang-kurangnya 3 aksara.' });
+        }
+        // Had panjang SAMA seperti PATCH /profile/:id (2026-09-08, bug-hunt) — laluan tu tolak
+        // penName > HAD_PEN_NAME aksara bila editor TUKAR nama pena kemudian, tapi laluan INI
+        // (tetapan penName KALI PERTAMA editor jemputan baharu) tak pernah semak had panjang
+        // langsung, jadi editor boleh tetapkan penName sepanjang mana pun di sini dan ia terus
+        // kekal sah selama-lamanya (tiada langkah lain kuatkuasakan semula had ni ke atas penName
+        // sedia ada). Disahkan reproduce (sim32): penName 120 aksara diterima 200 sebelum
+        // pembetulan ni.
+        if (pn.length > HAD_PEN_NAME) {
+          return res.status(400).json({ error: `Nama pena tidak boleh melebihi ${HAD_PEN_NAME} aksara.` });
         }
         // Semakan pendua sama seperti dahulu di POST /api/system/users (userAdminRoutes.js) —
         // kini berlaku DI SINI sebab identiti sebenar baru wujud pada langkah ni. `!= ?` kecuali

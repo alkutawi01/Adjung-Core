@@ -17,7 +17,12 @@ import { requireAuth, hasPermission } from '../middleware/auth.js';
 // terma tanpa lengkap profil). Terma sedia dipersetujui (`termaDipersetujuiPada` bukan NULL)
 // tak pernah ditulis-ganti — cap masa PERSETUJUAN PERTAMA kekal walaupun editor edit profil
 // lain kemudian.
-const HAD_PEN_NAME = 60;
+// Dieksport (2026-09-08, bug-hunt) supaya authRoutes.js (/aktifkan-akaun, laluan penName BUAT
+// PERTAMA KALI dicipta bagi editor jemputan baharu) boleh kuatkuasakan had SAMA — dahulu had ni
+// cuma wujud di sini, jadi editor baharu boleh tetapkan penName sepanjang mana pun semasa
+// aktifkan akaun, dan ia terus kekal sah selama-lamanya (had ni cuma disemak semula bila editor
+// TUKAR nama pena kemudian, bukan bila ia mula-mula ditetapkan).
+export const HAD_PEN_NAME = 60;
 const MEDAN_ONBOARDING_WAJIB = ['namaPenuh', 'kelulusanKursus', 'kelulusanUniversiti', 'kelulusanTahun', 'negeriMenetap', 'nomborTelefon'];
 
 export function createProfileRoutes(dbGet, dbRun) {
