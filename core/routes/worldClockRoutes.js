@@ -74,6 +74,33 @@ async function fetchPublicHolidaysCached(year) {
   return apiHolidays;
 }
 
+// Cache dalam-memori untuk ambilan bulanan waktusolat.app (2026-09-09, dapatan bug-hunt susulan
+// #132) — GET /api/system/hijri-date dipanggil oleh WorldClockStrip.tsx (mount-time useEffect,
+// dipasang di FrontpageView.tsx pada SETIAP kunjungan Frontpage awam) SETIAP 60 SAAT sepanjang
+// tab pembaca terbuka, x3 (satu fetch berasingan bagi setiap zon HIJRI_ZONES/bandar) — trafik yang
+// jauh lebih tinggi drpd clock-holidays (sekali setiap muat halaman) yang telah dibaiki pusingan
+// lalu, tapi laluan ni sendiri terlepas semasa fix tu (fail sama, endpoint berlainan). Data
+// `monthData` (jadual waktu solat sebulan bagi satu zon) tak berubah minit-ke-minit atau
+// sepanjang hari yang sama — hanya `todayEntry`/`lepasMaghrib` yang perlu masa SEBENAR, dan itu
+// dikira SELEPAS baca cache (bukan bahagian yang dicache), jadi kesegaran keputusan tak terjejas.
+// Kunci per zon+tahun+bulan (bukan satu kunci global) — sepadan corak publicHolidaysCache di atas.
+const HIJRI_MONTH_CACHE_TTL_MS = 12 * 60 * 60 * 1000; // 12 jam
+const hijriMonthCache = new Map(); // `${zone}-${year}-${month}` -> { prayerTime, expiresAt }
+
+async function fetchHijriMonthCached(zone, year, month) {
+  const key = `${zone}-${year}-${month}`;
+  const now = Date.now();
+  const hit = hijriMonthCache.get(key);
+  if (hit && hit.expiresAt > now) return hit.prayerTime;
+
+  const r = await fetch(`https://api.waktusolat.app/solat/${zone}?year=${year}&month=${month}`);
+  if (!r.ok) throw new Error(`waktusolat.app returned ${r.status}`);
+  const d = await r.json();
+  const prayerTime = d.prayerTime || [];
+  hijriMonthCache.set(key, { prayerTime, expiresAt: now + HIJRI_MONTH_CACHE_TTL_MS });
+  return prayerTime;
+}
+
 export function createWorldClockRoutes(dbGet) {
   const router = express.Router();
 
@@ -123,12 +150,7 @@ export function createWorldClockRoutes(dbGet) {
       const todayStr = `${nowParts.day}-${monthAbbr}-${nowParts.year}`;
       const nowTimeStr = `${nowParts.hour}:${nowParts.minute}:${nowParts.second}`;
 
-      const fetchMonth = async (year, month) => {
-        const r = await fetch(`https://api.waktusolat.app/solat/${zone}?year=${year}&month=${month}`);
-        if (!r.ok) throw new Error(`waktusolat.app returned ${r.status}`);
-        const d = await r.json();
-        return d.prayerTime || [];
-      };
+      const fetchMonth = (year, month) => fetchHijriMonthCached(zone, year, month);
 
       const monthData = await fetchMonth(nowParts.year, nowParts.month);
       const todayEntry = monthData.find(p => p.date === todayStr);
