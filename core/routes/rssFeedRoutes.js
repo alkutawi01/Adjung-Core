@@ -150,7 +150,15 @@ export function createRssFeedRoutes(dbAll, dbGet, dbRun) {
           title: r.title || '',
           summary: r.summary || '',
           createdAt: r.revisionCreatedAt,
-          link: kod ? `${siteUrl}${binaLaluanKandungan(r.title, r.categoryId, kod)}` : undefined,
+          // r.categoryId dibekukan pada masa penciptaan objek (lihat nota di atas) — guna
+          // r.deskLive dahulu (fallback categoryId hanya utk objek lama tiada atribut desk),
+          // sama corak binaLaluanKandungan() di articleUrlRoutes.js (/url-kod, canonical
+          // redirect, laluan kanonikal). Penapisan ?bidang= di atas SUDAH dibaiki guna deskLive,
+          // tapi laluan <link> RSS ni sendiri terlepas pembetulan yang sama (dapatan bug-hunt
+          // 2026-09-08) — pautan RSS terbit dgn segmen Bidang LAMA (cth "/utama/...") walau
+          // kandungan tu dah bertukar Bidang (cth "/bidang-baharu-test/..."), bercanggah dgn
+          // og:url/rel=canonical sebenar halaman tu (SEO: URL RSS tak sepadan URL kanonikal).
+          link: kod ? `${siteUrl}${binaLaluanKandungan(r.title, r.deskLive || r.categoryId, kod)}` : undefined,
         });
       }
 
