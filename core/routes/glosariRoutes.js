@@ -46,6 +46,29 @@ const HAD_ISTILAH = 80;
 const HAD_ELAKKAN = 120;
 const HAD_MAKSUD = 400;
 
+// Kunci Sense Glosari (2026-09-08, bug-hunt) — sahkanInvariantSense() (di bawah) ialah BACA
+// (semak Sense/Bidang sedia ada) KEMUDIAN TULIS (INSERT/UPDATE glosari_sense), bukan operasi
+// atomik — dokumentasi kepala fail sendiri mengaku invariant 4 ("satu Bidang tak boleh terikat
+// DUA Sense khusus bagi istilah SAMA") "bukan boleh jadi constraint SQL tunggal", jadi ia SEPENUHNYA
+// bergantung pada semakan aplikasi ni. Disahkan reproduce (scratch DB, dua panggilan
+// POST /glosari/:istilahId/sense hampir serentak, istilah SAMA + Bidang SAMA, kedua-duanya
+// khusus): kedua-dua baca sifar Sense bertindih SEBELUM mana-mana sempat INSERT, kedua-dua lulus
+// semakan, kedua-dua INSERT berjaya — DUA baris glosari_sense khusus terikat Bidang SAMA bagi
+// istilah SAMA, invariant 4 tertembus senyap (kedua-dua respons {success:true}, tiada ralat
+// kelihatan kepada editor). Sama corak race yang sudah dibaiki di permohonanPenajaRoutes.js
+// (denganKunciAktifkanPenaja/denganKunciRujukanPenaja) dan slotEditorRoutes.js
+// (denganKunciPenugasanSlot) — kunci rantaian promise global, bukan per-istilah: pelayan satu
+// proses (PM2 mod fork), tindakan urus Sense Glosari ialah aktiviti pentadbiran jarang (bukan
+// trafik pembaca), jadi serialisasi global cukup. Melindungi KETIGA-TIGA laluan yang menulis
+// glosari_sense/glosari_sense_bidang (POST/PATCH/DELETE) supaya baca-semak-tulis sentiasa SATU
+// unit tak boleh disisip laluan lain.
+let rantaianKunciSenseGlosari = Promise.resolve();
+function denganKunciSenseGlosari(fn) {
+  const giliran = rantaianKunciSenseGlosari.catch(() => {}).then(fn);
+  rantaianKunciSenseGlosari = giliran.catch(() => {});
+  return giliran;
+}
+
 export function createGlosariRoutes(dbAll, dbRun, dbGet) {
   const router = express.Router();
 
@@ -307,7 +330,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
     return null;
   }
 
-  router.post('/glosari/:istilahId/sense', requirePermission('manageEditorial'), async (req, res) => {
+  router.post('/glosari/:istilahId/sense', requirePermission('manageEditorial'), (req, res) => denganKunciSenseGlosari(async () => {
     const { istilahId } = req.params;
     try {
       const istilahRow = await dbGet('SELECT id FROM glosari_istilah WHERE id = ?', [istilahId]);
@@ -359,9 +382,9 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       console.error('POST glosari sense error:', err);
       res.status(500).json({ error: 'Gagal menyimpan Sense. ' + (err.message || '') });
     }
-  });
+  }));
 
-  router.patch('/glosari/sense/:senseId', requirePermission('manageEditorial'), async (req, res) => {
+  router.patch('/glosari/sense/:senseId', requirePermission('manageEditorial'), (req, res) => denganKunciSenseGlosari(async () => {
     const { senseId } = req.params;
     try {
       const senseRow = await dbGet('SELECT * FROM glosari_sense WHERE id = ?', [senseId]);
@@ -413,9 +436,9 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       console.error('PATCH glosari sense error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini Sense. ' + (err.message || '') });
     }
-  });
+  }));
 
-  router.delete('/glosari/sense/:senseId', requirePermission('manageEditorial'), async (req, res) => {
+  router.delete('/glosari/sense/:senseId', requirePermission('manageEditorial'), (req, res) => denganKunciSenseGlosari(async () => {
     try {
       const sedia = await dbGet('SELECT id, istilahId FROM glosari_sense WHERE id = ?', [req.params.senseId]);
       if (!sedia) return res.status(404).json({ error: 'Sense tidak dijumpai.' });
@@ -448,7 +471,7 @@ export function createGlosariRoutes(dbAll, dbRun, dbGet) {
       console.error('DELETE glosari sense error:', err);
       res.status(500).json({ error: 'Gagal memadam Sense. ' + (err.message || '') });
     }
-  });
+  }));
 
   return router;
 }
