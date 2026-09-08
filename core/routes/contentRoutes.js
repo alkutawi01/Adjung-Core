@@ -1909,8 +1909,20 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // fasa ni: reuse sebab penolakan Fasa 6). Utamakan penulis asal (attrs.editorName, dicap
       // semasa terbit) — draf yang ditolak pulang kepada dia; jatuh balik pada editor slot kalau
       // tiada nama penulis tercatat (kandungan lama).
+      // PEMBETULAN (2026-09-08, dapatan bug-hunt) — carian ni dahulu guna padanan TEPAT-KES
+      // (`penName = ?`), berbeza daripada SETIAP tapak lain dalam projek ni yang memadankan
+      // editorName/penName ke baris `users` (baris ~1395 fail ni sendiri "Dasar aktif editorial",
+      // authRoutes.js semakan penName pendua, profileRoutes.js sama) — kesemuanya guna
+      // `LOWER(TRIM(penName)) = LOWER(?)`. Disahkan pepijat sebenar via simulasi DB (scratch,
+      // bukan adjung.db): pengguna `penName='Ahmad Zaki'`, attribute `editorName` tersimpan
+      // `'ahmad zaki'` (kes berbeza — cth kandungan lama sebelum penName disunting kepada huruf
+      // besar/kecil rasmi, atau failover ke username huruf kecil semasa Terbit) — carian TEPAT-KES
+      // pulangkan `undefined` (penulis "tidak dijumpai"), carian tanpa-kes pulangkan baris betul.
+      // Akibat: notifikasi "Kandungan anda ditolak" tak sampai kepada penulis sebenar langsung,
+      // sebaliknya bocor kepada SEMUA editor yang diamanahkan slot tu (fallback `slot_editors`)
+      // — bukan cuma senyap gagal, tapi salah padam kepada khalayak SALAH.
       const penulisRow = attrs.editorName
-        ? await dbGet('SELECT id FROM users WHERE penName = ?', [attrs.editorName])
+        ? await dbGet('SELECT id FROM users WHERE LOWER(TRIM(penName)) = LOWER(?)', [attrs.editorName])
         : null;
       const penerimaIds = (penulisRow
         ? [penulisRow.id]
