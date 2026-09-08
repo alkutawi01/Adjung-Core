@@ -664,17 +664,29 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // renderDenganGlosari() untuk resolusi Sense (docs/glossary-architecture-proposal.md v3,
   // Seksyen 3). `desk` sudah wujud sebagai prop komponen ni (destructured atas) — tiada data
   // baharu diperlukan, cuma disalur ke fungsi render yang sedia ada.
+  //
+  // `safeParseInline` WAJIB dihantar untuk tajuk juga (dapatan bug-hunt, 2026-09-09) — komen lama
+  // di sini ("biar default teks mentah untuk tajuk, yang memang dipaparkan mentah di FocusView.tsx
+  // sedia ada") silap: medan Tajuk (`Field` kongsi, SlotManagerModal.tsx) sudah lama terima
+  // pintasan papan kekunci Ctrl/Cmd+I sama seperti Huraian (`tanganiKekunciItalic()`, satu fungsi
+  // dikongsi SEMUA medan editorial sejak 2026-08-16) — editor BOLEH condongkan sebahagian tajuk,
+  // hasilkan `*teks*` tersimpan. Kad bento (StandardCardTeks.tsx dsb.) sudah betul
+  // (`safeParseInline(title)` terus), tapi Focus View (artikel penuh, laluan ni) papar tajuk
+  // MENTAH — pembaca nampak asterisk literal ("Krisis *Ekonomi* Global...") pada artikel penuh
+  // walaupun kad ringkasan yang sama papar condong dengan betul. Corak SAMA pepijat #138-140
+  // (BarCardExpandedPanel/IndeksConsole/FocusView Nota) — pintasan format wujud pada input, satu
+  // tapak paparan terlepas parser yang sepatutnya.
   const glosariMudahAlih = React.useMemo(() => {
     const sudahDitanda = new Set<string>();
     return {
-      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk),
+      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk, safeParseInline),
       perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, desk, safeParseInline)),
     };
   }, [title, paragraphs, petaGlosari, desk]);
   const glosariDesktop = React.useMemo(() => {
     const sudahDitanda = new Set<string>();
     return {
-      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk),
+      tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk, safeParseInline),
       perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, desk, safeParseInline)),
     };
   }, [title, paragraphs, petaGlosari, desk]);

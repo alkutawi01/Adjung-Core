@@ -190,9 +190,12 @@ export const IstilahGlosariSpan: React.FC<{ teks: string; istilah: string; resol
 /** Render satu keping teks (tajuk ATAU satu perenggan huraian) dengan istilah glosari dibalut.
  *  `bidangKonteks` — nama Bidang kandungan semasa (Seksyen 3, docs v3), diperlukan untuk
  *  resolusi Sense; `null`/`undefined`/kosong selamat (Ticker, dsb.) — terus fallback.
- *  `renderTeksBiasa` pilihan — hantar `safeParseInline` untuk perenggan huraian (supaya nota
- *  kaki/petikan/autocondong sedia ada kekal terpakai pada bahagian bukan-istilah); biar default
- *  (teks mentah) untuk tajuk, yang memang dipaparkan mentah di FocusView.tsx sedia ada. */
+ *  `renderTeksBiasa` pilihan — hantar `safeParseInline` untuk perenggan huraian DAN tajuk (2026-
+ *  09-09, dapatan bug-hunt: medan Tajuk terima Ctrl/Cmd+I sama seperti Huraian, jadi tajuk BOLEH
+ *  simpan `*teks*` — pemanggil MESTI hantar `safeParseInline` untuk kedua-duanya, kalau tidak
+ *  asterisk bocor mentah pada satu tapak paparan sedangkan tapak lain (kad bento) papar condong
+ *  dengan betul). Default identiti (teks mentah) HANYA selamat untuk konteks yang memang tak
+ *  pernah terima medan berformat (cth Ticker, kalau ada). */
 export function renderDenganGlosari(
   teks: string,
   peta: Map<string, EntriGlosari>,
