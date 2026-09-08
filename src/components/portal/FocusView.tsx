@@ -1,7 +1,7 @@
 import React from 'react';
 import { Check, ChevronDown, ChevronUp, Facebook, Link2, ListOrdered, MessageCircle, Pause, Play, Shuffle, Twitter, X } from 'lucide-react';
 import { usePhoneViewport } from '../../hooks/usePhoneViewport';
-import { safeParseInline } from '../../utils';
+import { safeParseInline, stripMarkdown } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 import { terapFocusSeo, buangSemulaFocusSeo } from '../../utils/seoMeta';
 import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
@@ -724,9 +724,20 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // guna `shareUrl` sebenar bila sudah tersedia (Fasa 11), jatuh balik ke window.location.href
   // (kelakuan asal Fasa 9) sementara/bila tiada.
   React.useEffect(() => {
+    // `text` ialah huraian panjang MENTAH (asPlainText() di FrontpageView.tsx cuma pemeriksa
+    // jenis, TAK buang sintaks) — path paparan (paragraphs, atas) proses melalui safeParseInline
+    // yang tukar `*condong*`/`**tebal**` jadi <em>/<strong> dan buang sintaks gloss
+    // `[istilah](gloss:id)` terus, tapi laluan SEO ni terus guna `text` mentah tanpa langkah
+    // sama. Kesan: sesiapa yang guna format condong/tebal/gloss dalam Huraian Panjang (ciri
+    // rasmi disokong, lihat CLAUDE.md "Pratonton Kad") dapat sintaks asterisk/kurungan mentah
+    // BOCOR terus ke <meta name="description">/og:description/twitter:description/JSON-LD —
+    // kelihatan pada carian Google & pratonton perkongsian sosial sebenar, bukan cuma dalaman.
+    // `stripMarkdown()` (utils.tsx) sudah wujud tepat untuk kegunaan ni (buang **/*/_/`/++/<u>/
+    // pautan markdown, pulangkan teks dalamannya) tapi tak pernah disambungkan ke mana-mana.
+    const descripsiBersih = stripMarkdown(text) || undefined;
     terapFocusSeo({
       title: String(title || ''),
-      description: text || String(title || ''),
+      description: descripsiBersih || String(title || ''),
       publishedDate,
       desk,
       url: shareUrl || undefined,
