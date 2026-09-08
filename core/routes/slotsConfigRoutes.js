@@ -212,6 +212,30 @@ export function createSlotsConfigRoutes(db, dbAll, dbRun, syncManualObjectsForSl
       // menulis-ganti senyap. `slot.updatedAt` yang client hantar ialah nilai yang dia BACA
       // semasa buka slot (GET /slots pulangkan lajur ni terus, tiada laluan berasingan
       // diperlukan) — kalau tak sepadan nilai SEMASA di DB, seseorang lain dah simpan dulu.
+      // Bidang terkunci (2026-09-09, dapatan bug-hunt) — disemak DI SINI, dalam gelung
+      // pra-semak yang sama seperti konkurensi updatedAt di bawah, BUKAN di dalam gelung tulis
+      // (yang dulu). Sebelum ni semakan "Bidang mesti Bidang aktif" (asalnya beberapa baris di
+      // bawah, sebelum blok INSERT) berlaku SATU SLOT PADA SATU MASA di dalam gelung yang juga
+      // membuat dbRun() INSERT OR REPLACE — kalau permintaan bawa >1 slot dan slot KEDUA (atau
+      // lebih) gagal semakan Bidang, slot-slot SEBELUMNYA dalam array yang SAH sudah pun
+      // tertulis ke DB sebelum 400 dipulangkan. Ini melanggar invariant "semua-atau-tiada" yang
+      // didokumenkan eksplisit pada komen "Kawalan serentak" tepat di atas gelung ni ("SEMAK
+      // SEMUA slot dahulu sebelum tulis MANA-MANA satu, sama corak seperti batch_paste") —
+      // disahkan reproduce sebenar via .simulasi/sim49-slots-batch-separa-bidang.mjs (slot 5
+      // Bidang sah tertulis walau permintaan keseluruhan pulang 400 sebab slot 6 Bidang tak
+      // sah). Dipindah ke sini supaya SEMUA slot disahkan dahulu, sepadan corak updatedAt di
+      // bawah yang sudah betul.
+      for (const slot of slots) {
+        const nextDeskPraSemak = (slot.manualDesk || '').trim();
+        if (nextDeskPraSemak) {
+          const activeBidangPraSemak = await CategoryRegistry.getActiveCategories(db);
+          const matchesActivePraSemak = activeBidangPraSemak.some(c => c.name.toLowerCase() === nextDeskPraSemak.toLowerCase());
+          if (!matchesActivePraSemak) {
+            return res.status(400).json({ error: `Bidang "${nextDeskPraSemak}" bukan Bidang aktif. Pilih daripada senarai Taksonomi.` });
+          }
+        }
+      }
+
       for (const slot of slots) {
         if (slot.updatedAt) {
           const semasaRow = await dbAll(
