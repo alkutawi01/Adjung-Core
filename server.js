@@ -741,6 +741,17 @@ const initializeSchema = () => {
               // (slots_config.carouselIntervalOverride, Senarai Slot -> Tetapan Kad).
               db.run('ALTER TABLE slot_am_settings ADD COLUMN carouselJedaPertama INTEGER DEFAULT 15', () => {});
               db.run('ALTER TABLE slot_am_settings ADD COLUMN carouselTempohLalai INTEGER DEFAULT 10', () => {});
+              // Pramuat cache Tetapan Am Slot DI SINI, dalam panggil balik CREATE TABLE jadual itu
+              // sendiri — BUKAN di bahagian boot bawah (lihat nota "loadAmSettings" di situ), sama
+              // corak pembetulan yang dibuat untuk Dasar Aktif Editorial (2026-08-16). Sebabnya:
+              // pada DB BAHARU (bukan adjung.db pengeluaran sedia ada), jadual ni dicipta secara
+              // async, jadi panggilan `loadAmSettings(dbGet)` di bahagian boot bawah berlumba
+              // dengannya dan KALAH — SELECT gagal "no such table: slot_am_settings", cache
+              // dalam-memori jatuh balik ke lalai kod sepenuhnya (disahkan reproduce via boot DB
+              // kosong sebenar). Di sini jadual dijamin sudah wujud sebelum SELECT * dijalankan.
+              // `dbGet` diisytiharkan lebih bawah dalam fail ni (baris ~1656) — selamat sebab
+              // panggil balik ni hanya dijalankan selepas modul selesai dinilai sepenuhnya.
+              loadAmSettings(dbGet);
             });
 
             // Penugasan editor kepada slot (2026-07-30). Banyak-ke-banyak: satu slot boleh
@@ -1133,7 +1144,19 @@ const initializeSchema = () => {
                 maxBriefAlone INTEGER,
                 updatedAt TEXT
               )
-            `, () => {});
+            `, () => {
+              // Pramuat cache pindaan tier DI SINI, dalam panggil balik CREATE TABLE jadual itu
+              // sendiri — sama sebab/corak seperti pembetulan slot_am_settings/dasar_aktif_editorial
+              // di atas: `loadTierOverrides(dbAll)` yang dipanggil di bahagian boot bawah berlumba
+              // dengan CREATE TABLE async ni pada DB BAHARU dan KALAH ("no such table: tier_settings",
+              // disahkan reproduce via boot DB kosong sebenar). `dbAll` diisytiharkan lebih bawah
+              // dalam fail ni (baris ~1620) — selamat sebab panggil balik ni hanya dijalankan
+              // selepas modul selesai dinilai sepenuhnya.
+              loadTierOverrides(dbAll).then(map => {
+                const bil = Object.keys(map).length;
+                if (bil) console.log(`Pindaan had aksara tier dimuatkan: ${bil} tier.`);
+              });
+            });
 
             db.run(`
               CREATE TABLE IF NOT EXISTS rss_text_rules (
@@ -4489,27 +4512,28 @@ if (fs.existsSync(distDir)) {
   console.log('Tiada dist/ ditemui — jalankan `npm run build` untuk laluan serve produksi (dev guna proksi Vite berasingan).');
 }
 
-// Pindaan had aksara tier dimuatkan SEKALI semasa boot, kemudian dimuat semula setiap kali
-// disimpan (lihat tierSettingsRoutes.js) — validateContentBudget() sync, jadi ia baca cache
-// dalam-memori ni, bukan pangkalan data pada setiap pengesahan.
-loadAmSettings(dbGet);
+// Pindaan had aksara tier + Tetapan Am Slot (2026-09-08, bug-hunt REAL) — pramuatnya SENGAJA
+// TIADA di sini. `loadAmSettings(dbGet)`/`loadTierOverrides(dbAll)` dahulu dipanggil di sini,
+// tapi pada DB BAHARU (bukan adjung.db pengeluaran sedia ada yang dah lama ada jadual ni),
+// `CREATE TABLE IF NOT EXISTS slot_am_settings`/`tier_settings` di atas ialah async, jadi
+// panggilan pramuat di sini berlumba dengannya dan KALAH pada setiap permulaan pelayan pada DB
+// kosong — "no such table: slot_am_settings"/"no such table: tier_settings", cache dalam-memori
+// jatuh balik ke lalai kod sepenuhnya (disahkan reproduce via boot DB kosong sebenar, sama corak
+// pepijat yang dibaiki untuk Dasar Aktif Editorial di bawah). Pramuat dipindahkan ke dalam
+// panggil balik CREATE TABLE jadual masing-masing sendiri (baris ~705 dan ~1136) supaya
+// susunannya dijamin, bukan diharap.
 
-// Dasar Aktif Editorial (2026-08-16) — pramuatnya SENGAJA TIADA di sini, tidak seperti jirannya
-// di atas/bawah. Jadual `dasar_aktif_editorial` BAHARU (tidak seperti `slot_am_settings` yang
-// sudah lama wujud pada fail DB pengeluaran), jadi panggilan pramuat di sini berlumba dengan
+// Dasar Aktif Editorial (2026-08-16) — pramuatnya SENGAJA TIADA di sini juga, corak sama macam
+// di atas. Jadual `dasar_aktif_editorial` BAHARU (tidak seperti `slot_am_settings` yang sudah
+// lama wujud pada fail DB pengeluaran), jadi panggilan pramuat di sini berlumba dengan
 // `CREATE TABLE IF NOT EXISTS` async dan kalah pada setiap permulaan pelayan — log PM2 penuh
 // amaran "no such table" palsu. Pramuat dipindahkan ke dalam panggil balik CREATE TABLE jadual
-// tu sendiri (baris ~817) supaya susunannya dijamin, bukan diharap. Cache tetap perlu dipanaskan
+// tu sendiri (baris ~1106) supaya susunannya dijamin, bukan diharap. Cache tetap perlu dipanaskan
 // semasa boot kerana `GET /api/system/users` (userAdminRoutes.js) membaca
 // `getDasarAktifAmbangMs()` terus tanpa memuat semula — lajur "Tak Aktif" Direktori akan papar
 // angka berasaskan lalai 7/14/21 kalau cache dibiar sejuk. runSemakanTakAktif() pula memuat
 // semula sendiri secara LIVE setiap jalanan (lihat nota di situ), jadi penguatkuasaan sebenar
 // tidak pernah bergantung pada pramuat ni.
-
-loadTierOverrides(dbAll).then(map => {
-  const bil = Object.keys(map).length;
-  if (bil) console.log(`Pindaan had aksara tier dimuatkan: ${bil} tier.`);
-});
 
 // Matriks kebenaran RBAC (2026-08-02, Fasa 3) dimuatkan SEKALI semasa boot, disegarkan semula
 // setiap kali disimpan (lihat systemRoutes.js POST /system/settings) — requirePermission() baca
