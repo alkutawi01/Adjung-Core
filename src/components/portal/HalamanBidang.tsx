@@ -446,10 +446,15 @@ export function HalamanBidang() {
                           Artikel Jurnal
                         </span>
                       )}
+                      {/* Ring fokus maroon nipis (2026-09-08, teguran Izzat — bingkai amber tebal
+                          lalai pelayar kelihatan bila fokus kembali ke item ni lepas Esc dari
+                          Focus View) — corak SAMA seperti butang Editorium lain (LoginModal.tsx,
+                          IndeksConsole.tsx, dll): focus:outline-none + focus-visible:ring-1
+                          ring-Adjung-maroon, bukan hilangkan fokus terus (kebolehcapaian kekal). */}
                       <button
                         type="button"
                         onClick={() => bukaArtikel(a.objectId)}
-                        className="w-full text-left group pr-10"
+                        className="w-full text-left group pr-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
                       >
                         {a.topik && (
                           <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-Adjung-maroon mb-1.5">
@@ -521,7 +526,7 @@ export function HalamanBidang() {
                               Artikel Jurnal
                             </span>
                           )}
-                          <button type="button" onClick={() => bukaArtikel(a.objectId)} className="w-full text-left group pr-10">
+                          <button type="button" onClick={() => bukaArtikel(a.objectId)} className="w-full text-left group pr-10 focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm">
                             {a.topik && (
                               <div className="font-mono text-[9px] font-bold uppercase tracking-widest text-Adjung-maroon mb-1.5">
                                 {a.topik}

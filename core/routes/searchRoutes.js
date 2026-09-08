@@ -20,7 +20,16 @@ export function createSearchRoutes(dbAll) {
       // — tanpa ni, carian literal pembaca (cth "50%" diskaun, atau nombor bersambung "90_9")
       // ditafsir sebagai wildcard SQL (% = mana-mana jujukan, _ = mana-mana SATU aksara),
       // memulangkan padanan terlalu luas/salah yang tak berkaitan langsung dgn teks ditaip.
-      // ESCAPE '\' eksplisit diperlukan sebab SQLite LIKE tiada escape char lalai.
+      // ESCAPE '\\' eksplisit diperlukan sebab SQLite LIKE tiada escape char lalai — DUA backslash
+      // dalam source (2026-09-08, dapatan regresi Izzat: "search tak keluar langsung") ialah
+      // WAJIB, bukan satu — `ESCAPE '\'` (satu backslash) dalam template literal JS ditafsir
+      // sebagai escaped-quote oleh JS sendiri, jadi SQL SEBENAR yang sampai ke SQLite jadi
+      // `ESCAPE ''` (kosong), yang campak SQLITE_ERROR "ESCAPE expression must be a single
+      // character" pada SETIAP carian — carian awam rosak 100% sejak fix LIKE-injection pagi ni
+      // (ralat ditelan client, papar "Tiada kandungan dijumpai" macam kosong biasa, bukan ralat
+      // sebenar — lihat juga pembetulan susulan di client, tapak sama). Disahkan node -e langsung
+      // terhadap sqlite3: `ESCAPE '\'` (1 backslash) -> SQL string `ESCAPE ''` -> SQLITE_ERROR;
+      // `ESCAPE '\\'` (2 backslash) -> SQL string `ESCAPE '\'` (1 backslash sebenar) -> betul.
       const qTerlepas = q.replace(/\\/g, '\\\\').replace(/%/g, '\\%').replace(/_/g, '\\_');
       const like = `%${qTerlepas}%`;
       // `latest` mesti dikira daripada MAX(version) MERENTASI SEMUA status (bukan hanya di
@@ -45,10 +54,10 @@ export function createSearchRoutes(dbAll) {
         WHERE eo.slotIndex >= 0
           AND er.status = 'approved'
           AND (
-            er.title LIKE ? ESCAPE '\' OR er.summary LIKE ? ESCAPE '\'
+            er.title LIKE ? ESCAPE '\\' OR er.summary LIKE ? ESCAPE '\\'
             OR EXISTS (
               SELECT 1 FROM editorial_attribute_values av
-              WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'topik' AND av.valueText LIKE ? ESCAPE '\'
+              WHERE av.objectId = eo.id AND av.revisionId = er.id AND av.attributeId = 'topik' AND av.valueText LIKE ? ESCAPE '\\'
             )
           )
         ORDER BY er.createdAt DESC
