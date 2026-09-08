@@ -80,7 +80,14 @@ const validateContentBudget = (slotIndex, title, summary) => {
       // field is empty, and stating them unqualified reads as "huraian limit is always 78" when a
       // near-max-length title can shrink that to single digits. Editors need the real number for
       // THIS content, not the tier's theoretical maximum.
-      const remainingBrief = Math.max(0, Math.round((1 - titleLen / maxTitleAlone) * maxBriefAlone));
+      // Math.floor, BUKAN Math.round (2026-09-08, bug-hunt — sama punca tepat yang BudgetMeter
+      // (SlotManagerModal.tsx) sendiri dibaiki 2026-08-07/08-24, tapi mesej ralat SERVER ni
+      // terlepas pembetulan yang sama). Round-KE-ATAS boleh papar "had huraian maksimum: 59
+      // aksara" sedangkan 59 aksara SENDIRI masih gagal validateContentBudget (had sebenar 58) —
+      // disahkan reproduce: slot SEGI_EMPAT_MEDIUM, tajuk 50 aksara, huraian 59 aksara ditolak
+      // dengan mesej yang mengarah editor ke nombor yang akan ditolak SEKALI LAGI. floor jamin
+      // nombor yang dipaparkan dalam mesej SENTIASA lulus jika ditaip tepat.
+      const remainingBrief = Math.max(0, Math.floor((1 - titleLen / maxTitleAlone) * maxBriefAlone));
       return {
         isValid: false, bolehSalinAI: true,
         reason: `Huraian (${briefLen} aksara) melebihi had yang dibenarkan untuk tajuk sepanjang ${titleLen} aksara ini (had huraian maksimum: ${remainingBrief} aksara, kad ${tier}).`,
