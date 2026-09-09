@@ -283,7 +283,16 @@ export function createCategoryRoutes(db) {
   // approved/pending di dalamnya (archiveLiveContentInSlot). Tanpa kiraan ini, amaran sebelum
   // menyimpan cuma boleh berkata "kandungan akan diarkibkan" secara umum — dengan ia, amaran boleh
   // menyebut angka sebenar yang akan hilang daripada frontpage.
-  router.get('/categories/slot-usage', async (req, res) => {
+  // GET ni TAK sepatutnya awam — bukan macam /categories, /categories/active, /categories/taksonomi
+  // (kesemuanya dipanggil terus oleh halaman AWAM: FrontpageView.tsx, HalamanBidang.tsx,
+  // HalamanSertai.tsx, jadi memang perlu tanpa sesi). /categories/slot-usage HANYA dipanggil oleh
+  // konsol admin (BidangConsole.tsx, DashboardConsole.tsx, EditoriumView.tsx,
+  // SenaraiSlotConsole.tsx) — tiada satu pun laluan portal awam guna ia (disahkan grep). Corak
+  // sama persis bug #218 (viewStatsRoutes.js): satu laluan tanpa gerbang dalam kumpulan laluan yang
+  // dipanggil sekali gus oleh konsol admin yang sama, sedangkan sibling tulisnya
+  // (POST /categories/assign-slot) sudah digerbang manageEditorial. Digerbang permission SAMA di
+  // sini (2026-09-09, bug-hunt, disahkan simulasi HTTP sebenar — .simulasi/sim-bug219-*.mjs).
+  router.get('/categories/slot-usage', requirePermission('manageEditorial'), async (req, res) => {
     try {
       const rows = await CategoryRegistry.dbAll(db,
         "SELECT slotIndex, manualDesk FROM slots_config WHERE layoutTemplateId = 'frontpage'");
