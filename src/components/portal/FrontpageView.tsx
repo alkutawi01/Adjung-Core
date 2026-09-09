@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil, Settings, RotateCw 
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { penggalSukuKata } from '../../../core/editorial/PemenggalSukuKata.js';
-import { TypographyRenderer, TypographyRule } from '../editorial/TypographyRenderer';
+import { TypographyRule } from '../editorial/TypographyRenderer';
 import { TypographyPreview } from '../editorial/TypographyPreview';
 import { WorldClockStrip } from './WorldClockStrip';
 import { BarCard } from './cards/BarCard';
@@ -3973,7 +3973,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         satu baris duduk sebaris dengan label "BERITA SEMASA", dan tajuk dua baris
                         mengapitnya di tengah — kalau tinggi diletak pada span, teks satu baris
                         akan melekat di ATAS kotak dan label nampak tersasar ke bawah. */}
-                    <span className="line-clamp-2 md:truncate"><TypographyRenderer text={activeTickerNewsItem.title} rules={adjungTypographyRules} scope="title" /></span>
+                    <span className="line-clamp-2 md:truncate">{safeParseInline(activeTickerNewsItem.title)}</span>
                   </motion.h4>
                 </AnimatePresence>
               </div>
