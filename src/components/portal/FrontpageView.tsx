@@ -23,7 +23,7 @@ import { MenegakCardTeks } from './cards/MenegakCardTeks';
 import { StandardCardTeks } from './cards/StandardCardTeks';
 import { SegiEmpatMediumCardTeks } from './cards/SegiEmpatMediumCardTeks';
 import { SegiEmpatSmallCardTeks } from './cards/SegiEmpatSmallCardTeks';
-import { binaPetaGlosari, type EntriGlosari } from '../common/IstilahGlosari';
+import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import BriefNavigator from './BriefNavigator';
@@ -5088,7 +5088,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[17]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[17]).briefStyle} onClick={focusClick(it)}>{renderDenganGlosari(it.brief || '', petaGlosariKad, new Set(), it.desk, safeParseInline)}</p>
                             </>
                         )}
                       />
@@ -5140,7 +5140,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[18]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[18]).briefStyle} onClick={focusClick(it)}>{renderDenganGlosari(it.brief || '', petaGlosariKad, new Set(), it.desk, safeParseInline)}</p>
                             </>
                         )}
                       />
@@ -5679,7 +5679,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[31]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[31]).briefStyle} onClick={focusClick(it)}>{renderDenganGlosari(it.brief || '', petaGlosariKad, new Set(), it.desk, safeParseInline)}</p>
                             </>
                         )}
                       />
@@ -5731,7 +5731,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                         renderItem={(it) => (
                           <>
                               <h3 className="font-serif text-[15px] font-medium leading-snug group-hover:text-[#802334] hover:text-[#802334] transition-colors duration-200" onClick={focusClick(it)}>{safeParseInline(it.title)}</h3>
-                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[32]).briefStyle} onClick={focusClick(it)}>{safeParseInline(it.brief)}</p>
+                              <p className="hidden md:block font-serif text-xs leading-relaxed font-normal mt-1" style={getCardTheme(bentoNewsItems[32]).briefStyle} onClick={focusClick(it)}>{renderDenganGlosari(it.brief || '', petaGlosariKad, new Set(), it.desk, safeParseInline)}</p>
                             </>
                         )}
                       />
