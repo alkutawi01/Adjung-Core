@@ -25,8 +25,16 @@ export function extractAccessBadge(item: any): { label: string; isTerbuka: boole
 export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onEditClick }) => {
   if (!item) return null;
 
-  const eventDate = formatEventDateRange(item.originalDate || item.date, item.dateEnd)
-    || (item.publishedAt || '').toString().trim().toUpperCase();
+  // Dapatan bug-hunt (2026-09-09): `item.publishedAt` (createdAt revisi Adjung sendiri, BUKAN
+  // tarikh acara) dahulu jatuh balik di sini bila originalDate/date/dateEnd kosong — kandungan
+  // BAR dijana AI tanpa Content Pool sepadan (mod Bebas/carian) langsung tiada originalDate,
+  // jadi timestamp ISO mentah ("2026-09-08T14:23:11.456Z") terus papar SEBAGAI "Tarikh Acara"
+  // tanpa diformat (tak lalui formatEventDateRange/formatSatuTarikh langsung). Sama kelas pepijat
+  // "tarikh palsu" yang dibaiki di server.js (2026-07-25) dan EditorialPipeline.js (2026-09-09) —
+  // dua pembetulan tu elak SIMPAN tarikh rekaan, tapi laluan PAPAR client ni terlepas, jadi
+  // publishedAt (bukan tarikh rekaan, tapi tarikh SALAH konsep) tetap bocor terus ke pembaca.
+  // Dibuang — bila tiada tarikh acara sebenar, jatuh terus ke fallback Desk sedia ada di bawah.
+  const eventDate = formatEventDateRange(item.originalDate || item.date, item.dateEnd);
   // Peraturan Khas Slot Bar: kiri atas ialah Tarikh acara; jika tiada, jatuh balik ke nama desk
   // (bukan kosong) supaya baris atas tak pernah nampak "hilang" sebuah medan.
   const dateOrDeskLabel = eventDate || (item.desk || 'ADJUNG EDITORIAL').toString().toUpperCase();
