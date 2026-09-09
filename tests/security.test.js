@@ -62,12 +62,24 @@ test.before(async () => {
 
   // Cipta akaun EDITOR ujian sekali pakai terus dalam DB sebenar (corak sama seperti Fasa 3/6b
   // — akaun ujian dibersihkan selepas, bukan data kekal).
+  //
+  // penName WAJIB unik setiap larian (2026-09-09, dapatan bug-hunt) — dahulu literal tetap
+  // 'Ujian Fasa 17' (tak macam testUserId/testUsername di atas, yang SUDAH sertakan Date.now()).
+  // `users.penName` ada indeks UNIK; kalau `test.after()` gagal jalan (proses ujian ranap/
+  // dihentikan paksa sebelum sempat DELETE), baris ujian tu kekal SELAMANYA dalam adjung.db
+  // SEBENAR, dan SETIAP larian ujian seterusnya gagal INSERT dengan SQLITE_CONSTRAINT — bukan
+  // hanya ujian PERTAMA dalam fail ni, TAPI SEMUA lima ujian lain dalam fail ni turut gagal
+  // (kegagalan `before()` global menjatuhkan keseluruhan suite). Disahkan sebenar: baris lapuk
+  // bertarikh 2026-09-08 wujud dalam adjung.db pengeluaran (id `test-fasa17-editor-*`,
+  // penName='Ujian Fasa 17'), menyebabkan `npm test` gagal 5 ujian keselamatan (Penjelakan
+  // peranan x3, XSS, CSRF) pada larian ni. Sertakan Date.now() sama macam medan lain — larian
+  // BAHARU tak lagi berlanggar dengan baris lapuk yang tercicir dibersihkan.
   db = new sqlite3.Database(dbPath);
   const kini = new Date().toISOString();
   await runDb(db,
     `INSERT INTO users (id, username, email, role, penName, password, createdAt, updatedAt, status)
-     VALUES (?, ?, ?, 'EDITOR', 'Ujian Fasa 17', ?, ?, ?, 'Aktif')`,
-    [testUserId, testUsername, `${testUsername}@ujian.local`, hashPassword(testPassword), kini, kini]);
+     VALUES (?, ?, ?, 'EDITOR', ?, ?, ?, ?, 'Aktif')`,
+    [testUserId, testUsername, `${testUsername}@ujian.local`, `Ujian Fasa 17 ${Date.now()}`, hashPassword(testPassword), kini, kini]);
   await runDb(db, `INSERT INTO user_roles (userId, roleId) VALUES (?, 'editor')`, [testUserId]);
 
   serverProcess = spawn(process.execPath, ['server.js'], {
