@@ -365,18 +365,41 @@ export function createPublicArticleRoute(dbAll, dbGet) {
       // terakhir — ekstrak dahulu supaya carian DB tak pernah bergantung pada slug (yang boleh
       // lapuk/tak padan lepas tajuk disunting, itu okay, cuma kosmetik).
       const kodSebenar = kodDaripadaParamLaluan(req.params.kodPendek);
+      // Gerbang status (2026-09-09, dapatan bug-hunt, sambungan #216) — sebelum ni, tajuk/Bidang
+      // dibina daripada REVISI TERKINI tanpa mengira status (`ORDER BY er.version DESC LIMIT 1`
+      // mentah), BUKAN revisi terkini yang APPROVED. Kandungan yang pernah lulus (ada urlKod)
+      // tapi sedang disunting semula via Semakan Kandungan (cipta revisi BAHARU berstatus
+      // 'pending' pada objectId SAMA, version naik — CLAUDE.md "Dua laluan edit selepas terbit")
+      // membocorkan TAJUK DRAF belum diluluskan tu terus dalam header `Location` redirect 301 di
+      // bawah — kepada SESIAPA (bot/pengguna tanpa cookie) yang cecah pautan lama kandungan tu,
+      // SEBELUM cawangan bot (`ambilKandunganUntukSeo`, yang BETUL menyemak approved) sempat
+      // jalan. Disahkan reproduce sebenar (.simulasi/sim-public-route-title-leak.mjs): objek dgn
+      // v1 approved (ada urlKod) + v2 pending pulangkan redirect 301 mengandungi tajuk v2 draf.
+      // Sahkan revisi TERKINI ialah 'approved' (corak SAMA seperti by-kod/url-kod/
+      // ambilKandunganUntukSeo di atas) SEBELUM bina apa-apa laluan drpd tajuk/Bidangnya — kalau
+      // tidak, layan SAMA seperti "kod tak dijumpai" (bukan bocorkan draf).
+      const revTerkini = await dbGet(
+        `SELECT status FROM editorial_objects eo
+         JOIN editorial_revisions er1 ON er1.objectId = eo.id
+         WHERE eo.urlKod = ?
+           AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)`,
+        [kodSebenar]
+      );
+      const approved = revTerkini && revTerkini.status === 'approved';
       // Sama nota "desk live" seperti /url-kod di atas — jangan bina laluan kanonikal drpd
       // eo.categoryId beku, ia akan bercanggah dgn Bidang sebenar bila desk ditukar selepas terbit.
-      const obj = await dbGet(
+      // Ambil tajuk/desk drpd REVISI APPROVED tu sendiri sahaja (bukan "revisi terkini" mentah) —
+      // approved di atas sudah jamin ia jugalah revisi terkini, elak baca semula dua kali.
+      const obj = approved ? await dbGet(
         `SELECT eo.id as id, eo.categoryId as categoryId,
-                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id ORDER BY er.version DESC LIMIT 1) as title,
+                (SELECT er.title FROM editorial_revisions er WHERE er.objectId = eo.id AND er.status = 'approved' ORDER BY er.version DESC LIMIT 1) as title,
                 (SELECT av.valueText FROM editorial_attribute_values av
                    JOIN editorial_revisions er2 ON er2.id = av.revisionId
-                  WHERE av.objectId = eo.id AND av.attributeId = 'desk'
+                  WHERE av.objectId = eo.id AND av.attributeId = 'desk' AND er2.status = 'approved'
                   ORDER BY er2.version DESC LIMIT 1) as deskLive
          FROM editorial_objects eo WHERE eo.urlKod = ?`,
         [kodSebenar]
-      );
+      ) : null;
       if (!obj) {
         // Kod tak dijumpai. Manusia jatuh balik ke SPA (papar 404 bergaya Adjung di klien, status
         // 200 tak jadi masalah sebab pelayar akan render UI 404 sebenar). Bot (tak jalankan JS)
