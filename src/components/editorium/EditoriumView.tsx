@@ -176,19 +176,16 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   // macam Editor biasa), jadi dipadankan ke sini sekali sahaja.
   const effectiveEditorialRole: 'KETUA_EDITOR' | 'EDITOR' = isEditorialAdmin ? 'KETUA_EDITOR' : 'EDITOR';
 
-  // Dasar Terbit Sendiri Editor (2026-08-19, laporan Izzat: "jika editor boleh terbitkan dan edit
-  // sendiri tanpa kelulusan ketua editor, penapis kandungan di kandungan default tukar status
-  // drpd menunggu kepada aktif") — dimuat SEKALI di sini (induk), bukan dalam IndeksConsole
-  // sendiri, supaya nilai SUDAH sedia sebelum IndeksConsole buat kiraan DEFAULT_FILTERS pertama
-  // kali (lihat nota penuh di IndeksConsoleProps). `undefined` sehingga fetch selesai — dilayan
-  // sama seperti `false` (kekalkan tingkah laku sedia ada) di pihak IndeksConsole.
-  const [benarkanSelfPublish, setBenarkanSelfPublish] = useState<boolean | undefined>(undefined);
-  useEffect(() => {
-    fetch('/api/system/editor-publish-policy')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((d) => { if (d && typeof d.benarkanSelfPublish === 'boolean') setBenarkanSelfPublish(d.benarkanSelfPublish); })
-      .catch(() => { /* senyap — Indeks jatuh balik ke tingkah laku sedia ada (Status=Pending) */ });
-  }, []);
+  // Dasar Terbit Sendiri Editor — cangkuk `benarkanSelfPublish` (GET /api/system/editor-publish-
+  // policy) yang dahulu dimuat di sini untuk disuap ke IndeksConsole DIBUANG (bug-hunt 2026-09-09):
+  // commit 5709711 (5/9, "Tukar lalai status Indeks Kandungan ke Semua untuk Ketua Editor")
+  // menggantikan DEFAULT_FILTERS bersyarat (`benarkanSelfPublish ? 'Live' : 'Pending'`) dengan
+  // `status: 'Semua'` tetap untuk KETUA_EDITOR, dan cabang EDITOR tak pernah baca prop ni langsung
+  // — fetch+state+prop ni jadi mati sepenuhnya selepas tu (disahkan: sifar bacaan `benarkanSelfPublish`
+  // dalam IndeksConsole.tsx selain destructuring prop, `grep` kosong), tapi permintaan rangkaian
+  // `/api/system/editor-publish-policy` terus tertembak setiap kali Editorium dibuka tanpa kesan.
+  // Endpoint sendiri KEKAL (masih dibaca TetapanAmSlotConsole.tsx dan digerbang server di
+  // contentRoutes.js) — cuma laluan client ni yang dibuang.
   // Bidang SEBENAR per slot (2026-09-06, aduan editor sebenar — senarai "Pilih Slot" di bawah
   // papar "Belum ditetapkan" untuk SETIAP slot walaupun semuanya sudah ada kandungan aktif).
   // Punca: senarai ni baca `cfg?.manualDesk` SAHAJA — medan tetapan slot yang jarang diisi
@@ -741,7 +738,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
               sesiTanda={currentUser.sesiTanda}
               onToast={pushToast}
               penapisAwal={penapisIndeksAwal}
-              benarkanSelfPublish={benarkanSelfPublish}
             />
           )}
           {kandunganSubTab === 'semakan' && <ContentReview />}
