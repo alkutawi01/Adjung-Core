@@ -6420,13 +6420,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
                 {/* Large Serif Title */}
                 <h1 className={`font-serif ${TICKER_OVERLAY_TITLE_SIZE_CLASS[systemSettings?.tickerOverlayTitleSize || 'L'] || TICKER_OVERLAY_TITLE_SIZE_CLASS.L} text-stone-900 leading-tight tracking-tight font-medium px-4`}>
-                  {overlayItem.title}
+                  {safeParseInline(overlayItem.title)}
                 </h1>
 
                 {/* Brief body */}
                 {overlayItem.brief && (
                   <p className={`font-serif ${TICKER_OVERLAY_BRIEF_SIZE_CLASS[systemSettings?.tickerOverlayBriefSize || 'M'] || TICKER_OVERLAY_BRIEF_SIZE_CLASS.M} text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light`}>
-                    {overlayItem.brief}
+                    {safeParseInline(overlayItem.brief)}
                   </p>
                 )}
 
