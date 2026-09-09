@@ -44,6 +44,28 @@ test('validateTarikhSumber — format tak sah tetap ditolak (tak berubah drpd se
   assert.equal(hasil.isValid, false, 'format bukan ISO patut ditolak');
 });
 
+test('validateTarikhSumber — bulan/hari mustahil ditolak walau bentuk regex \\d{2}-\\d{2} lulus (2026-09-09, bug-hunt)', () => {
+  // "2026-13-45" lulus regex /^\d{4}-\d{2}-\d{2}$/ asal (cuma semak bentuk digit, bukan
+  // kalendar sebenar) — new Date('2026-13-45') pulangkan Invalid Date, yang kemudiannya
+  // bocorkan rentetan MENTAH terus kepada pembaca di getDisplayDate()/formatTarikhSumberPanjang()
+  // (FrontpageView.tsx) sebab kedua-dua fungsi tu jatuh balik ke `raw` bila Date tak sah.
+  const bulanMustahil = validateTarikhSumber('2026-13-45', 'BBC');
+  assert.equal(bulanMustahil.isValid, false, 'bulan 13 mustahil, mesti ditolak');
+});
+
+test('validateTarikhSumber — hari tak wujud utk bulan tu ditolak, bukan dianjak senyap (2026-09-09, bug-hunt)', () => {
+  // "2026-02-30" (Februari tiada 30 hari) lulus regex bentuk asal DAN new Date() anjak SENYAP
+  // ke 2 Mac 2026 tanpa sebarang ralat — tarikh sumber SALAH terpapar kepada pembaca sebagai
+  // tarikh yang kelihatan sah.
+  const hariTakWujud = validateTarikhSumber('2026-02-30', 'BBC');
+  assert.equal(hariTakWujud.isValid, false, '30 Februari tidak wujud, mesti ditolak');
+});
+
+test('validateTarikhSumber — 29 Februari tahun lompat diterima, tahun biasa ditolak', () => {
+  assert.equal(validateTarikhSumber('2024-02-29', 'BBC').isValid, true, '2024 tahun lompat, 29 Feb sah');
+  assert.equal(validateTarikhSumber('2026-02-29', 'BBC').isValid, false, '2026 bukan tahun lompat, 29 Feb tak wujud');
+});
+
 test('sumberAdjungSendiri — cermin FrontpageView.tsx (padanan tepat dua sentinel sahaja)', () => {
   assert.equal(sumberAdjungSendiri('Adjung Editorial'), true);
   assert.equal(sumberAdjungSendiri('Editorial Adjung'), true);

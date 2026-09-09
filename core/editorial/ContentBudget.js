@@ -306,10 +306,33 @@ const validateTarikhSumber = (tarikh, source) => {
     };
   }
   const trimmed = tarikh.trim();
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+  const padanan = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  // Padanan bentuk sahaja (regex \d{2}\d{2}) TAK cukup — "2026-13-45" (bulan/hari mustahil)
+  // dan "2026-02-30" (Februari tiada 30 hari) KEDUA-DUA lulus regex asal (dapatan bug-hunt
+  // 2026-09-09, disahkan `new Date('2026-13-45')` -> Invalid Date, `new Date('2026-02-30')`
+  // -> anjak SENYAP ke 2 Mac). Kesan sebenar hiliran: getDisplayDate()/formatTarikhSumberPanjang()
+  // (FrontpageView.tsx) sama ada bocorkan rentetan mentah "2026-13-45" terus kepada pembaca kad
+  // (Invalid Date jatuh balik ke raw string) ATAU papar tarikh SALAH senyap (30 Feb anjak jadi
+  // 2 Mac tanpa sebarang tanda ralat) — kedua-dua kes langsung tak ditangkap peringkat simpan.
+  // Sahkan bulan 01-12, hari sah untuk bulan/tahun tu (guna UTC supaya tiada anjak zon waktu),
+  // dan round-trip balik ke input asal (menolak anjak senyap Date macam 02-30 -> 03-02).
+  if (!padanan) {
     return {
       isValid: false, bolehSalinAI: true,
       reason: `Tarikh sumber ("${trimmed}") bukan format tarikh yang sah. Guna format YYYY-MM-DD sebenar (cth 2026-08-17), bukan templat.`,
+    };
+  }
+  const [, yyyy, mm, dd] = padanan;
+  const bulan = parseInt(mm, 10);
+  const hari = parseInt(dd, 10);
+  const tahun = parseInt(yyyy, 10);
+  const d = new Date(Date.UTC(tahun, bulan - 1, hari));
+  const sahBenar = bulan >= 1 && bulan <= 12 && hari >= 1 && hari <= 31
+    && d.getUTCFullYear() === tahun && d.getUTCMonth() === bulan - 1 && d.getUTCDate() === hari;
+  if (!sahBenar) {
+    return {
+      isValid: false, bolehSalinAI: true,
+      reason: `Tarikh sumber ("${trimmed}") bukan tarikh kalendar sebenar (bulan/hari tidak wujud). Guna tarikh sebenar format YYYY-MM-DD.`,
     };
   }
   return { isValid: true };
