@@ -446,6 +446,25 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Akaun" (manageAccounts). Ini akan mengunci SEMUA orang daripada laluan urus akaun (Direktori) selama-lamanya, walaupun akaun Pentadbir aktif masih wujud. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
           });
         }
+
+        // Simpan SENARAI EFEKTIF (risEfektif), bukan `s.rolePermissions` mentah (2026-09-09,
+        // dapatan bug-hunt susulan — vein sama, varian penyimpanan bukan pengesahan). Ketiga-tiga
+        // semakan kunci-diri di atas mengira `risEfektif` (ditapis kepada roleId SAH sahaja,
+        // dinyahpendua last-write-wins per roleId) untuk MEMUTUSKAN sama ada simpanan diterima —
+        // tapi selepas lulus, SETTINGS_SERIALIZER.rolePermissions (di bawah) masih
+        // `JSON.stringify(s.rolePermissions || {})` guna SENARAI MENTAH asal daripada badan
+        // permintaan, bukan `risEfektif` yang baru disahkan. Kesan: baris roleId PALSU
+        // (tersaring keluar drpd pengesahan) dan baris pendua (kalah last-write-wins semasa
+        // pengesahan) KEDUA-DUANYA tetap tersimpan verbatim ke `system_settings.rolePermissions`
+        // walaupun langsung tak menyumbang kepada keputusan "selamat" yang baru diluluskan.
+        // `parseStoredMatrix()` (core/middleware/auth.js) membaca semula raw ni dengan dedup
+        // last-write-wins SENDIRI yang bersandar pada susunan array — konsisten pada hari ni,
+        // tapi menyimpan sampah yang tak disahkan bercanggah terus dengan tujuan pengesahan di
+        // atas (rekod tersimpan patut mencerminkan APA YANG DISAHKAN, bukan apa yang dihantar
+        // mentah) dan TetapanConsole.tsx bila baca-semula matriks akan papar baris pendua/palsu
+        // yang sepatutnya sudah tersingkir. Gantikan dengan `risEfektif` supaya apa yang tersimpan
+        // sentiasa padan tepat dengan apa yang baru disahkan selamat.
+        s.rolePermissions = risEfektif;
       }
 
       // Julat sah medan berangka (SETTINGS-VALIDATION-001, audit #44.4, 2026-08-13) — sebelum ni
