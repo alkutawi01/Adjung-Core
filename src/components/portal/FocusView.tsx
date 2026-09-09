@@ -1204,7 +1204,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <p style={{
                 margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--text-13)', fontWeight: 300,
                 lineHeight: 'var(--leading-relaxed)', color: 'var(--stone-600)', textWrap: 'pretty',
-              }}>{safeParseInline(note)}</p>
+              }}>{safeParseInline(notaText)}</p>
             </div>
           )}
         </div>
