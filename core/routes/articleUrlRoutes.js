@@ -302,6 +302,28 @@ export function createArticleUrlRoutes(dbAll, dbGet, dbRun) {
 
   router.get('/system/content/:objectId/url-kod', async (req, res) => {
     try {
+      // Gerbang status (2026-09-09, dapatan bug-hunt) — laluan ni TIADA requireAuth (dipanggil
+      // FocusView.tsx tanpa sesi utk pembaca awam yg buka artikel terus) DAN sebelum ni TIADA
+      // langsung semakan status revisi — mana-mana objectId (draf 'pending', 'rejected',
+      // 'archived', 'scheduled') pulangkan tajuk SEBENAR + `laluan` (yang MEMBENAMKAN tajuk penuh
+      // sebagai slug, lihat binaLaluanKandungan()) kepada SESIAPA yang tahu/teka objectId, dan
+      // SECARA KEKAL menjana+menulis urlKod (getOrCreateUrlKod menulis DB) utk kandungan yang
+      // belum pernah lulus semakan editorial. Ini bercanggah terus dgn laluan AWAM /by-kod dan
+      // /:bidangSlug/kandungan/:kodPendek (kedua-dua di atas/bawah fail ni) yang EKSPLISIT tolak
+      // 404 kandungan bukan 'approved' — laluan ni ialah SATU-SATUNYA cara membocorkan draf tanpa
+      // melalui gerbang tu. Disahkan reproduce sebenar (.simulasi/sim-urlkod-leak.mjs): kandungan
+      // status 'pending' pulangkan 200 + tajuk draf penuh dalam `laluan` tanpa cookie langsung.
+      // Sahkan revisi TERKINI (corak sama CONTENT-LIFECYCLE-005, ambilKandunganUntukSeo() di atas)
+      // ialah 'approved' SEBELUM jana/pulangkan apa-apa — jangan cuma semak WUJUD.
+      const revTerkini = await dbGet(
+        `SELECT status FROM editorial_revisions er1
+         WHERE er1.objectId = ?
+           AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)`,
+        [req.params.objectId]
+      );
+      if (!revTerkini || revTerkini.status !== 'approved') {
+        return res.status(404).json({ error: 'Kandungan tidak dijumpai.' });
+      }
       // eo.categoryId dibekukan pada masa penciptaan objek — Bidang sebenar boleh ditukar
       // kemudian (PATCH /content/:id, medan `desk`) tanpa mengemas kini eo.categoryId (corak
       // sama seperti rssFeedRoutes.js/og.png di bawah). Guna atribut 'desk' LIVE revisi terkini
