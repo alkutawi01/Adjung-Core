@@ -556,7 +556,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
               </div>
               <div className="flex items-center gap-1.5 flex-wrap">
                 {blockStatusList.map((item) => (
-                  <Tooltip key={item.index} text={item.reason || `${item.titleSnippet} - Mematuhi Had Aksara`}>
+                  <Tooltip key={item.index} text={item.reason || <>{safeParseInline(item.titleSnippet)} - Mematuhi Had Aksara</>}>
                     <button
                       type="button"
                       onClick={() => scrollToBlockInTextarea(item.index)}
@@ -570,7 +570,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                     >
                       <span className="font-extrabold">#{item.index}</span>
                       <span>{item.state === 'pass' ? <Check className="w-3 h-3" /> : <AlertTriangle className="w-3 h-3" />}</span>
-                      <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{item.titleSnippet}</span>
+                      <span className="font-sans text-[9px] font-medium truncate max-w-[120px]">{safeParseInline(item.titleSnippet)}</span>
                     </button>
                   </Tooltip>
                 ))}
@@ -591,7 +591,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                 {blockStatusList.map((item) => (
                   <div key={item.index} className="bg-white p-2.5 rounded border border-stone-200">
                     <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <span className="font-mono text-[10px] font-bold text-stone-500">#{item.index} {item.titleSnippet}</span>
+                      <span className="font-mono text-[10px] font-bold text-stone-500">#{item.index} {safeParseInline(item.titleSnippet)}</span>
                       {item.state === 'warning' && (
                         <span className="font-mono text-[9px] font-bold uppercase text-amber-700 flex items-center gap-1 shrink-0">
                           <AlertTriangle size={10} /> Amaran
