@@ -1,5 +1,6 @@
 import express from 'express';
 import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
+import { requireAuth } from '../middleware/auth.js';
 
 // Jejak pengunjung & populariti (Fasa 14) — dibina sendiri, tiada pihak ketiga, tiada cookie,
 // tiada IP/user-agent. Kiraan HARIAN sahaja, agregat anonim, dalam jadual `daily_view_counts`
@@ -56,7 +57,16 @@ export function createViewStatsRoutes(dbAll, dbRun) {
   });
 
   // GET /api/system/view-stats?days=7 — ringkasan untuk Paparan Utama (Dashboard).
-  router.get('/view-stats', async (req, res) => {
+  // requireAuth (2026-09-09, dapatan bug-hunt) — laluan ni SEBELUM ni TIADA gerbang auth
+  // LANGSUNG, tak macam SETIAP laluan lain yang dipanggil serentak dalam Promise.all yang sama
+  // (DashboardConsole.tsx: content/all -> requireAuth, audit-log/weather-status/link-checks ->
+  // requirePermission('manageSettings'/'viewAuditLog')). Sesiapa tanpa sesi boleh terus curl
+  // laluan ni dan dapat statistik trafik dalaman (jumlah paparan harian, tren, slot paling
+  // diminati) yang sepatutnya khas untuk Editorium. requireAuth (bukan requirePermission
+  // lebih ketat) dipilih supaya konsisten dengan gerbang PALING LONGGAR dalam kumpulan
+  // Promise.all yang sama (content/all) — statistik paparan bukan tetapan sensitif macam
+  // weather-status/link-checks, cuma perlu sesi log masuk yang sah.
+  router.get('/view-stats', requireAuth, async (req, res) => {
     try {
       const days = Math.min(30, Math.max(1, parseInt(req.query.days, 10) || 7));
       const date = todayStr();
