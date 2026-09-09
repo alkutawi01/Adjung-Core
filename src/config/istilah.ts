@@ -126,6 +126,19 @@ export const SEMUA_LABEL_LALAI: { kategori: string; kunci: string; lalai: string
     kunci: `status.${nilai}`,
     lalai,
   })),
+  // SEBAB_MENUNGGU_LABEL (2026-09-04) tertinggal daripada senarai ni sejak ia ditambah — akibatnya
+  // dua kunci `status.pending.semakan`/`status.pending.slot_penuh` (dibaca sebenar oleh
+  // labelSebabMenunggu(), dipaparkan di IndeksConsole.tsx) tidak pernah disemai ke jadual
+  // `ui_labels` (server.js seedDatabase() gelung SEMUA_LABEL_LALAI sahaja) DAN tidak pernah
+  // muncul dalam senarai boleh sunting di Tetapan → Label Sistem (TetapanConsole.tsx, guna
+  // sumber SAMA) — gantian() dalam labelSebabMenunggu() sentiasa jatuh balik ke lalai kod keras,
+  // walau kod ni sudah lengkap sokong override. Ditambah supaya kedua-dua label ni sunting-boleh
+  // macam label status lain.
+  ...Object.entries(SEBAB_MENUNGGU_LABEL).map(([sebab, lalai]) => ({
+    kategori: 'Status',
+    kunci: `status.pending.${sebab}`,
+    lalai,
+  })),
   ...Object.entries(MESEJ_SISTEM_LABEL).map(([kunci, lalai]) => ({
     kategori: 'Mesej Sistem',
     kunci,
