@@ -25,6 +25,7 @@ import { validateContentBudget, validateBidangTopik, validateMedanTambahan, vali
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, effectiveMinBriefLong } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
+import { MANUAL_BLOCK_SPLIT_REGEX } from './core/editorial/ManualBlockFormat.js';
 import { checkAllSourceLinks } from './core/editorial/LinkChecker.js';
 import { sahkanUrlSelamatUntukFetch, fetchSelamat } from './core/utils/urlSafety.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
@@ -3261,7 +3262,15 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   }
 
   // Robust multi-boundary block splitting: splits on ____, ---, ===, full underscore lines, or new UUID/Tajuk/Event lines
-  const blocks = summaryText.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i);
+  // (2026-09-09, dapatan drift bug-hunt) — GUNA regex KONGSI drpd ManualBlockFormat.js, bukan
+  // salinan literal tempatan. Salinan lama di sini KETINGGALAN pembetulan lookbehind 2026-08-16
+  // (?<!Topik:[^\n]*) — pepijat "Tampal" Izzat sebenar (blok AI luaran terbelah dua pada baris
+  // kosong selepas "Topik:") SUDAH dibaiki di client (SlotManagerModal/parseManualSummaryBlocks)
+  // tapi TIDAK PERNAH sampai ke laluan TERBIT SEBENAR ni (syncManualObjectsForSlot ->
+  // validateAndPrepareManualItems -> parseManualSummaryTemplate). Kandungan client preview nampak
+  // BETUL (satu blok), tapi Terbit sebenar tetap belah dua (blok 1 nyaris kosong, blok 2 hilang
+  // Topik) — nota di atas fail ni ("MESTI kekal segerak") gagal dikuatkuasakan pada regex ni.
+  const blocks = summaryText.split(MANUAL_BLOCK_SPLIT_REGEX);
   const items = [];
   for (const block of blocks) {
     const lines = block.split('\n');
