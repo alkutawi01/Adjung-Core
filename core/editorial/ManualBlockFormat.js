@@ -58,13 +58,18 @@ const MEDAN_BERBILANG_BARIS = new Set(['brief', 'briefLong', 'note', 'penerangan
 // sambungan. Senarai ni MESTI kekal segerak dgn rantaian else-if dalam parseManualBlockFields;
 // kalau label baharu ditambah di sana tapi terlupa di sini, baris label itu akan tersalah anggap
 // sebagai teks sambungan dan tenggelam ke dalam medan sebelumnya.
-const LABEL_DIKENALI = [
+// (2026-09-09, disambung eksport selepas dapatan drift #213/#214 — server.js parseManualSummaryTemplate
+// dahulu simpan SALINAN LITERAL berasingan senarai ni (LABEL_DIKENALI_SRV) dan nyahBungkusMarkdownLink
+// di bawah (nyahBungkusMarkdownLinkSrv), punca akar SAMA macam regex belah blok yg drift di #213 —
+// senarai/fungsi dieksport supaya server.js import TERUS, bukan taip semula & harap "MESTI kekal segerak"
+// dikuatkuasakan oleh disiplin manusia sahaja.
+export const LABEL_DIKENALI = [
   'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
   'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
   'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Sebab Penolakan:', 'Imej:', 'Penganjur:',
   'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:', 'Artikel Jurnal:',
 ];
-const ADA_LABEL_DIKENALI = (trimmed) =>
+export const ADA_LABEL_DIKENALI = (trimmed) =>
   LABEL_DIKENALI.some((label) => trimmed.toLowerCase().startsWith(label.toLowerCase()));
 
 // Nyahbungkus pautan gaya Markdown "[teks](url)" (2026-08-16, pepijat kandungan sebenar pertama
@@ -76,7 +81,7 @@ const ADA_LABEL_DIKENALI = (trimmed) =>
 // URL sebenar (dalam kurungan) memang sah. Guna bahagian DALAM KURUNGAN (href sebenar Markdown),
 // bukan teks label — kedua-dua bahagian selalunya sama untuk kes ni, tapi kalau berbeza, kurungan
 // mewakili sasaran pautan sebenar mengikut spesifikasi Markdown.
-const nyahBungkusMarkdownLink = (raw) => {
+export const nyahBungkusMarkdownLink = (raw) => {
   const t = (raw || '').trim();
   const m = t.match(/^\[([^\]]*)\]\(([^)]*)\)$/);
   return m ? m[2].trim() : t;

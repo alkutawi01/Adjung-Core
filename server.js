@@ -25,7 +25,7 @@ import { validateContentBudget, validateBidangTopik, validateMedanTambahan, vali
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, effectiveMinBriefLong } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
-import { MANUAL_BLOCK_SPLIT_REGEX } from './core/editorial/ManualBlockFormat.js';
+import { MANUAL_BLOCK_SPLIT_REGEX, LABEL_DIKENALI, ADA_LABEL_DIKENALI, nyahBungkusMarkdownLink } from './core/editorial/ManualBlockFormat.js';
 import { checkAllSourceLinks } from './core/editorial/LinkChecker.js';
 import { sahkanUrlSelamatUntukFetch, fetchSelamat } from './core/utils/urlSafety.js';
 import { createAIRoutes } from './core/routes/aiRoutes.js';
@@ -3339,22 +3339,11 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       .replace(/\s{2,}/g, ' ')
       .trim();
 
-    // Nyahbungkus pautan gaya Markdown "[teks](url)" (2026-09-08, dapatan drift semasa bug-hunt
-    // Scheduling/ManualBlockFormat) — salinan client (ManualBlockFormat.js nyahBungkusMarkdownLink,
-    // ditambah 2026-08-16 selepas pepijat kandungan sebenar Izzat) sudah lakukan ini pada case
-    // 'url', tapi salinan server ni (parseManualSummaryTemplate, LALUAN TERBIT SEBENAR via
-    // syncManualObjectsForSlot) tertinggal — dua penghurai ni didokumenkan "MESTI kekal segerak"
-    // (nota atas fail ni), tapi tak. Kesan sebenar: AI luaran bungkus URL panjang sebagai
-    // "[https://x.com/...](https://x.com/...)" (biasa bila teks paparan & sasaran pautan sama),
-    // client preview/queue editor nyahbungkus betul, tapi bila kandungan tu benar-benar DITERBITKAN
-    // (parseManualSummaryTemplate di sini), keseluruhan rentetan Markdown mentah tersimpan sebagai
-    // URL, gagal validateSourceUrl (ContentBudget.js, minta skema http(s):// di AWAL rentetan).
-    const nyahBungkusMarkdownLinkSrv = (raw) => {
-      const t = (raw || '').trim();
-      const m = t.match(/^\[([^\]]*)\]\(([^)]*)\)$/);
-      return m ? m[2].trim() : t;
-    };
-
+    // Nyahbungkus pautan gaya Markdown "[teks](url)" — 2026-09-08 dapatan drift bug-hunt tangkap
+    // salinan literal server ni tertinggal drpd pembetulan client 2026-08-16; 2026-09-09 dibaiki
+    // TERUS pada akarnya (bukan cuma tampal semula salinan yang betul) — nyahBungkusMarkdownLink
+    // kini dieksport ManualBlockFormat.js dan diimport terus di sini, jadi tiada lagi DUA salinan
+    // literal utk drift semula pada masa depan.
     // Medan berbilang baris/perenggan (2026-08-12, pepijat #21 — SALINAN KEDUA). Nilai kekal
     // dalam pemboleh ubah tempatan di sini (bukan objek `fields` seperti ManualBlockFormat.js),
     // jadi guna penyetel bernama supaya baris sambungan tahu ke mana hendak ditambah.
@@ -3369,15 +3358,9 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       else if (medanSemasa === 'rejectionNote') rejectionNote += (rejectionNote ? '\n' : '') + teks;
       else if (medanSemasa === 'penerangan') penerangan += (penerangan ? '\n' : '') + teks;
     };
-    // MESTI kekal segerak dengan LABEL_DIKENALI dalam ManualBlockFormat.js — lihat nota di sana.
-    const LABEL_DIKENALI_SRV = [
-      'UUID:', 'Status:', 'Tajuk:', 'Event:', 'Huraian panjang:', 'Huraian ringkas:', 'Huraian:',
-      'Bidang:', 'Kategori:', 'Topik:', 'Jenis sumber:', 'Tarikh mula:', 'Tarikh tamat:',
-      'Tarikh sumber:', 'Tarikh:', 'Penulis:', 'Nota:', 'Sebab Penolakan:', 'Imej:', 'Penganjur:',
-      'Lokasi:', 'Akses:', 'Penerangan:', 'Sumber:', 'URL:', 'Artikel Jurnal:',
-    ];
-    const adaLabelDikenaliSrv = (t) =>
-      LABEL_DIKENALI_SRV.some((label) => t.toLowerCase().startsWith(label.toLowerCase()));
+    // (2026-09-09) Dahulu salinan literal berasingan LABEL_DIKENALI_SRV di sini — dipadam,
+    // guna LABEL_DIKENALI/ADA_LABEL_DIKENALI kongsi diimport terus drpd ManualBlockFormat.js
+    // (sama pembetulan akar seperti nyahBungkusMarkdownLink di atas).
 
     // Label TUNGGAL yang nilainya diletak pada baris BERASINGAN selepas label (2026-08-18,
     // pepijat tampalan Izzat — kandungan Instagram, "sistem tak boleh baca") — SALINAN KEDUA
@@ -3420,7 +3403,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
           sources.push({ name: nilai, url: '', date: '' });
           break;
         case 'url': {
-          const nilaiUrl = nyahBungkusMarkdownLinkSrv(nilaiMentah || '');
+          const nilaiUrl = nyahBungkusMarkdownLink(nilaiMentah || '');
           if (sources.length === 0) {
             sources.push({ name: '', url: nilaiUrl, date: '' });
           } else {
@@ -3443,7 +3426,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       // Nilai bagi label tunggal yang menanti — lihat nota di ManualBlockFormat.js.
       if (labelTunggalMenanti) {
         if (trimmed === '') continue;
-        if (!adaLabelDikenaliSrv(trimmed)) {
+        if (!ADA_LABEL_DIKENALI(trimmed)) {
           terapkanLabelTunggalSrv(labelTunggalMenanti, trimmed);
           labelTunggalMenanti = null;
           continue;
@@ -3454,7 +3437,7 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
       // Baris sambungan — lihat nota penuh dalam ManualBlockFormat.js. Tanpa ini, perenggan kedua
       // ke atas hilang senyap pada laluan SIMPAN SLOT (syncManualObjectsForSlot), iaitu laluan
       // yang butang "Simpan sebagai draf"/"Terbit" dalam modal editor benar-benar gunakan.
-      if (medanSemasa && !adaLabelDikenaliSrv(trimmed)) {
+      if (medanSemasa && !ADA_LABEL_DIKENALI(trimmed)) {
         tambahSambungan(trimmed);
         continue;
       }
