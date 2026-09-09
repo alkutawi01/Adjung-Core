@@ -84,7 +84,19 @@ export function parseRssXml(xmlString) {
     // panggil toISOString(); tarikh tak sah jatuh balik ke SEKARANG (sama corak seperti cabang
     // "tiada dateMatch langsung" di bawah) — item tu tetap diproses, cuma dianggap "baharu" bagi
     // tujuan penapisan usia (`maxNewsAgeHours`), bukan digugurkan bersama seluruh suapan.
-    const dateMatch = block.match(/<(?:pubDate|published|updated)[^>]*>([\s\S]*?)<\/(?:pubDate|published|updated)>/i);
+    // 2026-09-09 (dapatan bug-hunt lanjutan #180) — corak SAMA "ambil elemen PERTAMA tanpa
+    // hirau peranan" berulang di sini. Regex asal (alternation tanpa bendera global) ambil
+    // mana-mana antara <pubDate>/<published>/<updated> yang MUNCUL DAHULU dalam block XML —
+    // bukan ikut keutamaan makna. Entri Atom (cth suapan Blogger) kerap ada KEDUA-DUA
+    // <updated> (bila entri TERAKHIR diubah suai) DAN <published> (bila artikel MULA
+    // diterbitkan) dalam SATU entri yang sama, urutan berbeza ikut penjana suapan — kalau
+    // <updated> muncul dahulu, tarikh "penerbitan" yang disimpan sebenarnya tarikh KEMASKINI
+    // TERAKHIR (boleh jauh lebih baharu drpd tarikh terbit sebenar), menjejaskan penapisan
+    // usia (`maxNewsAgeHours`) dan tarikh dipaparkan pembaca. Dibetulkan: utamakan
+    // <published>/<pubDate> (tarikh asal) secara eksplisit, <updated> cuma fallback bila
+    // langsung tiada elemen tarikh-asal dalam entri tu.
+    const dateMatchAsal = block.match(/<(?:pubDate|published)[^>]*>([\s\S]*?)<\/(?:pubDate|published)>/i);
+    const dateMatch = dateMatchAsal || block.match(/<updated[^>]*>([\s\S]*?)<\/updated>/i);
     let publishedAt = new Date().toISOString();
     if (dateMatch) {
       // 2026-09-09 (dapatan bug-hunt) — semua medan lain (title/desc/link/guid) buang
