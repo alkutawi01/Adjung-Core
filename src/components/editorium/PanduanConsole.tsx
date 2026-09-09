@@ -446,7 +446,9 @@ export const PanduanConsole: React.FC = () => {
             masuk ke status "Menunggu Slot Kosong" dan dinaikkan ke slot secara automatik. Jangan
             mengarkibkan kandungan sedia ada secara manual semata-mata untuk membuka ruang. Medan
             Tarikh Sumber (YYYY-MM-DD) wajib diisi bagi kandungan yang menggunakan sumber luar.
-            Medan Sumber terhad kepada kira-kira 25 aksara; gunakan singkatan jika perlu.
+            Medan Sumber terhad kepada kira-kira 50 aksara (nilai ditetapkan di Tetapan → Tetapan Am
+            Slot, boleh berbeza jika Ketua Editor melaraskannya); gunakan singkatan jika nama
+            sumber masih tidak muat.
           </Card>
           <Card title="Latar belakang — mengapa peraturan ini ketat">
             Disusun pada 2026-09-04 selepas insiden sebenar: satu artikel direka-reka SEPENUHNYA
