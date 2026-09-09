@@ -8,7 +8,7 @@ import { useAmaranBelumSimpan } from '../../hooks/useAmaranBelumSimpan';
 import { AmaranBelumSimpan } from '../common/AmaranBelumSimpan';
 import { BudgetMeter } from './SlotManagerModal';
 import { ceilingForSlot } from '../../../core/editorial/GeometryConfig.js';
-import { tanganiKekunciItalic } from '../../utils.tsx';
+import { tanganiKekunciItalic, safeParseInline } from '../../utils.tsx';
 
 interface TickerManagementModalProps {
   onClose: () => void;
@@ -1079,7 +1079,7 @@ export const TickerManagementModal: React.FC<TickerManagementModalProps> = React
                                   )}
                                 </div>
                                 <h6 className="font-serif text-xs font-bold text-stone-900 leading-snug">
-                                  {item.title}
+                                  {safeParseInline(item.title)}
                                 </h6>
                                 {item.formattedBrief && (
                                   <p className="font-sans text-[11px] text-stone-600 leading-relaxed bg-white p-2 rounded border border-stone-150">
