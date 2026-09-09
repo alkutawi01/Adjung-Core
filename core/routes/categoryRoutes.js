@@ -165,7 +165,11 @@ export function createCategoryRoutes(db) {
       res.json({ success: true, category: reg });
     } catch (err) {
       console.error('Activate category error:', err);
-      res.status(500).json({ error: err.message || 'Gagal mengaktifkan Bidang baharu.' });
+      // 400 (bukan 500) bila ditolak sebab pertindihan nama Bidang aktif (2026-09-09, sama
+      // corak seperti POST /categories/set-active) — ralat VALIDASI eksplisit, bukan kegagalan
+      // pelayan (lihat pembetulan activateCategory() di CategoryRegistry.js).
+      const berlanggar = /sudah wujud/i.test(err.message || '');
+      res.status(berlanggar ? 400 : 500).json({ error: err.message || 'Gagal mengaktifkan Bidang baharu.' });
     }
   });
 

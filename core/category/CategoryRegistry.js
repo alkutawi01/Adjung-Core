@@ -376,6 +376,28 @@ class CategoryRegistry {
     const slug = this.getSlug(trimmedName);
     const now = new Date().toISOString();
 
+    // PEMBETULAN (2026-09-09, dapatan bug-hunt) — invariant "tiada dua baris CategoryRegistry
+    // AKTIF boleh berkongsi `name` (case-insensitive)" sudah dikuatkuasakan di setActiveStatus()
+    // (laluan pulih) dan renameActiveCategory() (lihat komen panjang di kedua-dua fungsi tu),
+    // tapi laluan KETIGA yang boleh set isActive=1 dgn `name` sewenang-wenangnya — laluan ni
+    // ("+ Tambah Bidang", dua cawangan: cipta row baharu ATAU reaktifkan row sedia ada ikut slug
+    // nama BAHARU yang ditaip, BUKAN slug row asal) — terlepas pandang sepenuhnya. Disahkan
+    // reproduce (`.simulasi/sim70-aktifkan-bidang-nama-berlanggar.mjs`): Bidang A dinamakan
+    // semula (slug dikunci, cuma `name` berubah) ke "Bar", kemudian "+ Tambah Bidang" ditaip
+    // "Bar" lagi — slug("Bar") tak padan slug A (yang masih slug asal A), jadi cawangan CIPTA
+    // BAHARU tercetus, row baharu terus isActive=1 dgn name="Bar" IDENTIK A yang masih aktif.
+    // Sekat sini (sama corak, sebelum kedua-dua cawangan) — Bidang yang SUDAH pegang slug ni
+    // sendiri dikecualikan (kes reaktifkan slug sendiri, `slug != ?` di bawah bukan `id != ?`
+    // sebab row tu mungkin belum wujud dlm kes cipta baharu).
+    const berlanggar = await this.dbGet(
+      db,
+      "SELECT id FROM CategoryRegistry WHERE isActive = 1 AND slug != ? AND LOWER(name) = LOWER(?)",
+      [slug, trimmedName]
+    );
+    if (berlanggar) {
+      throw new Error(`Bidang aktif "${trimmedName}" sudah wujud. Namakan semula atau pilih nama lain.`);
+    }
+
     const existing = await this.dbGet(db, "SELECT * FROM CategoryRegistry WHERE slug = ?", [slug]);
     if (existing) {
       const finalColor = color || existing.color;
