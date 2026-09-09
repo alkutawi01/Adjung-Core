@@ -354,6 +354,22 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       // bawa manageRbac), satu-satunya pemulihan ialah edit terus adjung.db. Tolak simpanan yang
       // akan tinggalkan SIFAR peranan dengan manageRbac=true, sama falsafah seperti
       // adaPentadbirAktifLain() — pertahanan di titik SIMPAN, bukan lepas fakta.
+      // Sekatan BENTUK (2026-09-09, dapatan bug-hunt susulan #197/198/199/222/223) — ketiga-tiga
+      // sekatan kunci-diri di bawah cuma jalan `if (Array.isArray(s.rolePermissions))`, jadi
+      // `rolePermissions` yang DIHANTAR (lepas gerbang manageRbac di atas) tapi BUKAN array
+      // (cth objek `{}`, string, nombor) melangkau KESEMUA tiga sekatan sepenuhnya (bukan
+      // ditolak) dan terus disimpan (`JSON.stringify(v || {})` terima apa-apa jenis tanpa
+      // aduan). `core/middleware/auth.js` `parseStoredMatrix()` juga guna `Array.isArray` —
+      // matriks bentuk salah ni gagal senyap semasa dibaca semula (null), SEMUA kebenaran
+      // jatuh balik ke `DEFAULT_PERMISSIONS` tanpa jejak — kesan SAMA yang tiga sekatan di
+      // bawah direka untuk halang, cuma terlepas laluan "jenis salah" ni. Tolak terus di sini
+      // supaya bentuk tak sah tak pernah sampai ke sebarang cabang kunci-diri di bawah.
+      if (s.rolePermissions !== undefined && !Array.isArray(s.rolePermissions)) {
+        return res.status(400).json({
+          error: 'Matriks Kawalan Akses (rolePermissions) mesti senarai (array) rekod peranan. Tetapan tidak disimpan.',
+        });
+      }
+
       if (Array.isArray(s.rolePermissions)) {
         // Tapis kepada roleId SAH sahaja dahulu (2026-09-09, dapatan bug-hunt susulan #197/198/199)
         // — ketiga-tiga semakan kunci-diri di bawah (manageRbac/manageSettings/manageAccounts)
