@@ -114,9 +114,22 @@ class CategoryRegistry {
     // algorithmically rather than wrapping around and reusing an already-assigned color.
     let chosenColor = COLOR_PALETTE.find(c => !assignedColors.includes(c.toUpperCase()));
     if (!chosenColor) {
+      // Gelung cuba-semula (2026-09-09, dapatan bug-hunt) — dahulu setiap ulangan while panggil
+      // generateColorBeyondPalette(allRegistered.length + assignedColors.length), TAPI kedua-dua
+      // operand tu ialah .length ARRAY YANG SAMA (assignedColors = allRegistered.map(...)), jadi
+      // hasilnya SATU nilai TETAP (2 x panjang asal) — bukan bertambah setiap kali cuba semula
+      // macam niat komen atas ("generate a new one algorithmically"). Kalau warna beyond-palette
+      // PERTAMA (index allRegistered.length) berlanggar dengan warna sedia ada, while loop ulang
+      // kira nilai index SAMA berulang kali selama-lamanya — hue keluaran SAMA setiap pusingan,
+      // gelung TIDAK PERNAH tamat (server tergantung/hang pada permintaan cipta Bidang tu).
+      // Dibetulkan: kaunter cuba-semula BERASINGAN yang bertambah SETIAP ulangan (offset lepas
+      // index asal), supaya setiap percubaan hasilkan hue GOLDEN_ANGLE berbeza sehingga jumpa
+      // satu yang belum digunakan.
+      let cubaan = 0;
       chosenColor = this.generateColorBeyondPalette(allRegistered.length);
       while (assignedColors.includes(chosenColor.toUpperCase())) {
-        chosenColor = this.generateColorBeyondPalette(allRegistered.length + assignedColors.length);
+        cubaan += 1;
+        chosenColor = this.generateColorBeyondPalette(allRegistered.length + cubaan);
       }
     }
     return chosenColor;
