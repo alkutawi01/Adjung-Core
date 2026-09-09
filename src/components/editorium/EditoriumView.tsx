@@ -1191,6 +1191,7 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           formConfig={barSlotEditor.formConfig}
           isSavingSlot={barSlotEditor.isSavingSlot}
           saveError={barSlotEditor.saveError}
+          currentEditoriumName={currentUser.name}
           onClose={barSlotEditor.closeSlotEditor}
           onSave={barSlotEditor.handleSaveSlot}
           // Slot Bar ikut peraturan tugasan yang SAMA (2026-08-08, Fasa 2). Slot semasa sentiasa

@@ -22,6 +22,9 @@ interface BarSlotManagerModalProps {
   formConfig: any;
   isSavingSlot: boolean;
   saveError?: string;
+  // Nama editor semasa (2026-09-09) — lihat kunciDrafTempatan di bawah untuk sebab ni WAJIB,
+  // sama seperti SlotManagerModal.tsx.
+  currentEditoriumName?: string;
   onClose: () => void;
   // LIFE-01 (audit ChatGPT 2026-08-08) — useSlotEditor.handleSaveSlot kini pulangkan array hasil
   // publish pada kejayaan (bukan `true`); array (walaupun []) sentiasa truthy dlm JS jadi `if (ok)`
@@ -95,7 +98,7 @@ function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
 }
 
 export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
-  editingSlotIndex, formConfig, isSavingSlot, saveError, onClose, onSave, slotOptions, onSwitchSlot, onToast,
+  editingSlotIndex, formConfig, isSavingSlot, saveError, currentEditoriumName, onClose, onSave, slotOptions, onSwitchSlot, onToast,
 }) => {
   const ceiling = ceilingForSlot(editingSlotIndex);
 
@@ -126,7 +129,13 @@ export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
 
   // Auto-simpan draf SENYAP (2026-08-08) — sama mekanisme/sebab macam SlotManagerModal.tsx, lihat
   // src/hooks/useAutoSimpanTempatan.ts (localStorage sahaja, tak pernah sentuh pelayan).
-  const kunciDrafTempatan = `adjung-draf-tempatan-bar-slot-${editingSlotIndex}`;
+  // Kunci ikut slot+editor (2026-09-09, pembetulan — dahulu HANYA slot, tak macam
+  // SlotManagerModal.tsx yang sudah sertakan currentEditoriumName sejak awal). Slot Bar turut
+  // boleh dikongsi >1 editor (lihat slotBolehDicapai di EditoriumView.tsx), dan localStorage
+  // berterusan merentasi log masuk pada peranti/pelayar yang sama — tanpa nama editor, draf
+  // tempatan editor A boleh tersilap ditawarkan sbg "Pulihkan" kepada editor B yang log masuk
+  // selepas itu pada komputer sama.
+  const kunciDrafTempatan = `adjung-draf-tempatan-bar-slot-${editingSlotIndex}-${currentEditoriumName || 'tanpa-nama'}`;
   const { disimpanPada } = useAutoSimpanTempatan(kunciDrafTempatan, items, hasUnsavedWork);
   const [tawaranPulih, setTawaranPulih] = useState<{ items: any[]; pada: number } | null>(() => {
     const snapshot = bacaDrafTempatan<any[]>(kunciDrafTempatan);
