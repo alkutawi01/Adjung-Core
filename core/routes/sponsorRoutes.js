@@ -147,12 +147,30 @@ async function bacaPetaSlot(dbAll, sponsorIds) {
   return peta;
 }
 
+// Kunci penggantian slot penaja (2026-09-09, ditemui semasa audit pasangan sibling — corak
+// bug SAMA PERSIS yang dibaiki di slotEditorRoutes.js pada 2026-08-08 tapi tak pernah
+// disambung ke sini). DELETE SELURUH baris sponsor_slots satu penaja + INSERT semula bukan
+// operasi atomik. Dua PATCH /system/sponsors/:id berselang-seli pada PENAJA SAMA (cth dua
+// Pentadbir ubah senarai slot penaja tu hampir serentak) boleh jadi: baca lama [1,2] → padam
+// kedua-duanya → INSERT [1,3] → INSERT [1,4], hasil akhir [1,3,1,4], BUKAN [1,3] atau [1,4]
+// yang mana-mana permintaan sebenarnya minta — "lost update" sebenar. Rantaian promise global
+// (bukan kunci per-sponsorId) memadai sama sebab pelayan satu proses (PM2 mod fork) dan
+// trafik urus penaja sangat jarang (tindakan Editorium Pentadbir, bukan trafik pembaca).
+let rantaianKunciSlotPenaja = Promise.resolve();
+function denganKunciSlotPenaja(fn) {
+  const giliran = rantaianKunciSlotPenaja.catch(() => {}).then(fn);
+  rantaianKunciSlotPenaja = giliran.catch(() => {});
+  return giliran;
+}
+
 async function tulisSlotUntukSponsor(dbRun, sponsorId, slotIndexes) {
-  await dbRun('DELETE FROM sponsor_slots WHERE sponsorId = ?', [sponsorId]);
-  const senarai = Array.isArray(slotIndexes) ? slotIndexes : [];
-  for (const slotIndex of senarai) {
-    await dbRun('INSERT INTO sponsor_slots (sponsorId, slotIndex) VALUES (?, ?)', [sponsorId, slotIndex]);
-  }
+  return denganKunciSlotPenaja(async () => {
+    await dbRun('DELETE FROM sponsor_slots WHERE sponsorId = ?', [sponsorId]);
+    const senarai = Array.isArray(slotIndexes) ? slotIndexes : [];
+    for (const slotIndex of senarai) {
+      await dbRun('INSERT INTO sponsor_slots (sponsorId, slotIndex) VALUES (?, ?)', [sponsorId, slotIndex]);
+    }
+  });
 }
 
 // logoUrl boleh jadi laluan muat naik relatif (/uploads/xxx daripada /api/media/upload) ATAU
