@@ -752,6 +752,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // sebagai label awam tanpa trim (ruang/kes janggal bocor terus ke pembaca). Disamakan
       // dengan sepenuhnya konvensyen POST/finalCategory di sini.
       const desk = deskMentah !== undefined ? String(deskMentah).trim().toUpperCase() : undefined;
+      // Topik sama pepijat bentuk seperti `desk` di atas (2026-09-09, susulan dapatan #224) —
+      // validateBidangTopik() SENDIRI `.trim()` Topik utk semakan kosong/had aksara (lihat
+      // `topikTrimmed` di ContentBudget.js), dan log audit taksonomi di bawah (baris ~1341) turut
+      // `.trim()` Topik SEBELUM banding lama-vs-baharu (`topikSelepas`) — tapi sebelum pembetulan
+      // ni, nilai yang BENAR-BENAR ditulis ke `editorial_attribute_values` (attrCandidates) ialah
+      // `topik` MENTAH terus daripada req.body, bukan versi trim tu. Kesan: (1) log audit senyap
+      // LANGKAU catat perubahan kalau bezanya cuma ruang lebih hujung ("Ekonomi " vs "Ekonomi")
+      // sedangkan nilai tersimpan sebenar BERUBAH; (2) `articleUrlRoutes.js`
+      // (`ambilKandunganUntukSeo`) papar Topik terus sebagai teks meta SEO awam tanpa trim —
+      // ruang hujung bocor terus ke HTML awam. Disamakan dengan konvensyen `desk`: trim SEKALI
+      // di sini, guna nilai bersih ni pada SETIAP tapak (bukan cuma perbandingan).
+      const topikNorm = topik !== undefined ? String(topik).trim() : undefined;
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
@@ -1074,7 +1086,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }).isValid;
         const medanCheck = medanLamaGagal
           ? { isValid: true }
-          : validateMedanTambahan({ summaryLong: briefLong, source, topik, note });
+          : validateMedanTambahan({ summaryLong: briefLong, source, topik: topikNorm, note });
         if (!medanCheck.isValid) {
           return res.status(400).json({ error: `${medanCheck.reason} Suntingan tidak disimpan — versi sedia ada kekal disiarkan seperti sebelum ini.` });
         }
@@ -1156,7 +1168,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             "SELECT valueText FROM editorial_attribute_values WHERE objectId = ? AND revisionId = ? AND attributeId = 'topik'",
             [id, rev.id]
           );
-          const nextTopik = topik !== undefined ? topik : (existingTopikRow ? existingTopikRow.valueText : '');
+          const nextTopik = topikNorm !== undefined ? topikNorm : (existingTopikRow ? existingTopikRow.valueText : '');
           const bidangTopikCheck = validateBidangTopik({
             slotBidang: slotRow ? slotRow.manualDesk : null,
             itemBidang: nextDesk,
@@ -1301,7 +1313,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           }
         }
 
-        const attrCandidates = { desk, source, url, imageUrl, topik, briefLong, originalDate, note, notaOleh: notaOlehBaharu };
+        const attrCandidates = { desk, source, url, imageUrl, topik: topikNorm, briefLong, originalDate, note, notaOleh: notaOlehBaharu };
         for (const [key, val] of Object.entries(attrCandidates)) {
           if (val === undefined) continue;
           const existing = await dbGet(
@@ -1338,7 +1350,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // Dicatat hanya bila nilai benar-benar BERUBAH (bukan setiap simpanan yang kebetulan
       // menghantar semula nilai sama), selaras falsafah "jangan satu baris log setiap ketikan".
       const bidangSelepas = desk !== undefined ? String(desk).trim() : bidangSebelum;
-      const topikSelepas = topik !== undefined ? String(topik).trim() : topikSebelum;
+      const topikSelepas = topikNorm !== undefined ? topikNorm : topikSebelum;
       const bidangBerubah = bidangSelepas.toUpperCase() !== bidangSebelum.toUpperCase();
       const topikBerubah = topikSelepas !== topikSebelum;
       if (bidangBerubah || topikBerubah) {
