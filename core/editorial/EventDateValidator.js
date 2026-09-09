@@ -70,13 +70,31 @@ const NAMA_BULAN = [
 // Format satu tarikh ISO (yyyy-mm-dd, daripada <input type="date">) ke "21 OGOS 2026". Nilai
 // bukan-ISO (teks lama bebas, cth "21 Ogos 2026" ditaip terus sebelum pemetik kalendar wujud)
 // dipulangkan AS-IS, uppercase — tiada percubaan menghurai format bebas, elak paparan rosak.
+//
+// Padanan bentuk regex sahaja TAK CUKUP (dapatan bug-hunt 2026-09-09, sama corak seperti
+// validateTarikhSumber() di ContentBudget.js) — "2026-02-30" (Februari tiada 30 hari) lulus
+// regex asal dan `NAMA_BULAN[Number(bulan)-1]` (bulan 02 sah), jadi fungsi ni dahulu terus
+// papar "30 FEB 2026" kepada pembaca: tarikh mustahil tapi kelihatan munasabah, senyap tanpa
+// sebarang amaran. Blok manual/API terus (server.js, case 'tarikhMula'/'tarikhTamat') tak
+// pernah sahkan tarikh acara Bar secara kalendar sebenar sebelum simpan, jadi paparan ialah
+// SATU-SATUNYA gerbang — sahkan bulan 01-12 DAN hari sebenar wujud bagi bulan/tahun tu (guna
+// Date.UTC + round-trip, elak anjak zon waktu/anjak senyap "30 Feb" -> "2 Mac") sebelum bina
+// label; tarikh yang gagal jatuh balik ke rentetan asal uppercase (sama falsafah sedia ada
+// utk format bukan-ISO — jangan tunjuk tarikh salah sebagai kalau ia sah).
 function formatSatuTarikh(iso) {
-  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec((iso || '').trim());
-  if (!match) return (iso || '').trim().toUpperCase();
+  const trimmed = (iso || '').trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(trimmed);
+  if (!match) return trimmed.toUpperCase();
   const [, tahun, bulan, hari] = match;
   const namaBulan = NAMA_BULAN[Number(bulan) - 1];
-  if (!namaBulan) return iso.toUpperCase();
-  return `${Number(hari)} ${namaBulan} ${tahun}`;
+  if (!namaBulan) return trimmed.toUpperCase();
+  const tahunNum = Number(tahun);
+  const bulanNum = Number(bulan);
+  const hariNum = Number(hari);
+  const d = new Date(Date.UTC(tahunNum, bulanNum - 1, hariNum));
+  const sahBenar = d.getUTCFullYear() === tahunNum && d.getUTCMonth() === bulanNum - 1 && d.getUTCDate() === hariNum;
+  if (!sahBenar) return trimmed.toUpperCase();
+  return `${hariNum} ${namaBulan} ${tahun}`;
 }
 
 /**
