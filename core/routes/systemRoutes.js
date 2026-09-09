@@ -383,7 +383,23 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         // ni ialah menghalang tepat senario tu. Disahkan reproduce, `.simulasi/
         // sim222-rbac-invariant-fake-roleid-bypass.mjs`.
         const risSah = s.rolePermissions.filter((r) => r && ROLE_IDS.includes(r.roleId));
-        const masihAdaManageRbac = risSah.some((r) => r.permissions && r.permissions.manageRbac === true);
+        // Kira EFEKTIF ikut roleId (2026-09-09, dapatan bug-hunt susulan #221/#222 — vein sama,
+        // varian baharu) — `risSah.some(...)` di bawah asalnya semak SETIAP BARIS mentah, tanpa
+        // dedupe roleId. Tapi `parseStoredMatrix()` (core/middleware/auth.js) yang BENAR-BENAR
+        // dibaca semasa runtime buat `out[row.roleId] = row.permissions` di dalam gelung — kalau
+        // roleId SAMA muncul BERULANG kali dalam array yang dihantar, baris TERAKHIR yang MENANG
+        // (overwrite), bukan gabungan/mana-mana satu. Ini bercanggah terus dengan `.some()`:
+        // hantar DUA baris 'pentadbir' — baris pertama manageRbac:true (lulus .some() semasa
+        // simpan, 200 OK), baris KEDUA (terakhir) manageRbac:false (yang sebenarnya MENANG bila
+        // dibaca semula) — kunci-diri berlaku SENYAP walaupun semakan kata matriks ni selamat.
+        // Disahkan reproduce, `.simulasi/sim225-rbac-duplicate-roleid-bypass.mjs`. Betulkan:
+        // kira baris EFEKTIF (last-write-wins per roleId, SAMA PERSIS corak parseStoredMatrix())
+        // dahulu, baru jalankan tiga semakan invariant atas baris efektif tu — bukan senarai
+        // mentah yang mungkin ada duplikat roleId.
+        const efektifIkutPeranan = {};
+        for (const r of risSah) efektifIkutPeranan[r.roleId] = r;
+        const risEfektif = Object.values(efektifIkutPeranan);
+        const masihAdaManageRbac = risEfektif.some((r) => r.permissions && r.permissions.manageRbac === true);
         if (!masihAdaManageRbac) {
           return res.status(400).json({
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Kawalan Akses" (manageRbac). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
@@ -403,7 +419,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         // manageRbac (satu-satunya pemulihan ialah edit terus adjung.db), cuma laluan kuncinya
         // berbeza (gerbang luar, bukan cabang dalam). Tolak simpanan yang akan tinggalkan SIFAR
         // peranan dengan manageSettings=true, sama falsafah persis semakan manageRbac di atas.
-        const masihAdaManageSettings = risSah.some((r) => r.permissions && r.permissions.manageSettings === true);
+        const masihAdaManageSettings = risEfektif.some((r) => r.permissions && r.permissions.manageSettings === true);
         if (!masihAdaManageSettings) {
           return res.status(400).json({
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Tetapan Sistem" (manageSettings). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya, walaupun masih ada peranan dengan manageRbac. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
@@ -424,7 +440,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         // ness sebenar sistem hilang walaupun kedua-dua semakan sedia ada (manageRbac, manageSettings,
         // adaPentadbirAktifLain) individu masing-masing lulus. Tolak simpanan yang akan tinggalkan
         // SIFAR peranan dengan manageAccounts=true, sama falsafah persis dua semakan di atas.
-        const masihAdaManageAccounts = risSah.some((r) => r.permissions && r.permissions.manageAccounts === true);
+        const masihAdaManageAccounts = risEfektif.some((r) => r.permissions && r.permissions.manageAccounts === true);
         if (!masihAdaManageAccounts) {
           return res.status(400).json({
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Akaun" (manageAccounts). Ini akan mengunci SEMUA orang daripada laluan urus akaun (Direktori) selama-lamanya, walaupun akaun Pentadbir aktif masih wujud. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
