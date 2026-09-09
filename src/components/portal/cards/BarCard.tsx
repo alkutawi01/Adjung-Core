@@ -5,7 +5,6 @@ interface BarCardProps {
   item: any;
   onClick: () => void;
   isEditMode?: boolean;
-  onEditClick?: (e: React.MouseEvent) => void;
 }
 
 export function extractOrganizerLabel(item: any): string {
@@ -22,7 +21,7 @@ export function extractAccessBadge(item: any): { label: string; isTerbuka: boole
   };
 }
 
-export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode, onEditClick }) => {
+export const BarCard: React.FC<BarCardProps> = ({ item, onClick, isEditMode }) => {
   if (!item) return null;
 
   // Dapatan bug-hunt (2026-09-09): `item.publishedAt` (createdAt revisi Adjung sendiri, BUKAN
