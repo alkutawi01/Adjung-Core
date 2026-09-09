@@ -1055,6 +1055,19 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         return res.status(400).json({ error: 'Desk tidak wujud.' });
       }
 
+      // Sahkan cadangan memori WUJUD dan MASIH 'pending' SEBELUM menulis apa-apa (2026-09-09,
+      // dapatan bug-hunt) — dahulu INSERT rss_desk_rules jalan DULU, dan hanya SELEPAS itu UPDATE
+      // rss_editorial_memory disemak `changes === 0` untuk pulangkan 404. Kesannya: memoryId yang
+      // tak wujud/typo, ATAU cadangan yang SUDAH 'promoted' sebelum ni (cth dua klik "Naik Taraf"
+      // pantas pada cadangan sama, race UI biasa), tetap mencipta baris rss_desk_rules PENUH
+      // (kata kunci->Desk sebenar, terus berkuat kuasa pada penapisan RSS akan datang) walaupun
+      // respons keseluruhan 404 "Cadangan memori tidak dijumpai" — pengguna nampak kegagalan,
+      // padahal peraturan baharu sudah pun tertulis dan aktif secara senyap. Semak dahulu, tulis
+      // kemudian: sama falsafah "semua-atau-tiada" seperti pembetulan slotsConfigRoutes.js
+      // (Bidang/updatedAt pra-semak) sesi ni.
+      const memori = await dbGet("SELECT id FROM rss_editorial_memory WHERE id = ? AND status = 'pending'", [memoryId]);
+      if (!memori) return res.status(404).json({ error: 'Cadangan memori tidak dijumpai.' });
+
       const ruleId = `rule-mem-${Date.now()}`;
       const now = new Date().toISOString();
 
@@ -1063,7 +1076,7 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         VALUES (?, ?, ?, 40, 0, 1, 10, ?)
       `, [ruleId, desk.id, phrase.trim().toLowerCase(), now]);
 
-      const h = await dbRun("UPDATE rss_editorial_memory SET status = 'promoted' WHERE id = ?", [memoryId]);
+      const h = await dbRun("UPDATE rss_editorial_memory SET status = 'promoted' WHERE id = ? AND status = 'pending'", [memoryId]);
       if (!h || h.changes === 0) return res.status(404).json({ error: 'Cadangan memori tidak dijumpai.' });
 
       // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
