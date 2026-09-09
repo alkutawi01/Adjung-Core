@@ -6426,7 +6426,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {/* Brief body */}
                 {overlayItem.brief && (
                   <p className={`font-serif ${TICKER_OVERLAY_BRIEF_SIZE_CLASS[systemSettings?.tickerOverlayBriefSize || 'M'] || TICKER_OVERLAY_BRIEF_SIZE_CLASS.M} text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light`}>
-                    {safeParseInline(overlayItem.brief)}
+                    {renderDenganGlosari(overlayItem.brief || '', petaGlosariKad, new Set(), overlayItem.desk, safeParseInline)}
                   </p>
                 )}
 
