@@ -1134,8 +1134,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
               sources.map((s, i) => (
                 <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
                   <a href={s.url || '#'} target="_blank" rel="noopener noreferrer" style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--text-11)', color: 'var(--stone-500)', lineHeight: 1.5, wordBreak: 'break-all' }}>{s.name || '—'}</a>
-                  {s.date && (
-                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{s.date}</span>
+                  {/* Jatuh balik ke `sourceDate` untuk SUMBER PERTAMA sahaja bila `s.date` tiada
+                      (dapatan bug-hunt 2026-09-09) — sepadan `SenaraiSumberDesktop` (desktop,
+                      lihat `(s.date || (i === 0 && sourceDate))` di atas fail ni) dan dokumen
+                      kontrak prop `sourceDate` ("jatuh balik untuk kes sumber tunggal legasi").
+                      Cawangan telefon ni SEBELUM ni cuma semak `s.date` tanpa fallback — kandungan
+                      lama (`sources[0].date` kosong, `sourceDate` sedia ada) papar TIADA tarikh
+                      langsung di telefon walaupun tarikh sebenar wujud dan dipaparkan betul di
+                      desktop untuk kandungan SAMA. */}
+                  {(s.date || (i === 0 && sourceDate)) && (
+                    <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--text-9)', letterSpacing: 'var(--tracking-wide)', color: 'var(--stone-400)' }}>{s.date || sourceDate}</span>
                   )}
                 </div>
               ))
