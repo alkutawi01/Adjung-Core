@@ -739,7 +739,19 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   router.patch('/content/:id', requireAuth, gerbangKebenaranJadual, (req, res) => denganKunciKandungan(async () => {
     try {
       const { id } = req.params;
-      const { title, summary, desk, source, url, status, topik, slotIndex, briefLong, originalDate, note, scheduledPublishAt, scheduledExpiresAt } = req.body;
+      const { title, summary, desk: deskMentah, source, url, status, topik, slotIndex, briefLong, originalDate, note, scheduledPublishAt, scheduledExpiresAt } = req.body;
+      // Normalisasi Bidang (2026-09-09, dapatan bug-hunt) — POST /content (finalCategory,
+      // ~baris 2260) sentiasa `.trim().toUpperCase()` nilai desk sebelum simpan, tapi PATCH ni
+      // dahulu terus guna `desk` MENTAH terus daripada req.body ke editorial_attribute_values
+      // (attrCandidates di bawah). validateBidangTopik() SENDIRI trim+uppercase kedua-dua belah
+      // sebelum banding (jadi PATCH lulus gerbang sepadan Bidang slot walau ada ruang/kes huruf
+      // berbeza), tapi nilai yang benar-benar TERSIMPAN kekal bercampur ("Ekonomi ", "ekonomi",
+      // dsb). Ini pecahkan pemadanan `LOWER(av.valueText) = LOWER(?)` di bidangRoutes.js (LOWER
+      // TAK trim ruang lebih — satu ruang belakang cukup buat kandungan senyap hilang daripada
+      // Halaman Bidang walau status approved), dan articleUrlRoutes.js papar `desk` MENTAH terus
+      // sebagai label awam tanpa trim (ruang/kes janggal bocor terus ke pembaca). Disamakan
+      // dengan sepenuhnya konvensyen POST/finalCategory di sini.
+      const desk = deskMentah !== undefined ? String(deskMentah).trim().toUpperCase() : undefined;
       if (status !== undefined && !CONTENT_STATUSES.includes(status)) {
         return res.status(400).json({ error: `Status tidak sah. Guna salah satu: ${CONTENT_STATUSES.join(', ')}.` });
       }
