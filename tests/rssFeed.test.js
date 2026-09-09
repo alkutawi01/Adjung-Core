@@ -60,6 +60,24 @@ test('escapeXml - handles undefined/null gracefully', () => {
   assert.equal(escapeXml(null), '');
 });
 
+test('escapeXml - strips illegal XML control characters (bukan cuma escape entiti)', () => {
+  // XML 1.0 (production Char) HANYA benarkan tab/LF/CR di bawah 0x20 — aksara kawalan lain
+  // (cth vertical tab \x0B, sering terbawa masuk semasa salin-tampal daripada PDF/Word) TAK SAH
+  // walau selepas escape &/</>/"/'. Dahulu escapeXml() tak buang aksara ni, jadi satu kandungan
+  // approved dgn aksara kawalan rosakkan SELURUH suapan /rss.xml (bukan cuma satu item) untuk
+  // pembaca RSS/agregator ketat.
+  assert.equal(escapeXml('a\x0Bb\x00c\x1Fd'), 'abcd');
+  // Tab/LF/CR (aksara kawalan SAH dlm XML) mesti KEKAL, bukan turut terbuang.
+  assert.equal(escapeXml('a\tb\nc\rd'), 'a\tb\nc\rd');
+});
+
+test('buildRssXml - kandungan dgn aksara kawalan tak sah tidak merosakkan SELURUH suapan XML', () => {
+  const xml = buildRssXml([
+    { id: 'obj-4', slotIndex: 0, title: 'Tajuk ada aksara\x0Brosak', summary: 'Huraian biasa', createdAt: '2026-08-01T10:00:00.000Z' },
+  ], { siteUrl: 'https://example.com' });
+  assert.doesNotMatch(xml, /[\x00-\x08\x0B\x0C\x0E-\x1F]/);
+});
+
 test('toRfc822 - produces a valid RFC 822 date string', () => {
   const s = toRfc822('2026-08-01T10:00:00.000Z');
   assert.ok(!Number.isNaN(new Date(s).getTime()));
