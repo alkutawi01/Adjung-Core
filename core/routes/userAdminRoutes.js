@@ -377,7 +377,21 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
   });
 
   // PATCH /api/system/users/:id/status — Aktif/Cuti/Tidak Aktif/Ditamatkan.
-  router.patch('/users/:id/status', requirePermission('manageAccounts'), async (req, res) => {
+  // denganKunciPeranananPengguna (2026-09-09, bug-hunt, susulan #197) — laluan ni buat corak
+  // baca-semak-tulis (TOCTOU) atas invariant SAMA yang PATCH .../roles sudah dikunci untuk:
+  // adaPentadbirAktifLain(dbGet, id) SELECT bilangan pentadbir AKTIF LAIN, KEMUDIAN (selepas
+  // jurang async) UPDATE users SET status/isSuspended akaun INI. Dahulu TIADA kunci langsung.
+  // Dua PATCH .../status hampir serentak yang masing-masing GANTUNG/TAMATKAN salah SATU daripada
+  // cuma DUA akaun Pentadbir aktif yang tinggal (cth dua Ketua Editor tamatkan A dan B pada masa
+  // sama) boleh berselang-seli: kedua-dua permintaan baca snapshot "pentadbir lain masih aktif"
+  // SEBELUM mana-mana UPDATE komited, kedua-dua lulus semakan dan 200 OK — sistem tertinggal
+  // SIFAR akaun Pentadbir aktif (kesan tepat yang diamarankan komen adaPentadbirAktifLain() di
+  // atas). Disahkan reproduce sebenar (dua akaun pentadbir, DUA PATCH .../status serentak ke
+  // 'Ditamatkan' — kedua-dua 200 OK, 0 pentadbir aktif tertinggal) via
+  // `.simulasi/sim68-status-pentadbir-terakhir-race.mjs`. Kunci SAMA (bukan berasingan) dgn
+  // PATCH .../roles sebab invariant "pentadbir aktif terakhir" DIKONGSI merentasi kedua-dua
+  // laluan — kunci berasingan tak cukup menghalang satu laluan bertindih lawan laluan yang lain.
+  router.patch('/users/:id/status', requirePermission('manageAccounts'), (req, res) => denganKunciPeranananPengguna(async () => {
     try {
       const { id } = req.params;
       const { status } = req.body || {};
@@ -482,7 +496,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       console.error('PATCH user status error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini status. ' + (err.message || '') });
     }
-  });
+  }));
 
   // PATCH /api/system/users/:id/auto-terbit (2026-08-28, permintaan Izzat) — togol per-editor:
   // bila hidup, butang "Simpan sebagai draf" editor tu (SlotManagerModal.tsx saveDraft()) TERUS
