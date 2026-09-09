@@ -26,12 +26,12 @@ const COLOR_TOKENS = [
   { varName: '--color-Adjung-gray-light', tw: 'bg-Adjung-gray-light', usage: 'Neutral cair — sempadan, latar sekunder.' },
   { varName: '--color-Adjung-paper', tw: 'bg-Adjung-paper', usage: 'Latar kertas — kepala jadual Editorium (KEPALA_JADUAL). Ditambah 2026-08-07 bagi menggantikan hex sebaris #F7F5F2.' },
   { varName: '--color-Adjung-line', tw: 'border-Adjung-line', usage: 'Garis pemisah baris jadual (GARIS_BARIS). Ditambah 2026-08-07 bagi menggantikan hex sebaris #F0EDE9.' },
+  { varName: '--color-warning', tw: 'text-[var(--color-warning)]', usage: 'Emas/Ochre — label seksyen bernombor kongsi (SectionLabel.tsx), dipakai merentasi PerlembagaanConsole/PanduanConsole/SistemRekaBentukConsole sejak 2026-08-07 (Pelan 01 Fasa A3).' },
 ];
 
 // Belum jadi token @theme rasmi — hex terus dlm komponen berkenaan. Disenaraikan di sini supaya
 // kelihatan (bukan bersembunyi), bukan dakwaan yang ia dah "diselaraskan".
 const SEMANTIC_COLORS_UNTOKENIZED = [
-  { hex: '#b8934a', label: 'Emas/Ochre — label seksyen dokumentasi', where: 'PerlembagaanConsole.tsx sahaja' },
   { hex: '#3d6b4c', label: 'Hijau — Toast berjaya (success)', where: 'Toast.tsx' },
   { hex: '#a8241f', label: 'Merah karat — Toast ralat (error)', where: 'Toast.tsx' },
 ];
