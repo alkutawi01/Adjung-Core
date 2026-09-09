@@ -129,7 +129,18 @@ export function useTickerEditor() {
       bgColor: config?.bgColor || 'transparent',
       borderColor: config?.borderColor || '',
       textColor: config?.textColor || '#1F1F1F',
-      manualTitle: 'Berita Terkini',
+      // Sengaja KOSONG (bukan 'Berita Terkini' hardcode macam sebelum ni, 2026-09-09 dapatan
+      // bug-hunt) — medan `manualTitle` dalam formConfig Ticker sebenarnya TAK PERNAH dipaparkan/
+      // disunting di TickerManagementModal.tsx (grep sahkan sifar occurrence), tajuk sebenar Ticker
+      // datang daripada baris "Tajuk:" di dalam `manualSummary` (hurai server-side,
+      // parseManualSummaryTemplate() di server.js). Nilai keras lama tersimpan senyap ke lajur DB
+      // `manualTitle` setiap kali borang Ticker dibuka+simpan, kekal beku "Berita Terkini" selama-
+      // lamanya walau kandungan sebenar dah lama tukar — mengelirukan sesiapa yang terus baca lajur
+      // DB tu (satu-satunya pembaca sebenar, `detectSourceType()` di slotsConfigRoutes.js, tak
+      // terjejas oleh perubahan ni sebab 'Berita Terkini' tak pernah padan kata kunci heuristik
+      // video/audio/cetak). KEKAL rentetan (bukan dibuang terus daripada objek) supaya `slot.manualTitle`
+      // tetap `string` bila capai dbRun() INSERT (slotsConfigRoutes.js ~baris 460, tiada fallback `|| ''`).
+      manualTitle: '',
       manualSummary: config?.manualSummary || '',
       manualSource: '',
       manualUrl: '',
