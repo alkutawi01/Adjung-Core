@@ -107,7 +107,7 @@ const UNIVERSAL_RULES = [
   },
   {
     title: 'Fon tajuk tidak boleh lebih kecil daripada fon huraian.',
-    body: <>Saiz fon huraian tetap pada 14px (inline style yang mengatasi mana-mana class Tailwind) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier dan <em className="italic">breakpoint</em> (class Tailwind sahaja, tiada paksaan). Oleh sebab tajuk bersifat dinamik (panjang & saiz berubah ikut tier) tapi huraian bersifat tetap, setiap kombinasi tier dan breakpoint MESTI disemak: fon tajuk {'>='} 14px pada semua saiz skrin. (Diketahui melanggar setakat ini: kad Kompak guna text-xs [12px] untuk tajuk di bawah breakpoint md, belum dibetulkan, tunggu arahan.)</>,
+    body: <>Saiz fon huraian tetap pada 14px (inline style yang mengatasi mana-mana class Tailwind) di semua kad, manakala saiz fon tajuk berbeza-beza ikut tier dan <em className="italic">breakpoint</em> (class Tailwind sahaja, tiada paksaan). Oleh sebab tajuk bersifat dinamik (panjang & saiz berubah ikut tier) tapi huraian bersifat tetap, setiap kombinasi tier dan breakpoint MESTI disemak: fon tajuk {'>='} 14px pada semua saiz skrin. (Pelanggaran lama kad Kompak — tajuk text-xs [12px] di bawah breakpoint md, sama saiz dgn huraian 14px=14px — telah dibetulkan 2026-08-19, tajuk Kompak kini text-[15px] tetap tanpa syarat breakpoint. Tiada pelanggaran diketahui setakat ini.)</>,
   },
   {
     title: 'Akordion Bar: kad kekal statik, panel dipaparkan secara berasingan di bawahnya.',
