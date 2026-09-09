@@ -381,6 +381,27 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Tetapan Sistem" (manageSettings). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya, walaupun masih ada peranan dengan manageRbac. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
           });
         }
+
+        // Sekatan kunci-diri KETIGA (2026-09-09, dapatan bug-hunt susulan #197/#198 — analisis
+        // invariant merentas laluan) — dua semakan di atas (manageRbac, manageSettings) TERLEPAS
+        // kebenaran `manageAccounts`, padahal `manageAccounts` ialah gerbang PERSIS untuk PATCH
+        // /users/:id/status DAN PATCH /users/:id/roles (userAdminRoutes.js) — dua laluan yang
+        // membawa semakan "Pentadbir aktif terakhir" (adaPentadbirAktifLain(), komen di atas
+        // fungsi tu). Kedua-dua laluan tu digerbang requirePermission('manageAccounts') di
+        // PERINGKAT ROUTE, SEBELUM sempat capai semakan invariant dalaman langsung — jadi kalau
+        // matriks RBAC disimpan dengan SIFAR peranan memegang manageAccounts, akaun 'pentadbir'
+        // aktif BOLEH kekal wujud (adaPentadbirAktifLain() akan pulangkan TRUE, invariant peringkat
+        // AKAUN kelihatan selamat) tapi TIADA SESIAPA — termasuk Pentadbir aktif tu sendiri — dapat
+        // capai laluan urus akaun langsung untuk pulihkan keadaan (403 di gerbang luar). Manageable-
+        // ness sebenar sistem hilang walaupun kedua-dua semakan sedia ada (manageRbac, manageSettings,
+        // adaPentadbirAktifLain) individu masing-masing lulus. Tolak simpanan yang akan tinggalkan
+        // SIFAR peranan dengan manageAccounts=true, sama falsafah persis dua semakan di atas.
+        const masihAdaManageAccounts = s.rolePermissions.some((r) => r && r.permissions && r.permissions.manageAccounts === true);
+        if (!masihAdaManageAccounts) {
+          return res.status(400).json({
+            error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Akaun" (manageAccounts). Ini akan mengunci SEMUA orang daripada laluan urus akaun (Direktori) selama-lamanya, walaupun akaun Pentadbir aktif masih wujud. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
+          });
+        }
       }
 
       // Julat sah medan berangka (SETTINGS-VALIDATION-001, audit #44.4, 2026-08-13) — sebelum ni
