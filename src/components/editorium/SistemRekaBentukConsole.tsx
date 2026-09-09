@@ -27,13 +27,8 @@ const COLOR_TOKENS = [
   { varName: '--color-Adjung-paper', tw: 'bg-Adjung-paper', usage: 'Latar kertas — kepala jadual Editorium (KEPALA_JADUAL). Ditambah 2026-08-07 bagi menggantikan hex sebaris #F7F5F2.' },
   { varName: '--color-Adjung-line', tw: 'border-Adjung-line', usage: 'Garis pemisah baris jadual (GARIS_BARIS). Ditambah 2026-08-07 bagi menggantikan hex sebaris #F0EDE9.' },
   { varName: '--color-warning', tw: 'text-[var(--color-warning)]', usage: 'Emas/Ochre — label seksyen bernombor kongsi (SectionLabel.tsx), dipakai merentasi PerlembagaanConsole/PanduanConsole/SistemRekaBentukConsole sejak 2026-08-07 (Pelan 01 Fasa A3).' },
-];
-
-// Belum jadi token @theme rasmi — hex terus dlm komponen berkenaan. Disenaraikan di sini supaya
-// kelihatan (bukan bersembunyi), bukan dakwaan yang ia dah "diselaraskan".
-const SEMANTIC_COLORS_UNTOKENIZED = [
-  { hex: '#3d6b4c', label: 'Hijau — Toast berjaya (success)', where: 'Toast.tsx' },
-  { hex: '#a8241f', label: 'Merah karat — Toast ralat (error)', where: 'Toast.tsx' },
+  { varName: '--color-success', tw: 'text-[var(--color-success)]', usage: 'Hijau — status Aktif/Lulus/Sihat (StatusBadge, MesejStatus, mesej kejayaan Editorium). BUKAN dipakai Toast.tsx — Toast digubah semula 2026-08-08 kepada satu warna maroon sahaja, tiada aksen hijau/merah semantik langsung.' },
+  { varName: '--color-error', tw: 'text-[var(--color-error)]', usage: 'Merah karat — status ralat/Kosong/padam (StatusBadge, MesejStatus, Button varian bahaya). BUKAN dipakai Toast.tsx — sama sebab seperti --color-success di atas.' },
 ];
 
 const FONT_TOKENS = [
@@ -195,24 +190,6 @@ export const SistemRekaBentukConsole: React.FC = () => {
                 </div>
               </Tooltip>
             ))}
-          </div>
-
-          <div className="pt-4 border-t border-stone-150">
-            <span className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold block mb-2.5">
-              Warna semantik: belum jadi token @theme, hex terus dlm komponen
-            </span>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {SEMANTIC_COLORS_UNTOKENIZED.map(c => (
-                <div key={c.hex} className="flex items-start gap-2.5">
-                  <div className="h-8 w-8 rounded shrink-0 border border-stone-200" style={{ background: c.hex }} />
-                  <div>
-                    <div className="font-mono text-[9px] text-stone-700 font-bold">{c.hex}</div>
-                    <div className="font-sans text-[10px] text-stone-500 leading-tight">{c.label}</div>
-                    <div className="font-mono text-[8px] text-stone-400 mt-0.5">{c.where}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </PanelCard>
       </div>
