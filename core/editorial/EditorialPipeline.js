@@ -62,7 +62,7 @@ async function buildContentPool(sourcesListRaw) {
 
   const now = Date.now();
   const seenUrls = new Set();
-  const recent = [];
+  const withinWindow = [];
   for (const record of normalized) {
     const dedupeKey = record.url || record.id;
     if (dedupeKey && seenUrls.has(dedupeKey)) continue;
@@ -74,9 +74,29 @@ async function buildContentPool(sourcesListRaw) {
         continue; // Older than the recency window and we CAN verify it — drop.
       }
     }
-    recent.push(record);
-    if (recent.length >= CONTENT_POOL_MAX_ITEMS) break;
+    withinWindow.push(record);
   }
+
+  // Pepijat bias pemilihan (dapatan bug-hunt 2026-09-09) — `normalized` disusun ABJAD ikut
+  // URL oleh SourceNormalizer.js (sengaja, supaya hash cache-skip STABIL merentasi larian
+  // walau susunan fetch rangkaian berlainan), tapi susunan ABJAD tu sebelum ni turut dipakai
+  // terus untuk pemotongan CONTENT_POOL_MAX_ITEMS di atas. Bila jumlah item dalam tetingkap
+  // 24 jam melebihi 30, item yang "menang" slot AI ialah yang kebetulan URL-nya mendahului
+  // abjad — bukan yang paling BAHARU seperti nama pembolehubah `recent`/tetingkap kebaruan
+  // janjikan. Susun ikut `publishedAt` TERKINI dahulu sebelum potong — item tanpa tarikh
+  // (ramai feed/laman tiada) dianggap paling lama (bukan digugurkan, sepadan tingkah laku
+  // sedia ada di penapisan kebaruan di atas) supaya item BERTARIKH sentiasa diutamakan drpd
+  // yang tak diketahui bila kapasiti 30 tercapai.
+  const recent = withinWindow
+    .slice()
+    .sort((a, b) => {
+      const pa = a.publishedAt ? Date.parse(a.publishedAt) : NaN;
+      const pb = b.publishedAt ? Date.parse(b.publishedAt) : NaN;
+      const ta = isNaN(pa) ? -Infinity : pa;
+      const tb = isNaN(pb) ? -Infinity : pb;
+      return tb - ta; // Terkini dahulu.
+    })
+    .slice(0, CONTENT_POOL_MAX_ITEMS);
 
   const pool = recent.map(r => ({ ...r, content: r.content.slice(0, CONTENT_POOL_MAX_CONTENT_CHARS) }));
   const sourceHash = SourceCache.calculateHash(pool);
