@@ -1158,8 +1158,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           currentEditoriumName={currentUser.name}
           autoTerbit={!!currentUser.autoTerbit}
           isSavingSlot={slotEditor.isSavingSlot}
-          saveError={slotEditor.saveError}
-          saveErrorBolehSalinAI={slotEditor.saveErrorBolehSalinAI}
           onClose={tutupRuangMenulis}
           onSave={slotEditor.handleSaveSlot}
           // Slot yang sedang dibuka SENTIASA disertakan walaupun ia di luar tugasan pengguna
@@ -1186,7 +1184,6 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
           editingSlotIndex={barSlotEditor.editingSlotIndex}
           formConfig={barSlotEditor.formConfig}
           isSavingSlot={barSlotEditor.isSavingSlot}
-          saveError={barSlotEditor.saveError}
           currentEditoriumName={currentUser.name}
           onClose={barSlotEditor.closeSlotEditor}
           onSave={barSlotEditor.handleSaveSlot}

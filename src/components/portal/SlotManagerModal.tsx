@@ -102,13 +102,6 @@ interface SlotManagerModalProps {
   // pemilikan/bajet sedia ada terpakai tanpa pengecualian.
   autoTerbit?: boolean;
   isSavingSlot: boolean;
-  // Mesej ralat simpan terkini daripada useSlotEditor (2026-08-02) — sebelum ni `onSave` cuma
-  // pulangkan boolean `ok`, jadi sebab kegagalan sebenar (termasuk konflik serentak Fasa 6) tak
-  // pernah sampai ke UI langsung. Dibaca oleh publishOne/saveDraft di bawah bila `ok` palsu.
-  saveError?: string;
-  // Ralat berkait kandungan AI (2026-08-19) — lihat nota penuh di useSlotEditor.ts. Diteruskan ke
-  // onToast supaya toast global boleh papar butang "Salin".
-  saveErrorBolehSalinAI?: boolean;
   onClose: () => void;
   // Tukar slot terus dalam modal ni (2026-07-29, permintaan pemilik projek) — sebelum ni satu-
   // satunya cara tukar slot ialah Batal + buka pemilih semula. Pilihan (semua slot KECUALI Bar,
@@ -712,7 +705,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, autoTerbit, onClose, onSave,
-  slotOptions, onSwitchSlot, initialUuid, isSavingSlot, saveError, saveErrorBolehSalinAI, onToast, onLihatIndeks,
+  slotOptions, onSwitchSlot, initialUuid, isSavingSlot, onToast, onLihatIndeks,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState

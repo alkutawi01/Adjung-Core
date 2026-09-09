@@ -21,7 +21,6 @@ interface BarSlotManagerModalProps {
   editingSlotIndex: number;
   formConfig: any;
   isSavingSlot: boolean;
-  saveError?: string;
   // Nama editor semasa (2026-09-09) — lihat kunciDrafTempatan di bawah untuk sebab ni WAJIB,
   // sama seperti SlotManagerModal.tsx.
   currentEditoriumName?: string;
@@ -98,7 +97,7 @@ function ImageField({ label, value, onChange, onUploadFile, uploading, note }: {
 }
 
 export const BarSlotManagerModal: React.FC<BarSlotManagerModalProps> = ({
-  editingSlotIndex, formConfig, isSavingSlot, saveError, currentEditoriumName, onClose, onSave, slotOptions, onSwitchSlot, onToast,
+  editingSlotIndex, formConfig, isSavingSlot, currentEditoriumName, onClose, onSave, slotOptions, onSwitchSlot, onToast,
 }) => {
   const ceiling = ceilingForSlot(editingSlotIndex);
 

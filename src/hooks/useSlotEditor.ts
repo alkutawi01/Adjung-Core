@@ -255,9 +255,11 @@ export function useSlotEditor(editorName?: string) {
         // percubaan ni), bukan `data.error` sebenar percubaan ni. "Klik dua kali" nampak
         // berfungsi cuma sebab kegagalan sama berulang (mesej percubaan SEBELUM ni ditunjukkan
         // sebagai mesej "semasa", secara kebetulan sama). Baiki: throw Error DENGAN mesej sebenar
-        // — pemanggil tangkap terus (try/catch), tak bergantung state React sama sekali. State
-        // saveError/saveErrorIsConflict/saveErrorBolehSalinAI KEKAL diset (pengguna lain field ni
-        // — cth borang ralat sebaris — masih perlukannya), cuma bukan lagi SATU-SATUNYA saluran.
+        // — pemanggil tangkap terus (try/catch), tak bergantung state React sama sekali.
+        // `saveError`/`saveErrorIsConflict`/`saveErrorBolehSalinAI` (state di bawah) sudah TAK
+        // dibaca oleh mana-mana UI (SlotManagerModal.tsx/BarSlotManagerModal.tsx buang prop mati
+        // ni 2026-09-09, audit dead-prop susulan pepijat #209 isSavingSlot) — dikekalkan sekadar
+        // state dalaman hook, JANGAN anggap ia masih ada pembaca sebenar di modal.
         setSaveError(data.error || 'Gagal menyimpan slot.');
         setSaveErrorIsConflict(response.status === 409);
         setSaveErrorBolehSalinAI(!!data.bolehSalinAI);
