@@ -71,7 +71,11 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
             if (!artBlock.trim()) continue;
 
             const titleMatch = artBlock.match(/(?:Tajuk)\s*[:=]?\s*([^\n]+)/i);
-            const summaryMatch = artBlock.match(/(?:Summary|Brief|Ringkasan|Huraian)\s*[:=]?\s*([\s\S]*?)(?:\n\n|\nTajuk|\nKategori|\nPautan|$)/i);
+            // "\nTopik" WAJIB disenaraikan di sini juga (bukan cuma Tajuk/Kategori/Pautan) —
+            // tanpanya, capture bukan-tamak di atas terus melangkau baris "Topik: ..." (ia tak
+            // sepadan mana-mana pemisah lain) dan hanya berhenti pada pemisah SETERUSNYA,
+            // membawa teks mentah "Topik: Ekonomi" sekali terus ke dalam huraian yang diterbitkan.
+            const summaryMatch = artBlock.match(/(?:Summary|Brief|Ringkasan|Huraian)\s*[:=]?\s*([\s\S]*?)(?:\n\n|\nTajuk|\nKategori|\nTopik|\nPautan|$)/i);
             // Kategori/Desk/Bidang are the same concept (locked category per slot); Topik is a
             // separate, unrelated free-text field — previously conflated as a synonym here.
             const categoryMatch = artBlock.match(/(?:Category|Kategori|Desk|Bidang)\s*[:=]?\s*([A-Za-z]+)/i);
