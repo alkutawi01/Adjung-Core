@@ -17,8 +17,17 @@ import { binaLaluanKandungan } from '../editorial/UrlSlug.js';
 const TTL_MS = 15 * 60 * 1000; // 15 minit
 let cache = { xml: null, expiresAt: 0 };
 
+// 2026-09-09 (dapatan bug-hunt, corak sama seperti rssFeedRoutes.js escapeXml() dibaiki
+// sebelum ni) — <loc>/<lastmod> di sini dibina daripada `title` kandungan editorial sebenar
+// (via binaLaluanKandungan()), medan yang SENGAJA terima sebarang glif Unicode termasuk aksara
+// kawalan (lihat CLAUDE.md "Medan borang terima sebarang glif Unicode"). XML 1.0 hanya benarkan
+// tab/LF/CR di bawah 0x20 — escapeXml() di sini tak pernah buang aksara kawalan lain sebelum ni,
+// jadi SATU kandungan dengan tajuk mengandungi aksara kawalan (cth salin-tampal daripada
+// PDF/Word) menghasilkan /sitemap.xml rosak-strict untuk SEMUA crawler (Google, dll), bukan cuma
+// satu <url>. Dibuang dahulu sebelum escape entiti standard, sama corak rssFeedRoutes.js.
 export function escapeXml(s) {
   return String(s || '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
     .replace(/&/g, '&amp;')
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')

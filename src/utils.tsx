@@ -1187,9 +1187,15 @@ export class DocumentExporter {
 
   // XML Export
   static exportToXml(entry: { id: string; title: string; contentType: string; content: string; excerpt?: string; authorId: string; createdDate: string; updatedDate: string; publishedDate: string | null; slug: string; tags: string[]; revisions?: any[]; citations?: any[]; referenceSortOrder?: string }, authorName: string): string {
+    // 2026-09-09 (dapatan bug-hunt, corak sama rssFeedRoutes.js/sitemapRoutes.js escapeXml())
+    // — title/excerpt/content di sini datang terus daripada kandungan editorial (medan yang
+    // sengaja terima sebarang glif Unicode termasuk aksara kawalan, cth salin-tampal PDF/Word).
+    // XML 1.0 tolak aksara kawalan bawah 0x20 (kecuali tab/LF/CR) walau selepas escape entiti —
+    // buang dahulu sebelum escape, kalau tidak fail .xml eksport ni gagal dihurai strict-XML.
     const escapeXml = (str: string) => {
       if (!str) return '';
       return str
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, '')
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
