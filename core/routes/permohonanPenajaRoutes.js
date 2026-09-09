@@ -63,6 +63,27 @@ function denganKunciRujukanPenaja(fn) {
   return giliran;
 }
 
+// Kunci keputusan permohonan (2026-09-09, bug-hunt) — PATCH .../keputusan (mula_semakan/
+// minta_maklumat/tolak/lulus) baca `rekod.status` (gerbang STATUS_BOLEH_DISEMAK) SEBELUM
+// menulis balik status baharu, bukan operasi baca-ubah-tulis atomik — sama corak TEPAT
+// `denganKunciAktifkanPenaja`/`denganKunciRujukanPenaja` di atas, dan sama corak
+// `denganKunciKeputusanPermohonanEditor` (permohonanEditorRoutes.js) yang dibaiki 2026-09-08
+// untuk laluan kembar (permohonan_editor) tapi TERLEPAS di fail ni. Dua klik hampir serentak
+// (cth Ketua Editor klik "Lulus" DUA KALI, atau dua pentadbir buka rekod SAMA serentak dan
+// masing-masing klik "Lulus"/"Tolak") kedua-duanya baca status='dalam_semakan' sebelum sesiapa
+// sempat tulis balik — gerbang `STATUS_BOLEH_DISEMAK.includes(rekod.status)` sendiri terdedah
+// kepada race yang ia cuba elakkan. Disahkan reproduce (scratch DB, 'lulus' + 'tolak' serentak
+// pada rekod sama: KEDUA-DUA respons 200, status akhir DB 'ditolak' tapi token bayaran + e-mel
+// kelulusan turut sempat dijana/dihantar) — pemohon terima DUA e-mel BERLAWANAN ("Diluluskan"
+// dan "Adjung Brief tidak dapat menerima..."), dan pautan token bayaran wujud walau status akhir
+// 'ditolak'. Sama kunci rantaian promise global (tindakan pentadbiran jarang berlaku).
+let rantaianKunciKeputusanPermohonanPenaja = Promise.resolve();
+function denganKunciKeputusanPermohonanPenaja(fn) {
+  const giliran = rantaianKunciKeputusanPermohonanPenaja.catch(() => {}).then(fn);
+  rantaianKunciKeputusanPermohonanPenaja = giliran.catch(() => {});
+  return giliran;
+}
+
 // Kunci e-mel permohonan (2026-09-09, bug-hunt) — denganKunciRujukanPenaja di atas (2026-09-08)
 // jamin dua INSERT serentak tak jana `id` bertindih, TAPI ia cuma bungkus baca-rujukan+INSERT,
 // BUKAN semakan "satu permohonan terbuka per e-mel" (`sediaAda` di bawah) — semakan tu masih
@@ -322,7 +343,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
 
   // PATCH /api/system/permohonan-penaja/:id/keputusan — tindakan semakan: mula_semakan,
   // minta_maklumat, tolak, lulus. 'lulus' menjana token bayaran + emel arahan bayaran.
-  router.patch('/system/permohonan-penaja/:id/keputusan', requirePermission('manageSettings'), async (req, res) => {
+  router.patch('/system/permohonan-penaja/:id/keputusan', requirePermission('manageSettings'), (req, res) => denganKunciKeputusanPermohonanPenaja(async () => {
     try {
       const { id } = req.params;
       const { tindakan, catatan, jumlahDipersetujui } = req.body || {};
@@ -405,7 +426,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
       console.error('PATCH permohonan-penaja keputusan error:', err);
       res.status(500).json({ error: 'Gagal merekodkan keputusan.' });
     }
-  });
+  }));
 
   // GET /public/lengkapkan-penajaan/:token — halaman token peribadi, tiada auth.
   router.get('/public/lengkapkan-penajaan/:token', async (req, res) => {
