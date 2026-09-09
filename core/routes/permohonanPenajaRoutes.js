@@ -116,6 +116,28 @@ const STATUS_BOLEH_DISEMAK = ['baharu', 'dalam_semakan', 'perlu_maklumat'];
 const TEMPOH_TOKEN_HARI = 7;
 const TEMPOH_TAJAAN_MAX_HARI = 31; // maksimum 1 bulan (keputusan Izzat 30/8/2026)
 
+// Pengesahan skema pautan laman web (2026-09-09, bug-hunt) — medan `lamanRasmi` borang awam
+// "Mohon Jadi Penaja" (HalamanMohonPenaja.tsx) SENGAJA teks bebas (placeholder benarkan taip
+// "Tiada" bagi pemohon tanpa laman web), jadi ia TAK PERNAH disahkan sebagai URL sebenar di
+// mana-mana (klien mahupun pelayan) sebelum ni — cuma had panjang 300 aksara (kosmetik, boleh
+// dipintas curl) disemak. Nilai ni disimpan terus ke `permohonan_penaja.laman`, kemudian (bila
+// permohonan diluluskan + diaktifkan) disalin terus ke `sponsors.url` TANPA sebarang pengesahan
+// tambahan, dan `HalamanPenaja.tsx` (senarai penaja AWAM) render terus `<a href={p.url}>` tanpa
+// semakan skema. Pemohon (sesiapa sahaja — laluan ni tiada auth) boleh hantar
+// `javascript:alert(document.cookie)` sebagai "laman web rasmi" mereka — selepas kelulusan
+// Ketua Editor/Pentadbir (yang cuma semak KANDUNGAN/kelayakan syariat, bukan skema URL medan
+// ni), pautan tu terbit sebagai href SEBENAR pada halaman awam /penaja, exec dalam pelayar
+// SESIAPA yang klik nama penaja tu — stored XSS via javascript: URI. Dibaiki: hanya simpan
+// `lamanRasmi` sebagai pautan kalau ia benar-benar bermula http:// atau https:// (corak sama
+// `pautanContoh` di permohonanEditorRoutes.js); apa-apa lain (termasuk teks bebas "Tiada")
+// disimpan sebagai NULL, bukan diteruskan mentah — elak skema berbahaya (javascript:, data:,
+// vbscript:, dll.) sampai ke href awam sama sekali, tanpa menyekat pemohon sah yang memang
+// tiada laman web.
+function sahLamanWeb(nilai) {
+  const v = String(nilai || '').trim();
+  return /^https?:\/\/[^\s]+\.[^\s]{2,}/.test(v) ? v : null;
+}
+
 const janaRujukan = async (dbGet) => {
   const tahun = new Date().getFullYear();
   const awalan = `PEN-${tahun}-`;
@@ -214,7 +236,7 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
             [
               r, jenis, namaSebenar || null, namaOrganisasi || null, namaWakil || null, emel,
-              String(b.lamanRasmi || '').trim() || null, String(b.noPendaftaran || '').trim() || null,
+              sahLamanWeb(b.lamanRasmi), String(b.noPendaftaran || '').trim() || null,
               aktivitiUtama || null, String(b.penerangan || '').trim() || null, pilihanPaparan,
               String(b.pilihanTajaan || '').trim() || null, String(b.catatan || '').trim() || null, kini,
             ]
