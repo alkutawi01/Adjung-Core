@@ -173,11 +173,20 @@ export const PHONE_TIER_BOX = {
 };
 
 /**
- * Bina blok CSS telefon bagi grid bento. Dipanggil sekali oleh FrontpageView dan disuntik dalam
- * satu elemen <style>; tiada nombor di sini ditaip semula di tempat lain.
+ * TIDAK DIPANGGIL DI MANA-MANA (2026-09-09, dapatan bug-hunt) — JSDoc ni dahulu mendakwa "Dipanggil
+ * sekali oleh FrontpageView dan disuntik dalam satu elemen <style>", tapi susulan pusingan KELIMA
+ * susun atur telefon (lihat komen "pusingan KELIMA" di FrontpageView.tsx ~baris 1823 — grid 6-lajur
+ * desktop diskala terus ke 3-lajur via kelas col-span dalam JSX, bukan lagi CSS/JS masonry
+ * berasingan), fungsi ni serta KESEMUA export lain fail ni (PHONE_CARD_MIN, PHONE_TIER_BOX,
+ * PHONE_TITLE, PHONE_BRIEF) tidak diimport oleh sesiapa (disahkan grep merentasi seluruh repo).
+ * Susun atur telefon SEBENAR yang live kini terus di dalam blok `@media (max-width: 767px)` dalam
+ * `<style>` FrontpageView.tsx (~baris 4106 — hyphens manual, "Grid TUNGGAL", font-size huraian
+ * 12px, dll — nombor BERBEZA daripada PHONE_TITLE/PHONE_BRIEF di bawah).
  *
- * Pemilih guna `#bento-news-grid [data-slot="N"]`, jadi ia lebih khusus (1,1,0) daripada kelas
- * utiliti Tailwind (0,1,0) yang hendak ditindih (`min-h-[380px]`, `h-full`) — tanpa `!important`.
+ * JANGAN laraskan nombor di sini dengan sangka ia mengubah rupa telefon sebenar — ia tiada kesan
+ * langsung. Hanya `PHONE_MAX_WIDTH_PX` (atas fail ni) yang masih diimport (usePhoneViewport.ts).
+ * Fail ni dikekalkan buat masa ini sebagai rekod sejarah pendekatan KEEMPAT (lihat nota "MASONRY
+ * 2-LAJUR" di atas) — tanya Izzat sebelum padam terus kalau nak bersihkan.
  */
 export const phoneLayoutCss = () => {
   const vars = Object.entries(PHONE_CARD_MIN).map(([k, v]) => `    ${k}: ${v};`).join('\n');
