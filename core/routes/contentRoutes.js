@@ -2282,6 +2282,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
 
       const timestamp = new Date().toISOString();
       const finalCategory = (desk || 'UMUM').trim().toUpperCase();
+      // sim227 (2026-09-09): validateBidangTopik() trim Topik SEBELUM semak (topikTrimmed,
+      // ContentBudget.js), tapi nilai MENTAH `topik` daripada req.body dahulu terus ditulis ke
+      // atribut tersimpan (baris `attrs` di bawah) — desk pula SENTIASA disimpan sbg
+      // `finalCategory` yang dah di-trim+uppercase. Kesan: "  Kewangan  " lulus pengesahan
+      // (dalam had aksara selepas trim) tapi tersimpan dgn ruang putih hadapan/belakang kekal,
+      // beza drpd desk yg konsisten dinormalisasi. Disahkan via HTTP+DB sebenar (.simulasi/
+      // sim227-post-content-topik-unnormalized.mjs) sebelum pembetulan ni.
+      const topikNorm = topik !== undefined ? String(topik).trim() : undefined;
 
       // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu — kecuali slot BAR. Checked
       // against finalCategory (not raw desk) so an omitted desk — which defaults to 'UMUM' — still
@@ -2291,7 +2299,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         const bidangTopikCheck = validateBidangTopik({
           slotBidang: slotRow ? slotRow.manualDesk : null,
           itemBidang: finalCategory,
-          topik,
+          topik: topikNorm,
           requireTopik: true,
           slotIndex,
         });
@@ -2332,7 +2340,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           { key: 'desk', val: finalCategory },
           { key: 'url', val: url || '#' },
           { key: 'source', val: source || '' },
-          { key: 'topik', val: topik || '' },
+          { key: 'topik', val: topikNorm || '' },
           // editorName (2026-08-20, dapatan audit) — dahulu TIADA langsung, jadi kandungan lahir
           // dari laluan ni tanpa pemilik: gerbang pemilikan (PATCH/pulih versi) tak jumpa
           // editorName sepadan sesiapa pun, jadi HANYA Ketua Editor/Penolong boleh sunting
