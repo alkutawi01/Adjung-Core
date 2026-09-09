@@ -1,5 +1,5 @@
 import express from 'express';
-import { requireAuth, requirePermission, loadRolePermissions, hasPermission } from '../middleware/auth.js';
+import { requireAuth, requirePermission, loadRolePermissions, hasPermission, ROLE_IDS } from '../middleware/auth.js';
 import { tarikhMalaysia } from '../utils/waktuMalaysia.js';
 import { notifyMany } from '../notifications/Notify.js';
 import { logAudit } from '../audit/AuditLog.js';
@@ -355,7 +355,19 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
       // akan tinggalkan SIFAR peranan dengan manageRbac=true, sama falsafah seperti
       // adaPentadbirAktifLain() — pertahanan di titik SIMPAN, bukan lepas fakta.
       if (Array.isArray(s.rolePermissions)) {
-        const masihAdaManageRbac = s.rolePermissions.some((r) => r && r.permissions && r.permissions.manageRbac === true);
+        // Tapis kepada roleId SAH sahaja dahulu (2026-09-09, dapatan bug-hunt susulan #197/198/199)
+        // — ketiga-tiga semakan kunci-diri di bawah (manageRbac/manageSettings/manageAccounts)
+        // asalnya semak `s.rolePermissions.some(...)` atas SENARAI MENTAH terus daripada badan
+        // permintaan, tanpa had kepada 4 peranan SEBENAR (`ROLE_IDS`, sama senarai
+        // `ROLE_IDS_SAH` di userAdminRoutes.js). Baris dengan roleId PALSU (tak wujud dalam
+        // sistem — user_roles.roleId sentiasa dikawal ROLE_IDS_SAH di PATCH /users/:id/roles,
+        // jadi tiada pengguna SEBENAR boleh pernah pegang peranan ni) yang menanda kunci
+        // sensitif tu true akan LULUS semakan walaupun KESEMUA 4 peranan sebenar nyahtanda kunci
+        // tu serentak — kunci-diri berlaku SENYAP (200 OK, bukan 400) sedangkan tujuan semakan
+        // ni ialah menghalang tepat senario tu. Disahkan reproduce, `.simulasi/
+        // sim222-rbac-invariant-fake-roleid-bypass.mjs`.
+        const risSah = s.rolePermissions.filter((r) => r && ROLE_IDS.includes(r.roleId));
+        const masihAdaManageRbac = risSah.some((r) => r.permissions && r.permissions.manageRbac === true);
         if (!masihAdaManageRbac) {
           return res.status(400).json({
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Kawalan Akses" (manageRbac). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
@@ -375,7 +387,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         // manageRbac (satu-satunya pemulihan ialah edit terus adjung.db), cuma laluan kuncinya
         // berbeza (gerbang luar, bukan cabang dalam). Tolak simpanan yang akan tinggalkan SIFAR
         // peranan dengan manageSettings=true, sama falsafah persis semakan manageRbac di atas.
-        const masihAdaManageSettings = s.rolePermissions.some((r) => r && r.permissions && r.permissions.manageSettings === true);
+        const masihAdaManageSettings = risSah.some((r) => r.permissions && r.permissions.manageSettings === true);
         if (!masihAdaManageSettings) {
           return res.status(400).json({
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Tetapan Sistem" (manageSettings). Ini akan mengunci SEMUA orang (termasuk anda) daripada laluan ini selama-lamanya, walaupun masih ada peranan dengan manageRbac. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',
@@ -396,7 +408,7 @@ export function createSystemRoutes(dbAll, dbRun, dbGet, safeJsonParse, mockDb) {
         // ness sebenar sistem hilang walaupun kedua-dua semakan sedia ada (manageRbac, manageSettings,
         // adaPentadbirAktifLain) individu masing-masing lulus. Tolak simpanan yang akan tinggalkan
         // SIFAR peranan dengan manageAccounts=true, sama falsafah persis dua semakan di atas.
-        const masihAdaManageAccounts = s.rolePermissions.some((r) => r && r.permissions && r.permissions.manageAccounts === true);
+        const masihAdaManageAccounts = risSah.some((r) => r.permissions && r.permissions.manageAccounts === true);
         if (!masihAdaManageAccounts) {
           return res.status(400).json({
             error: 'Tidak boleh simpan matriks ini — tiada satu peranan pun kekal dengan kebenaran "Urus Akaun" (manageAccounts). Ini akan mengunci SEMUA orang daripada laluan urus akaun (Direktori) selama-lamanya, walaupun akaun Pentadbir aktif masih wujud. Pastikan sekurang-kurangnya satu peranan (biasanya Pentadbir) kekal memegang kebenaran ini.',

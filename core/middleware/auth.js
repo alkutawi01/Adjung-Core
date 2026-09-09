@@ -30,7 +30,7 @@ export function requireAuthForWrites(req, res, next) {
 // kosong (pemasangan baharu, sebelum Izzat sempat sunting jadual Kawalan Akses). MESTI sepadan
 // DEFAULT_RBAC_MATRIX di src/components/editorium/TetapanConsole.tsx — kalau salah satu diubah,
 // ubah yang satu lagi.
-const ROLE_IDS = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'editor'];
+export const ROLE_IDS = ['pentadbir', 'ketua_editor', 'penolong_ketua_editor', 'editor'];
 const DEFAULT_ROLE_PERMISSIONS = {
   pentadbir: {
     viewAll: true, editOwn: false, publish: false, reject: false,
