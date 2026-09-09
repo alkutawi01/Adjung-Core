@@ -441,9 +441,11 @@ export const PanduanConsole: React.FC = () => {
           </Card>
           <Card title="Proses dan had teknikal">
             Semak kandungan sedia ada dalam slot sasaran terlebih dahulu — elakkan topik berulang
-            dan jangan terbitkan lebih daripada bilangan yang diminta. Slot penuh (10/10) BUKAN
-            halangan — sistem mempunyai putaran automatik setiap 24 jam. Kandungan baharu akan
-            masuk ke status "Menunggu Slot Kosong" dan dinaikkan ke slot secara automatik. Jangan
+            dan jangan terbitkan lebih daripada bilangan yang diminta. Slot penuh (cth. 10/10)
+            BUKAN halangan — sistem mempunyai putaran automatik selepas kira-kira 24 jam (nilai
+            lalai ditetapkan di Tetapan → Tetapan Am Slot, boleh dilaraskan oleh Ketua Editor).
+            Kandungan baharu akan masuk ke status "Menunggu Slot Kosong" dan dinaikkan ke slot
+            secara automatik. Jangan
             mengarkibkan kandungan sedia ada secara manual semata-mata untuk membuka ruang. Medan
             Tarikh Sumber (YYYY-MM-DD) wajib diisi bagi kandungan yang menggunakan sumber luar.
             Medan Sumber terhad kepada kira-kira 50 aksara (nilai ditetapkan di Tetapan → Tetapan Am
