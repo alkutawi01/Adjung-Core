@@ -241,7 +241,23 @@ export function createPermohonanEditorRoutes(dbAll, dbGet, dbRun) {
         `SELECT * FROM permohonan_editor ${status ? 'WHERE status = ?' : ''} ORDER BY createdAt DESC LIMIT 200`,
         status ? [status] : []
       );
-      res.json(rows.map((r) => ({ ...r, bidangMinat: JSON.parse(r.bidangMinat || '[]') })));
+      // Urai bidangMinat SATU baris pada satu masa, bukan biar SATU JSON rosak/lapuk gugurkan
+      // KESELURUHAN senarai (dapatan bug-hunt, corak sama pepijat resolveSlotContent() yang
+      // dibaiki di layoutRoutes.js 2026-09-08 dan sourcesJson di bidangRoutes.js) — sebelum ni
+      // `JSON.parse()` mentah dalam `.map()` ni terus dalam try/catch LUAR laluan ni, jadi SATU
+      // baris permohonan dengan bidangMinat rosak (cth diubah suai manual/rosak entah bagaimana)
+      // menjatuhkan seluruh laluan GET ni ke 500 — Ketua Editor/Pentadbir langsung tak nampak
+      // WALAUPUN SATU permohonan (termasuk yang sah), bukan cuma baris yang bermasalah tu.
+      res.json(rows.map((r) => {
+        let bidangMinat = [];
+        try {
+          const parsed = JSON.parse(r.bidangMinat || '[]');
+          if (Array.isArray(parsed)) bidangMinat = parsed;
+        } catch (e) {
+          console.warn(`bidangMinat rosak untuk permohonan ${r.id}, guna senarai kosong:`, e.message);
+        }
+        return { ...r, bidangMinat };
+      }));
     } catch (err) {
       console.error('GET permohonan-editor error:', err);
       res.status(500).json({ error: 'Gagal memuatkan senarai permohonan.' });
