@@ -712,7 +712,7 @@ const SidebarItem = React.memo(function SidebarItem({
 
 export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   editingSlotIndex, formConfig, setFormConfig, activeBidangList, currentEditoriumRole, currentEditoriumName, autoTerbit, onClose, onSave,
-  slotOptions, onSwitchSlot, initialUuid, saveError, saveErrorBolehSalinAI, onToast, onLihatIndeks,
+  slotOptions, onSwitchSlot, initialUuid, isSavingSlot, saveError, saveErrorBolehSalinAI, onToast, onLihatIndeks,
 }) => {
   // Kandungan mana yang terbuka dahulu. Lalai yang pertama; bila dibuka daripada "Draf Saya"
   // (initialUuid), terus mendarat pada draf yang diklik. Sengaja dikira dalam initializer useState
@@ -2037,14 +2037,14 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                   </span>
                   <span className="flex items-center gap-2">
                     <button
-                      type="button" onClick={saveDraft} disabled={savingDraft || publishingIndex !== null}
+                      type="button" onClick={saveDraft} disabled={savingDraft || publishingIndex !== null || isSavingSlot}
                       className="px-4 py-1.5 border border-stone-300 text-stone-600 hover:bg-stone-50 disabled:opacity-50 disabled:cursor-wait rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
                     >
-                      {savingDraft ? 'Menyimpan…' : 'Simpan sebagai draf'}
+                      {savingDraft || isSavingSlot ? 'Menyimpan…' : 'Simpan sebagai draf'}
                     </button>
                     <button
                       type="button" onClick={() => publishOne(activeIndex)}
-                      disabled={publishingIndex !== null || savingDraft || !semakanTerbit.isValid}
+                      disabled={publishingIndex !== null || savingDraft || isSavingSlot || !semakanTerbit.isValid}
                       className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-[11px] font-sans font-semibold cursor-pointer transition-colors"
                     >
                       {publishingIndex === activeIndex ? 'Menerbitkan…' : 'Terbit sekarang'}
