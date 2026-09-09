@@ -115,6 +115,20 @@ export function createProfileRoutes(dbGet, dbRun) {
       params.push(id);
       await dbRun(`UPDATE users SET ${set.join(', ')} WHERE id = ?`, params);
 
+      // Segarkan sesi SENDIRI serta-merta (2026-09-09, bug-hunt) — corak SAMA seperti
+      // POST /change-username dan /change-email (authRoutes.js: "Sesi server simpan salinan
+      // username untuk paparan header — segarkan serta-merta supaya tak lapuk sehingga log masuk
+      // semula"), tapi laluan ni terlepas walau penName ialah medan SAMA kategori (snapshot pada
+      // req.session.user, dibaca semula setiap permintaan dalam sesi yang sama, TIDAK di-refetch
+      // dari DB per-permintaan). Tanpa ni, editor yang tukar nama pena lepas tu terus terbit/
+      // sunting kandungan DALAM SESI SAMA (tiada log masuk semula) akan tersilap cap NAMA LAMA
+      // sebagai snapshot attribute 'editorName' (namaSayaSesi() di contentRoutes.js/
+      // slotsConfigRoutes.js baca req.session.user.penName terus) — disahkan reproduce (sim84):
+      // kandungan baharu terbit dengan editorName lama walau DB users.penName sudah bertukar.
+      if (isSelf && penName !== undefined && req.session.user) {
+        req.session.user.penName = (penName || '').trim();
+      }
+
       // Tukar nama pena (2026-08-24, dapatan Izzat) — `editorName` disimpan sebagai SNAPSHOT
       // teks pada setiap kandungan (bukan FK ke users.id — lihat nota baris 78 di atas: "penName
       // ialah identiti... di seluruh sistem"), jadi tanpa cascade ni kandungan yang dah terbit
