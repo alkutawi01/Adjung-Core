@@ -63,6 +63,29 @@ function denganKunciRujukanPenaja(fn) {
   return giliran;
 }
 
+// Kunci e-mel permohonan (2026-09-09, bug-hunt) — denganKunciRujukanPenaja di atas (2026-09-08)
+// jamin dua INSERT serentak tak jana `id` bertindih, TAPI ia cuma bungkus baca-rujukan+INSERT,
+// BUKAN semakan "satu permohonan terbuka per e-mel" (`sediaAda` di bawah) — semakan tu masih
+// baca-semak-tulis TOCTOU biasa berlaku SEBELUM kunci rujukan diambil. Dua hantaran serentak
+// e-mel SAMA (double-click "Hantar", atau borang klien double-submit) kedua-duanya baca
+// `sediaAda` sebagai NULL sebelum mana-mana sempat INSERT — peraturan "satu permohonan terbuka
+// per e-mel" (komen di bawah) langsung tak terkuatkuasa. Disahkan reproduce (sim53: 8 POST
+// serentak e-mel sama -> 5 baris "terbuka" tercipta, bukan 1). Sama pepijat SIS yang dibaiki di
+// permohonan_editor (`denganKunciEmelPermohonan`, permohonanEditorRoutes.js, 2026-09-08) — corak
+// diguna pakai identik di sini, terlepas semasa fix asal sebab fail ni sudah ada kunci rantaian
+// LAIN (rujukan) yang kelihatan macam sudah cukup melindungi.
+const kunciPermohonanPenaja = new Map();
+function denganKunciEmelPermohonanPenaja(emel, tugas) {
+  const sebelum = kunciPermohonanPenaja.get(emel) || Promise.resolve();
+  const giliranIni = sebelum.then(tugas, tugas);
+  const dijagaGiliran = giliranIni.catch(() => {});
+  kunciPermohonanPenaja.set(emel, dijagaGiliran);
+  dijagaGiliran.finally(() => {
+    if (kunciPermohonanPenaja.get(emel) === dijagaGiliran) kunciPermohonanPenaja.delete(emel);
+  });
+  return giliranIni;
+}
+
 const HAD = {
   namaSebenar: 120,
   namaOrganisasi: 150,
@@ -159,38 +182,55 @@ export function createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, rootDir) {
       }
 
       // Satu permohonan terbuka per e-mel — sama corak permohonan_editor, elak pendua dalam
-      // senarai semakan.
-      const sediaAda = await dbGet(
-        "SELECT id FROM permohonan_penaja WHERE LOWER(emel) = ? AND status IN ('baharu','dalam_semakan','perlu_maklumat')",
-        [emel]
-      );
-      if (sediaAda) {
+      // senarai semakan. Semakan `sediaAda` + kunci-rujukan-INSERT MESTI berada DALAM SATU
+      // panggilan denganKunciEmelPermohonanPenaja (kunci di atas) supaya jadi SATU unit
+      // baca-semak-tulis atomik per e-mel — kalau semakan dibuat DI LUAR kunci ni (macam
+      // sebelum ni), dua hantaran serentak e-mel sama kedua-duanya baca "tiada permohonan
+      // terbuka" sebelum sesiapa sempat INSERT, dan peraturan "satu permohonan terbuka per
+      // e-mel" langsung tak terkuatkuasa (lihat komen denganKunciEmelPermohonanPenaja).
+      const kini = new Date().toISOString();
+      const hasilPermohonan = await denganKunciEmelPermohonanPenaja(emel, async () => {
+        const sediaAda = await dbGet(
+          "SELECT id FROM permohonan_penaja WHERE LOWER(emel) = ? AND status IN ('baharu','dalam_semakan','perlu_maklumat')",
+          [emel]
+        );
+        if (sediaAda) {
+          const ralat = new Error('DUPLIKAT');
+          ralat.duplikat = true;
+          throw ralat;
+        }
+        // Kunci baca-rujukan-terakhir + INSERT jadi SATU unit (lihat komen
+        // denganKunciRujukanPenaja di atas) — tanpa ni, dua permohonan hampir serentak (e-mel
+        // BERLAINAN) boleh jana `id` IDENTIK dan permohonan kedua hilang senyap dengan ralat
+        // generik. Kunci ni SERASI bersarang dengan kunci e-mel di atas (kunci berlainan
+        // kekunci, giliran per-e-mel tetap serialisasikan sesama sendiri sebelum masuk kunci
+        // rujukan global).
+        const rujukan = await denganKunciRujukanPenaja(async () => {
+          const r = await janaRujukan(dbGet);
+          await dbRun(
+            `INSERT INTO permohonan_penaja
+               (id, jenisPemohon, namaSebenar, namaOrganisasi, namaWakil, emel, laman, noPendaftaran,
+                aktivitiUtama, penerangan, pilihanPaparan, pilihanTajaan, catatan, status, createdAt)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
+            [
+              r, jenis, namaSebenar || null, namaOrganisasi || null, namaWakil || null, emel,
+              String(b.lamanRasmi || '').trim() || null, String(b.noPendaftaran || '').trim() || null,
+              aktivitiUtama || null, String(b.penerangan || '').trim() || null, pilihanPaparan,
+              String(b.pilihanTajaan || '').trim() || null, String(b.catatan || '').trim() || null, kini,
+            ]
+          );
+          return r;
+        });
+        return rujukan;
+      }).catch((e) => {
+        if (e && e.duplikat) return null;
+        throw e;
+      });
+
+      if (hasilPermohonan === null) {
         return res.status(409).json({ error: 'Permohonan dengan e-mel ini sedang dalam semakan. Sila tunggu keputusan.' });
       }
-
-      // Kunci baca-rujukan-terakhir + INSERT jadi SATU unit (lihat komen denganKunciRujukanPenaja
-      // di atas) — tanpa ni, dua permohonan hampir serentak boleh jana `id` IDENTIK dan permohonan
-      // kedua hilang senyap dengan ralat generik. Kedua-dua langkah (baca MAX, INSERT) MESTI
-      // berada DALAM SATU panggilan denganKunciRujukanPenaja — kalau dipisah dua panggilan kunci
-      // berasingan, giliran kedua boleh mula (baca MAX yang sama) sebelum INSERT giliran pertama
-      // selesai, dan race asal berulang walau nampak "dikunci".
-      const kini = new Date().toISOString();
-      const id = await denganKunciRujukanPenaja(async () => {
-        const rujukan = await janaRujukan(dbGet);
-        await dbRun(
-          `INSERT INTO permohonan_penaja
-             (id, jenisPemohon, namaSebenar, namaOrganisasi, namaWakil, emel, laman, noPendaftaran,
-              aktivitiUtama, penerangan, pilihanPaparan, pilihanTajaan, catatan, status, createdAt)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'baharu', ?)`,
-          [
-            rujukan, jenis, namaSebenar || null, namaOrganisasi || null, namaWakil || null, emel,
-            String(b.lamanRasmi || '').trim() || null, String(b.noPendaftaran || '').trim() || null,
-            aktivitiUtama || null, String(b.penerangan || '').trim() || null, pilihanPaparan,
-            String(b.pilihanTajaan || '').trim() || null, String(b.catatan || '').trim() || null, kini,
-          ]
-        );
-        return rujukan;
-      });
+      const id = hasilPermohonan;
 
       try {
         const penerima = await dbAll(
