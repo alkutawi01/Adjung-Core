@@ -653,7 +653,24 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       }
       // `role` legasi diselaraskan sekali untuk paparan lama (Indeks dsb.) — bukan sumber
       // kebenaran, cuma elak label ketinggalan zaman.
-      await dbRun('UPDATE users SET role = ?, updatedAt = ? WHERE id = ?', [roles.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR', new Date().toISOString(), id]);
+      const roleLegasiBaharu = roles.includes('ketua_editor') ? 'KETUA_EDITOR' : 'EDITOR';
+      await dbRun('UPDATE users SET role = ?, updatedAt = ? WHERE id = ?', [roleLegasiBaharu, new Date().toISOString(), id]);
+
+      // Segarkan sesi LIVE PEMANGGIL SENDIRI (2026-09-09, bug-hunt, susulan #227 penName) — sesi
+      // pemanggil sengaja DIKECUALIKAN drpd padamSesiPengguna di bawah (2026-09-03, supaya dia
+      // tak log keluar sendiri), tapi itu bermakna req.session.user snapshot dia TAK PERNAH
+      // disegarkan langsung selepas ni. `roles` (JAMAK) memang disegar LIVE setiap permintaan
+      // /api/system/* oleh middleware refreshSessionRoles (server.js), tapi `role` (TUNGGAL,
+      // legasi) TIADA mekanisme setara — ia hanya ditetapkan sekali semasa /login dan dipulangkan
+      // mentah oleh GET /api/auth/me. Client (App.tsx) baca authUser.role terus utk kelayakan
+      // Editorium DAN byline currentEditoriumName/currentEditoriumContact (Ketua Editor sahaja) —
+      // tanpa baris ni, Pentadbir yang tarik balik ketua_editor drpd akaun dia sendiri kekal
+      // dilayan sbg Ketua Editor pada UI sehingga log keluar/masuk semula (sampai 12 jam),
+      // walaupun DB (dan requirePermission() sebenar) sudah betul serta-merta.
+      if (req.session?.user?.id === id) {
+        req.session.user.role = roleLegasiBaharu;
+        req.session.user.roles = roles;
+      }
 
       // Batalkan sesi aktif sedia ada (2026-08-08, dapatan audit keselamatan ChatGPT) —
       // requirePermission() baca req.session.user.roles yang DICAP semasa log masuk, bukan baca
