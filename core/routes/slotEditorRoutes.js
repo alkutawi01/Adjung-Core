@@ -85,12 +85,21 @@ export const createSlotEditorRoutes = (dbAll, dbRun, dbGet) => {
         return res.status(400).json({ error: 'editorIds mesti senarai.' });
       }
 
-      // Sahkan setiap editor benar-benar wujud sebelum menulis apa-apa — id yatim dalam jadual ni
-      // akan muncul sebagai baris tanpa nama dalam senarai slot, tanpa cara membetulkannya.
+      // Sahkan setiap editor benar-benar wujud DAN tidak digantung sebelum menulis apa-apa — id
+      // yatim dalam jadual ni akan muncul sebagai baris tanpa nama dalam senarai slot, tanpa cara
+      // membetulkannya. Semakan `isSuspended` (2026-09-09, dapatan audit) — sebelum ni cuma
+      // disorok di client (SenaraiSlotConsole.tsx `filter(u => !u.isSuspended)`, senarai picker
+      // dimuat SEKALI bila modal dibuka), gerbang SEBENAR di sini tiada langsung. Editor yang
+      // digantung (login DISEKAT, lihat runSemakanTakAktif) selepas senarai picker dimuat tapi
+      // sebelum borang dihantar (atau panggilan API terus, memintas UI) tetap boleh ditugaskan
+      // urus slot — muncul dlm /slot-editors, terima notis "Anda ditugaskan...", walau tak boleh
+      // log masuk langsung untuk buat apa-apa. Baris ni ikut corak sama komen di atas ("gerbang
+      // sebenar di server, client cuma bayang") yang sepatutnya terpakai di sini juga.
       const unik = [...new Set(editorIds.filter(Boolean))];
       for (const id of unik) {
-        const ada = await dbGet('SELECT id FROM users WHERE id = ?', [id]);
+        const ada = await dbGet('SELECT id, isSuspended FROM users WHERE id = ?', [id]);
         if (!ada) return res.status(400).json({ error: `Editor tidak dijumpai: ${id}` });
+        if (ada.isSuspended) return res.status(400).json({ error: `Editor digantung, tidak boleh ditugaskan slot: ${id}` });
       }
 
       // Penugasan slot baharu (Fasa 6b notifikasi) — kira SEBELUM padam, supaya cuma editor yang
