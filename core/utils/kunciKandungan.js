@@ -54,4 +54,23 @@ export function denganKunciKategori(fn) {
   return giliran;
 }
 
+// Kunci peranan pengguna BERASINGAN (2026-09-09, bug-hunt) — `PATCH /users/:id/roles`
+// (userAdminRoutes.js) ganti SELURUH set baris `user_roles` bagi satu akaun: DELETE FROM
+// user_roles WHERE userId = ? diikuti gelung INSERT OR IGNORE, TANPA sebarang kunci — sibling
+// pepijat persis corak yang dibaiki di permohonanPenajaRoutes.js/sponsorRoutes.js (senarai anak
+// digantikan penuh bagi SATU ibu). Dua permintaan PATCH .../roles hampir serentak bagi AKAUN SAMA
+// (cth dua tab Pentadbir terbuka, atau klik dua kali pantas) boleh berselang-seli DELETE/INSERT
+// masing-masing — peranan yang sepatutnya wujud selepas KEDUA-DUA permintaan selesai boleh hilang
+// senyap (baris DELETE permintaan B padam baris INSERT permintaan A yang baru selesai, atau
+// sebaliknya), akaun tinggal dengan set peranan daripada SATU permintaan sahaja walaupun kedua-dua
+// respons HTTP pulangkan 200 OK. Kunci BERASINGAN drpd denganKunciKandungan (user_roles ialah
+// domain kebenaran akaun, bukan kandungan editorial, tiada sebab saling menyekat).
+let rantaianKunciPeranan = Promise.resolve();
+
+export function denganKunciPeranananPengguna(fn) {
+  const giliran = rantaianKunciPeranan.catch(() => {}).then(fn);
+  rantaianKunciPeranan = giliran.catch(() => {});
+  return giliran;
+}
+
 export default denganKunciKandungan;

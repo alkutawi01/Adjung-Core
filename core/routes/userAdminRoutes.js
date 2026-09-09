@@ -10,7 +10,7 @@ import { janaTokenTamatTempoh, AWALAN_USERNAME_SEMENTARA } from '../auth/TokenLa
 import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
 import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
-import { denganKunciKandungan } from '../utils/kunciKandungan.js';
+import { denganKunciKandungan, denganKunciPeranananPengguna } from '../utils/kunciKandungan.js';
 import { getDasarAktifAmbangMs, loadDasarAktifSettings, PERANAN_TERPAKAI_DASAR_AKTIF } from './dasarAktifRoutes.js';
 
 // Direktori (2026-08-02, Fasa 3) — dahulu `staffList` konsol client array kosong berkod keras,
@@ -604,7 +604,11 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
 
   // PATCH /api/system/users/:id/roles — ganti SELURUH set peranan akaun (satu akaun boleh
   // pegang berbilang — cth Izzat Pentadbir + Ketua Editor serentak).
-  router.patch('/users/:id/roles', requirePermission('manageAccounts'), async (req, res) => {
+  // denganKunciPeranananPengguna (2026-09-09, bug-hunt) — lihat komen kunciKandungan.js: laluan
+  // ni DELETE seluruh baris user_roles akaun ni lalu gelung INSERT semula, sibling pepijat corak
+  // permohonanPenajaRoutes.js/sponsorRoutes.js. Tanpa kunci ni, dua PATCH .../roles hampir
+  // serentak bagi akaun SAMA boleh berselang-seli DELETE/INSERT dan menghilangkan peranan senyap.
+  router.patch('/users/:id/roles', requirePermission('manageAccounts'), (req, res) => denganKunciPeranananPengguna(async () => {
     try {
       const { id } = req.params;
       const { roles } = req.body || {};
@@ -664,7 +668,7 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       console.error('PATCH user roles error:', err);
       res.status(500).json({ error: 'Gagal mengemas kini peranan. ' + (err.message || '') });
     }
-  });
+  }));
 
   return router;
 }
