@@ -20,11 +20,22 @@ const Card: React.FC<{ title: string; children: React.ReactNode }> = ({ title, c
   </PanelCard>
 );
 
+// `dt`/`dd` mesti jadi ANAK LANGSUNG bagi SATU grid dikongsi (lihat `<dl>` pemanggil) — bukan
+// dibungkus grid berasingan per-baris seperti dahulu — supaya lajur kedua (`dd`) SEJAJAR
+// merentasi semua baris. Grid per-baris berasingan buat setiap baris kira lebar lajur pertama
+// SENDIRI ikut panjang istilah baris itu sahaja (`minmax(120px,auto)`), jadi istilah panjang
+// (cth. "Dasar Terbit Sendiri Editor") tolak lajur "dd" baris itu jauh ke kanan berbanding
+// baris lain yang istilahnya pendek (cth. "Slot") — nampak macam lajur "dd" bocor/tak sejajar
+// dengan jadual (dapatan Izzat, tunjuk garis merah menegak merentasi Panduan → Kamus).
 const Kamus: React.FC<{ istilah: string; maksud: React.ReactNode }> = ({ istilah, maksud }) => (
-  <div className="grid grid-cols-[minmax(120px,auto)_1fr] gap-3 py-2 border-b border-stone-100 last:border-0">
-    <dt className="font-mono text-[11px] font-bold text-stone-800 uppercase tracking-wide">{istilah}</dt>
-    <dd className="font-sans text-xs text-stone-600 leading-relaxed">{maksud}</dd>
-  </div>
+  <>
+    <dt className="font-mono text-[11px] font-bold text-stone-800 uppercase tracking-wide py-2 border-b border-stone-100 last-of-type:border-0">
+      {istilah}
+    </dt>
+    <dd className="font-sans text-xs text-stone-600 leading-relaxed py-2 border-b border-stone-100 last:border-0">
+      {maksud}
+    </dd>
+  </>
 );
 
 export const PanduanConsole: React.FC = () => {
@@ -467,7 +478,7 @@ export const PanduanConsole: React.FC = () => {
       <div>
         <SectionLabel>14 — Kamus Adjung Brief</SectionLabel>
         <PanelCard padding="p-4">
-          <dl>
+          <dl className="grid grid-cols-[minmax(120px,auto)_1fr] gap-x-3">
             <Kamus istilah="Slot" maksud="Satu daripada 38 ruang kad tetap di muka depan (+ Ticker). Setiap slot terkunci kepada satu Bidang." />
             <Kamus istilah="Bidang" maksud="Kategori tetap satu slot (cth. Ekonomi, Kebudayaan); semua kandungan dalam slot itu mesti sepadan." />
             <Kamus istilah="Topik" maksud="Sub-label bebas per-kandungan dalam Bidang yang sama, wajib diisi setiap kali menulis." />
