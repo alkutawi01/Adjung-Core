@@ -241,19 +241,29 @@ export const SistemRekaBentukConsole: React.FC = () => {
           <div className="pt-5 border-t border-stone-100">
             <div className="font-serif text-sm font-bold text-stone-900 mb-1">Toast</div>
             <p className="font-sans text-xs text-stone-600 mb-2.5">
-              Notifikasi transien (3 saat). Digubah semula 2026-07-26 drpd palet gelap generik
-              kepada latar cream + jalur warna kiri, selari identiti Adjung.
+              Notifikasi transien (3 saat lalai). Reka bentuk semula KEDUA (2026-08-08, Izzat:
+              "guna satu warna sahaja") — ground maroon pekat + teks krim, sudut TAJAM (tiada
+              rounded), tiada bayang, mesej dalam serif. Makna dibawa oleh LABEL bertulis
+              ("BERJAYA"/"RALAT"/"MAKLUMAN"), bukan warna aksen kiri — tiada lagi jalur
+              hijau/merah semantik langsung.
             </p>
-            <div className="flex flex-col gap-2 max-w-sm">
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-l-4 bg-Adjung-cream text-stone-800 text-xs leading-relaxed border-stone-200 border-l-[var(--color-success)]">
-                <span>Peraturan berjaya ditambah!</span>
-              </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-l-4 bg-Adjung-cream text-stone-800 text-xs leading-relaxed border-stone-200 border-l-[var(--color-error)]">
-                <span>Sila masukkan Nama Peraturan.</span>
-              </div>
-              <div className="flex items-center gap-3 p-3.5 rounded-lg shadow-[0_4px_16px_rgba(0,0,0,.08)] border border-l-4 bg-Adjung-cream text-stone-800 text-xs leading-relaxed border-stone-200 border-l-Adjung-maroon">
-                <span>Peraturan telah dibuang.</span>
-              </div>
+            <div className="flex flex-col gap-px max-w-sm">
+              {(['success', 'error', 'info'] as const).map(jenis => (
+                <div
+                  key={jenis}
+                  className="flex items-start gap-4 pl-5 pr-3.5 py-3.5"
+                  style={{ backgroundColor: 'var(--color-Adjung-maroon)', color: 'var(--color-Adjung-cream)' }}
+                >
+                  <div className="min-w-0 flex-1">
+                    <span className="block font-mono text-[9px] font-bold uppercase tracking-[0.2em] opacity-60 mb-1">
+                      {jenis === 'success' ? 'Berjaya' : jenis === 'error' ? 'Ralat' : 'Makluman'}
+                    </span>
+                    <span className="block font-serif text-[13px] leading-snug">
+                      {jenis === 'success' ? 'Peraturan berjaya ditambah!' : jenis === 'error' ? 'Sila masukkan Nama Peraturan.' : 'Peraturan telah dibuang.'}
+                    </span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </PanelCard>
