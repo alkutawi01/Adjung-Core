@@ -534,10 +534,16 @@ URL:`}</pre>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Empat peranan editorial</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
               Pentadbir, Ketua Editor, Penolong Ketua Editor, dan Editor. Dikawal melalui matriks
-              "Kawalan Akses" di Tetapan (Ketua Editor sahaja boleh menanda/membatalkan kebenaran).
-              Ketua Editor ialah peranan pentadbir tidak boleh diubah suai (<em className="italic">immutable</em>);
-              kuasa tadbir urus utamanya (lihat semua/sunting semua/urus tetapan/urus Kawalan Akses)
-              tidak boleh ditarik semula daripada akaun sendiri.
+              "Kawalan Akses" di Tetapan — hanya peranan yang memegang kebenaran{' '}
+              <code className="bg-stone-100 px-1 rounded text-[11px]">manageRbac</code> boleh
+              menanda/membatalkan kebenaran dalam matriks tu; lalai sistem Pentadbir SAHAJA
+              (Pentadbir bersifat teknikal — tetapan sistem, Direktori/akaun, Kawalan Akses —
+              BUKAN editorial, jadi tiada kuasa terbit/tolak/urus editorial secara lalai). Ketua
+              Editor ditanda <em className="italic">immutable</em>, bukan Pentadbir: kuasa
+              editorial teras akaun sendiri (lihat semua, terbit, tolak) tidak boleh ditarik
+              semula daripada akaun sendiri, supaya Ketua Editor tak sesekali terkunci keluar
+              daripada kerja editorial sendiri melalui klik tersilap. Ini berasingan sepenuhnya
+              daripada urus tetapan/urus Kawalan Akses, yang bukan kuasa lalai Ketua Editor pun.
             </p>
           </div>
           <div>
