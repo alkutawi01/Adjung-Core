@@ -53,9 +53,9 @@ export const PanduanConsole: React.FC = () => {
         }
       />
 
-      {/* 00 — SELAMAT DATANG */}
+      {/* 00. SELAMAT DATANG */}
       <div>
-        <SectionLabel>00 — Selamat Datang</SectionLabel>
+        <SectionLabel>00. Selamat Datang</SectionLabel>
         <Card title="Mengenali Adjung Brief">
           Adjung Brief ialah portal berita/kandungan yang memaparkan kandungan editorial
           (berita, ilmu, kebudayaan) dalam bentuk kad-kad bersaiz berbeza (bento grid) di
@@ -66,9 +66,9 @@ export const PanduanConsole: React.FC = () => {
         </Card>
       </div>
 
-      {/* 01 — HARI PERTAMA ANDA */}
+      {/* 01. HARI PERTAMA ANDA */}
       <div>
-        <SectionLabel>01 — Hari Pertama Anda</SectionLabel>
+        <SectionLabel>01. Hari Pertama Anda</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="1. Lengkapkan profil (wajib)">
             Kali pertama log masuk, satu tetingkap akan muncul meminta Nama Penuh, Kelulusan
@@ -100,9 +100,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 02 — KENALI EDITORIUM */}
+      {/* 02. KENALI EDITORIUM */}
       <div>
-        <SectionLabel>02 — Kenali Editorium</SectionLabel>
+        <SectionLabel>02. Kenali Editorium</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Draf Saya">
             Senarai semua draf peribadi anda merentasi slot. Di sinilah anda semak kerja
@@ -128,9 +128,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 03 — FAHAMI STRUKTUR KANDUNGAN */}
+      {/* 03. FAHAMI STRUKTUR KANDUNGAN */}
       <div>
-        <SectionLabel>03 — Fahami Struktur Kandungan: Bidang &amp; Topik</SectionLabel>
+        <SectionLabel>03. Fahami Struktur Kandungan: Bidang &amp; Topik</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Bidang terkunci per-slot">
             Setiap slot (kecuali Ticker dan tier Bar) terkunci kepada SATU Bidang tetap
@@ -147,9 +147,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 04 — MENULIS KANDUNGAN */}
+      {/* 04. MENULIS KANDUNGAN */}
       <div>
-        <SectionLabel>04 — Menulis Kandungan</SectionLabel>
+        <SectionLabel>04. Menulis Kandungan</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="1. Buka ruang menulis">
             Klik <strong>Tulis Kandungan</strong>, pilih slot yang mahu diisi. Ruang ini ruang
@@ -178,9 +178,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 05 — DRAF SAYA */}
+      {/* 05. DRAF SAYA */}
       <div>
-        <SectionLabel>05 — Draf Saya</SectionLabel>
+        <SectionLabel>05. Draf Saya</SectionLabel>
         <Card title="Apa yang anda nampak dan boleh buat">
           Draf Saya senaraikan semua draf peribadi anda merentasi slot. Setiap baris tunjuk
           slot, tier kad, Bidang, Topik, tajuk (atau "Draf kosong" jika belum ditulis), status
@@ -195,9 +195,9 @@ export const PanduanConsole: React.FC = () => {
         </Card>
       </div>
 
-      {/* 06 — MENERBITKAN KANDUNGAN */}
+      {/* 06. MENERBITKAN KANDUNGAN */}
       <div>
-        <SectionLabel>06 — Menerbitkan Kandungan</SectionLabel>
+        <SectionLabel>06. Menerbitkan Kandungan</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Terbit sekarang">
             Apabila kandungan siap, klik <strong>Terbit sekarang</strong>. Sistem semak dua
@@ -234,9 +234,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 07 — EMPAT STATUS SELEPAS HANTAR */}
+      {/* 07. EMPAT STATUS SELEPAS HANTAR */}
       <div>
-        <SectionLabel>07 — "Terbit" Bukan "Aktif": Empat Kemungkinan Status</SectionLabel>
+        <SectionLabel>07. "Terbit" Bukan "Aktif": Empat Kemungkinan Status</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Menunggu Semakan">
             Kandungan anda perlu kelulusan manusia (anda sendiri jika dasar benarkan, atau
@@ -261,9 +261,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 08 — JIKA KANDUNGAN DITOLAK */}
+      {/* 08. JIKA KANDUNGAN DITOLAK */}
       <div>
-        <SectionLabel>08 — Jika Kandungan Anda Ditolak</SectionLabel>
+        <SectionLabel>08. Jika Kandungan Anda Ditolak</SectionLabel>
         <Card title="Apa berlaku dan apa perlu anda buat">
           Tolak BUKAN buang kandungan. Apabila Ketua Editor/Penolong menolak kandungan anda,
           ia dipulangkan semula sebagai draf boleh sunting, cari di <strong>Draf Saya</strong>{' '}
@@ -275,9 +275,9 @@ export const PanduanConsole: React.FC = () => {
         </Card>
       </div>
 
-      {/* 09 — BAJET RUANG KAD */}
+      {/* 09. BAJET RUANG KAD */}
       <div>
-        <SectionLabel>09 — Bajet Ruang Kad</SectionLabel>
+        <SectionLabel>09. Bajet Ruang Kad</SectionLabel>
         <Card title="Satu bajet, dua medan: apa maksud warna petak">
           <>
             Setiap kad bento (Hero, Menegak, Standard, dll.) ada saiz fizikal tetap, kad TAK
@@ -305,9 +305,9 @@ export const PanduanConsole: React.FC = () => {
         </Card>
       </div>
 
-      {/* 10 — MENGURUS KANDUNGAN ANDA */}
+      {/* 10. MENGURUS KANDUNGAN ANDA */}
       <div>
-        <SectionLabel>10 — Mengurus Kandungan Anda</SectionLabel>
+        <SectionLabel>10. Mengurus Kandungan Anda</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Senarai Slot">
             <strong>Slot → 1. Senarai Slot</strong>: senarai semua 38 slot bento, tunjuk slot
@@ -323,9 +323,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 11 — JIKA SESUATU TIDAK BERJALAN */}
+      {/* 11. JIKA SESUATU TIDAK BERJALAN */}
       <div>
-        <SectionLabel>11 — Jika Sesuatu Tidak Berjalan</SectionLabel>
+        <SectionLabel>11. Jika Sesuatu Tidak Berjalan</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {/* Petikan tajuk diselaraskan dengan mesej pelayan SEBENAR (slotsConfigRoutes.js ~208-212)
               — versi lama "Slot ini telah disimpan oleh orang lain" sudah tidak wujud dalam sistem,
@@ -358,9 +358,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 12 — PERANAN & HAD ANDA */}
+      {/* 12. PERANAN & HAD ANDA */}
       <div>
-        <SectionLabel>12 — Peranan &amp; Had Anda (RBAC)</SectionLabel>
+        <SectionLabel>12. Peranan &amp; Had Anda (RBAC)</SectionLabel>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <Card title="Editor (peranan anda, lazimnya)">
             Boleh: tulis dan terbit kandungan untuk slot yang ditugaskan, urus draf sendiri,
@@ -386,13 +386,13 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 13 — PENGISIAN KANDUNGAN OLEH AI/AUTOMASI (2026-09-04, arahan Izzat selepas insiden
+      {/* 13. PENGISIAN KANDUNGAN OLEH AI/AUTOMASI (2026-09-04, arahan Izzat selepas insiden
           fabrikasi sebenar — "BookChef") — seksyen ini WAJIB dibaca sebelum mana-mana AI (Claude,
           ChatGPT, dll.) diarahkan mengisi kandungan editorial. Bukan pengganti penyeliaan
           manusia, cuma memastikan AI ada konteks penuh dari awal supaya kesilapan sama tidak
           berulang. */}
       <div>
-        <SectionLabel>13 — Pengisian Kandungan oleh AI dan Automasi</SectionLabel>
+        <SectionLabel>13. Pengisian Kandungan oleh AI dan Automasi</SectionLabel>
         <Card title="Tujuan seksyen ini">
           Bilangan editor manusia tidak mencukupi untuk mengisi semua slot, jadi AI kerap
           diarahkan untuk menulis kandungan secara langsung. Tanpa konteks penuh, AI boleh
@@ -448,7 +448,9 @@ export const PanduanConsole: React.FC = () => {
             untuk tajuk, bukan Title Case. Gunakan tulisan condong (<code>*teks*</code>) hanya
             untuk istilah ASING atau transliterasi (contohnya <em>ʿiddah</em>, <em>jilbāb</em>),
             BUKAN untuk nama khas atau perkataan Melayu biasa. Jangan gunakan tulisan condong
-            untuk tujuan hiasan.
+            untuk tujuan hiasan. <strong>Jangan gunakan em dash (—)</strong> sebagai tanda baca
+            pemisah klausa; ia bunyi seperti tulisan AI, bukan gaya penerbitan Adjung. Guna koma,
+            titik koma, kolon atau ayat berasingan sebagai ganti.
           </Card>
           <Card title="Proses dan had teknikal">
             Semak kandungan sedia ada dalam slot sasaran terlebih dahulu, elakkan topik berulang
@@ -474,9 +476,9 @@ export const PanduanConsole: React.FC = () => {
         </div>
       </div>
 
-      {/* 14 — KAMUS ADJUNG BRIEF */}
+      {/* 14. KAMUS ADJUNG BRIEF */}
       <div>
-        <SectionLabel>14 — Kamus Adjung Brief</SectionLabel>
+        <SectionLabel>14. Kamus Adjung Brief</SectionLabel>
         <PanelCard padding="p-4">
           <dl className="grid grid-cols-[minmax(120px,auto)_1fr] gap-x-3">
             <Kamus istilah="Slot" maksud="Satu daripada 38 ruang kad tetap di muka depan (+ Ticker). Setiap slot terkunci kepada satu Bidang." />
