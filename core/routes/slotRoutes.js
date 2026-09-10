@@ -894,12 +894,17 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         id,
         deskId,
         keyword.trim(),
-        Number(weight) || 15,
+        // PEMBETULAN (2026-09-11, bug-hunt susulan) — `|| 15` gugurkan weight=0 (nilai SAH
+        // bermaksud "peraturan ni padan kata kunci tapi sengaja sifar sumbangan skor", cth.
+        // editor nak jejak/uji kata kunci tanpa kesan skor) jadi 15, SAMA pepijat falsy-zero
+        // yang dibaiki untuk orderIndex tepat di bawah baris ni pada round #278 (dan di
+        // EditorialTextNormalizer.getApplicableRules()/DeskClassifierEngine.calculateDeskScores
+        // yang membaca lajur weight ni semula untuk pemarkahan) — terlepas pandang laluan CIPTA
+        // (POST) ni walau laluan SUNTING (PUT, baris ~944, `weight !== undefined ? Number(weight)
+        // : existing.weight`) sudah betul sejak awal (tiada fallback `|| 15` langsung di situ).
+        weight !== undefined && weight !== null && weight !== '' ? Number(weight) : 15,
         isNegative ? 1 : 0,
         enabled !== undefined ? (enabled ? 1 : 0) : 1,
-        // PEMBETULAN (2026-09-11, bug-hunt susulan #278) — `|| 10` gugurkan orderIndex=0
-        // (nilai SAH bermaksud "letak pertama dalam susunan ASC") jadi 10, sama pepijat
-        // falsy-zero yang dibaiki di EditorialTextNormalizer.getApplicableRules().
         orderIndex !== undefined && orderIndex !== null && orderIndex !== '' ? Number(orderIndex) : 10,
         createdAt
       ]);

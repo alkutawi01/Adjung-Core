@@ -193,7 +193,13 @@ export function calculateDeskScores(text, category, rules = [], desks = [], glob
     const kw = (rule.keyword || '').toLowerCase().trim();
     if (!kw) continue;
 
-    const weight = Number(rule.weight) || 15;
+    // PEMBETULAN (2026-09-11, bug-hunt susulan) — `|| 15` gugurkan weight=0 tersimpan (nilai
+    // SAH: peraturan padan kata kunci tapi sengaja sifar sumbangan skor) balik jadi 15 setiap
+    // kali skor dikira, sama pepijat falsy-zero yang dibaiki di laluan CIPTA peraturan
+    // (slotRoutes.js POST /rss-desk-rules). Guna semakan NaN eksplisit supaya 0 sah dikekalkan,
+    // cuma nilai hilang/rosak (null/undefined/bukan nombor) jatuh balik ke lalai 15.
+    const parsedWeight = Number(rule.weight);
+    const weight = Number.isFinite(parsedWeight) ? parsedWeight : 15;
     const isNegative = rule.isNegative === 1;
 
     const escapedKw = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
