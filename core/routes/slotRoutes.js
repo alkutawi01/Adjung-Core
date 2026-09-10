@@ -1232,7 +1232,14 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       `, [
         id, term.trim(), style || 'italic', category || 'foreign_term',
         matchType || 'word', scope || 'all', language || 'ms-MY',
-        caseSensitive ? 1 : 0, Number(priority) || 50,
+        caseSensitive ? 1 : 0,
+        // PEMBETULAN (2026-09-11, bug-hunt) — `Number(priority) || 50` gugurkan priority=0
+        // (nilai SAH — keutamaan terendah dalam susunan `ORDER BY priority DESC`) jadi 50,
+        // sama pepijat falsy-zero yang dibaiki round #278/#279 di rss-text-rules/adjung-desks/
+        // rss-desk-rules dalam fail ni sendiri — laluan ni tercicir daripada pembetulan sama.
+        // PUT /adjung-typography-rules/:id (di bawah) sudah betul (`priority !== undefined ?
+        // Number(priority) : existing.priority`), cuma POST ni yang terlepas.
+        priority !== undefined && priority !== null && priority !== '' ? Number(priority) : 50,
         status || 'active', (status === 'pending' || status === 'rejected' || status === 'archived') ? 0 : 1,
         exclStr, now, now
       ]);
