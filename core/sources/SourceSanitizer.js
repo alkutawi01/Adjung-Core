@@ -120,5 +120,16 @@ export function truncateWords(text, maxWords = 100) {
 
 export function stripLocationDateline(text) {
   if (!text || typeof text !== 'string') return '';
-  return text.replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/i, '').trim();
+  // Pembetulan (2026-09-11, bug-hunt): regex asal guna flag 'i' (case-INsensitive) di atas
+  // corak [A-Z\s]{2,30} yang tujuannya khusus untuk padan dateline lokasi HURUF BESAR SEMUA
+  // (cth "PETALING JAYA –", "KUALA LUMPUR:"). Dengan flag 'i', [A-Z] turut padan huruf KECIL,
+  // jadi corak tu sebenarnya jadi "mana-mana perkataan/ayat sepanjang 2-30 aksara diikuti
+  // sempang/kolon" — ayat BIASA (bukan dateline) yang klausa pertamanya kebetulan diakhiri
+  // '-'/':'/'–' turut kena potong, cth "Menurut kenyataan rasmi - beliau berkata begitu" jadi
+  // "beliau berkata begitu" sahaja (klausa pertama LENYAP). Fungsi ni dipanggil terus ke atas
+  // teks brief RSS sebenar (RssDirectEngine.js) dan medan editorial (EditorialTextNormalizer.js
+  // ruleType strip_dateline), jadi kesannya kandungan artikel sebenar hilang ayat pembuka. Buang
+  // flag 'i' — dateline lokasi sentiasa HURUF BESAR SEMUA secara konvensyen (itu sebab corak
+  // tu [A-Z] pada mulanya), jadi tanpa 'i' ia hanya padan dateline sebenar, bukan ayat biasa.
+  return text.replace(/^(?:[A-Z\s]{2,30}(?:[,\s]+\d{1,2}\s+[A-Za-z]+)?)\s*[\-–—:]+\s*/, '').trim();
 }
