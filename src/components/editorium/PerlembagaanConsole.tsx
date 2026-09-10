@@ -415,11 +415,13 @@ URL:`}</pre>
           <div>
             <h3 className="font-serif text-sm font-bold text-stone-900 mb-1">Medan Penerangan</h3>
             <p className="font-sans text-xs text-stone-600 leading-relaxed">
-              Huraian tambahan pilihan, disimpan sepenuhnya tetapi <strong>TIDAK dipaparkan pada kad</strong>,
-              disediakan untuk ciri akordion (panel boleh dikembangkan) akan datang, belum dibina. Tiada had aksara
-              dikuatkuasakan setakat ini (tiada panel sebenar untuk diukur), sama prinsip dengan
-              <code className="bg-stone-100 px-1 rounded text-[11px] mx-1">briefLong</code>
-              tier lain sebelum ciri spotlight dibina.
+              Huraian tambahan pilihan, <strong>TIDAK dipaparkan pada kad itu sendiri</strong> — dipaparkan
+              di panel akordion (<code className="bg-stone-100 px-1 rounded text-[11px]">BarCardExpandedPanel.tsx</code>) yang
+              boleh dikembangkan/ditutup dengan klik kad Bar (lihat "Akordion Bar" di Peraturan
+              Sejagat). Dihadkan{' '}
+              <code className="bg-stone-100 px-1 rounded text-[11px]">MAX_PENERANGAN_CHARS</code> = 250
+              aksara (<code className="bg-stone-100 px-1 rounded text-[11px]">core/editorial/GeometryConfig.js</code>),
+              dikuatkuasakan server.js semasa simpan.
             </p>
           </div>
           <div>
