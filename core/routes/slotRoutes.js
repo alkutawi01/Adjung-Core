@@ -610,7 +610,10 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         pattern || '',
         replacement || '',
         enabled !== undefined ? (enabled ? 1 : 0) : 1,
-        Number(orderIndex) || 10,
+        // PEMBETULAN (2026-09-11, bug-hunt susulan #278) — `|| 10` gugurkan orderIndex=0
+        // (nilai SAH bermaksud "letak pertama dalam susunan ASC") jadi 10, sama pepijat
+        // falsy-zero yang dibaiki di EditorialTextNormalizer.getApplicableRules().
+        orderIndex !== undefined && orderIndex !== null && orderIndex !== '' ? Number(orderIndex) : 10,
         createdAt
       ]);
 
@@ -744,7 +747,16 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       await dbRun(`
         INSERT INTO adjung_desks (id, deskName, description, displayOrder, enabled, locked, createdAt)
         VALUES (?, ?, ?, ?, 1, 0, ?)
-      `, [id, deskName.trim(), description || '', Number(displayOrder) || 10, createdAt]);
+      `, [
+        id,
+        deskName.trim(),
+        description || '',
+        // PEMBETULAN (2026-09-11, bug-hunt susulan #278) — `|| 10` gugurkan displayOrder=0
+        // (nilai SAH bermaksud "desk pertama dalam susunan ASC") jadi 10, sama pepijat
+        // falsy-zero yang dibaiki di EditorialTextNormalizer.getApplicableRules().
+        displayOrder !== undefined && displayOrder !== null && displayOrder !== '' ? Number(displayOrder) : 10,
+        createdAt
+      ]);
 
       // Log Audit (2026-09-07, bug-hunt) — laluan ni tiada logAudit() sebelum ni.
       await logAudit(dbRun, {
@@ -885,7 +897,10 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
         Number(weight) || 15,
         isNegative ? 1 : 0,
         enabled !== undefined ? (enabled ? 1 : 0) : 1,
-        Number(orderIndex) || 10,
+        // PEMBETULAN (2026-09-11, bug-hunt susulan #278) — `|| 10` gugurkan orderIndex=0
+        // (nilai SAH bermaksud "letak pertama dalam susunan ASC") jadi 10, sama pepijat
+        // falsy-zero yang dibaiki di EditorialTextNormalizer.getApplicableRules().
+        orderIndex !== undefined && orderIndex !== null && orderIndex !== '' ? Number(orderIndex) : 10,
         createdAt
       ]);
 
