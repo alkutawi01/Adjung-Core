@@ -270,7 +270,7 @@ export function parseManualBlockFields(block) {
     // Label dikenali dijumpai -> medan berbilang-baris sebelumnya (jika ada) TAMAT di sini.
     // Cabang medan berbilang-baris di bawah menetapkan semula `medanSemasa` selepas ni.
     medanSemasa = null;
-    if (trimmed.startsWith('Tarikh sumber:') && sumberDateArmed && fields.sources.length > 0) {
+    if (/^Tarikh sumber:/i.test(trimmed) && sumberDateArmed && fields.sources.length > 0) {
       const nilai = trimmed.replace(/^Tarikh sumber:\s*/i, '').trim();
       sumberDateArmed = false;
       if (nilai === '') { labelTunggalMenanti = 'tarikhSumberKonteks'; continue; }
@@ -278,71 +278,71 @@ export function parseManualBlockFields(block) {
       continue;
     }
     sumberDateArmed = false;
-    if (trimmed.startsWith('UUID:')) {
+    if (/^UUID:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^UUID:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'uuid'; else terapkanLabelTunggal('uuid', nilai);
-    } else if (trimmed.startsWith('Status:')) {
+    } else if (/^Status:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Status:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'status'; else terapkanLabelTunggal('status', nilai);
-    } else if (trimmed.startsWith('Tajuk:')) {
+    } else if (/^Tajuk:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Tajuk:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'tajuk'; else terapkanLabelTunggal('tajuk', nilai);
-    } else if (trimmed.startsWith('Event:')) {
+    } else if (/^Event:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Event:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'event'; else terapkanLabelTunggal('event', nilai);
-    } else if (trimmed.startsWith('Huraian panjang:')) {
+    } else if (/^Huraian panjang:/i.test(trimmed)) {
       fields.briefLong = stripLimitHint(trimmed.replace(/^Huraian panjang:\s*/i, ''));
       medanSemasa = 'briefLong';
       continue;
-    } else if (trimmed.startsWith('Huraian ringkas:')) {
+    } else if (/^Huraian ringkas:/i.test(trimmed)) {
       fields.brief = stripLimitHint(trimmed.replace(/^Huraian ringkas:\s*/i, ''));
       medanSemasa = 'brief';
       continue;
-    } else if (trimmed.startsWith('Huraian:')) {
+    } else if (/^Huraian:/i.test(trimmed)) {
       fields.brief = stripLimitHint(trimmed.replace(/^Huraian:\s*/i, ''));
       medanSemasa = 'brief';
       continue;
-    } else if (trimmed.startsWith('Bidang:')) {
+    } else if (/^Bidang:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Bidang:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'desk'; else terapkanLabelTunggal('desk', nilai);
-    } else if (trimmed.startsWith('Kategori:')) {
+    } else if (/^Kategori:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Kategori:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'desk'; else terapkanLabelTunggal('desk', nilai);
-    } else if (trimmed.startsWith('Topik:')) {
+    } else if (/^Topik:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Topik:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'topik'; else terapkanLabelTunggal('topik', nilai);
-    } else if (trimmed.startsWith('Jenis sumber:')) {
+    } else if (/^Jenis sumber:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Jenis sumber:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'jenisSumber'; else terapkanLabelTunggal('jenisSumber', nilai);
-    } else if (trimmed.startsWith('Tarikh mula:')) {
+    } else if (/^Tarikh mula:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Tarikh mula:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'tarikhMula'; else terapkanLabelTunggal('tarikhMula', nilai);
-    } else if (trimmed.startsWith('Tarikh tamat:')) {
+    } else if (/^Tarikh tamat:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Tarikh tamat:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'tarikhTamat'; else terapkanLabelTunggal('tarikhTamat', nilai);
-    } else if (trimmed.startsWith('Tarikh sumber:')) {
+    } else if (/^Tarikh sumber:/i.test(trimmed)) {
       // Sampai sini bermakna `sumberDateArmed` palsu — tarikh legasi berkongsi (bukan per-sumber).
       const nilai = trimmed.replace(/^Tarikh sumber:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'tarikhSumberLegasi'; else terapkanLabelTunggal('tarikhSumberLegasi', nilai);
-    } else if (trimmed.startsWith('Tarikh:')) {
+    } else if (/^Tarikh:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Tarikh:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'tarikh'; else terapkanLabelTunggal('tarikh', nilai);
-    } else if (trimmed.startsWith('Artikel Jurnal:')) {
+    } else if (/^Artikel Jurnal:/i.test(trimmed)) {
       fields.sumberAkademik = trimmed.replace(/^Artikel Jurnal:\s*/i, '').trim();
       medanSemasa = null;
       continue;
-    } else if (trimmed.startsWith('Penulis:')) {
+    } else if (/^Penulis:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Penulis:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'penulis'; else terapkanLabelTunggal('penulis', nilai);
-    } else if (trimmed.startsWith('Nota:')) {
+    } else if (/^Nota:/i.test(trimmed)) {
       fields.note = trimmed.replace(/^Nota:\s*/i, '').trim();
       medanSemasa = 'note';
       continue;
-    } else if (trimmed.startsWith('Sebab Penolakan:')) {
+    } else if (/^Sebab Penolakan:/i.test(trimmed)) {
       fields.rejectionNote = trimmed.replace(/^Sebab Penolakan:\s*/i, '').trim();
       medanSemasa = 'rejectionNote';
       continue;
-    } else if (trimmed.startsWith('Imej:')) {
+    } else if (/^Imej:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Imej:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'imej'; else terapkanLabelTunggal('imej', nilai);
     } else if (/^Penganjur:/i.test(trimmed)) {
@@ -358,10 +358,10 @@ export function parseManualBlockFields(block) {
       fields.penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
       medanSemasa = 'penerangan';
       continue;
-    } else if (trimmed.startsWith('Sumber:')) {
+    } else if (/^Sumber:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Sumber:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'sumber'; else terapkanLabelTunggal('sumber', nilai);
-    } else if (trimmed.startsWith('URL:')) {
+    } else if (/^URL:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^URL:\s*/i, '');
       // Pepijat sebenar (2026-09-07, Izzat — "Tarikh sumber wajib diisi" walau tarikh dah
       // diisi dan disimpan betul): sebelum ni sumberDateArmed cuma diset TRUE di dalam case
