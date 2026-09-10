@@ -243,7 +243,7 @@ export const PanduanConsole: React.FC = () => {
             Kandungan anda sudah tersiar di muka depan. Boleh disemak bila-bila di{' '}
             <strong>Kandungan → Indeks</strong> atau <strong>Slot → Senarai Slot</strong>.
           </Card>
-          <Card title="Ditolak — lihat seksyen 08">
+          <Card title="Ditolak (lihat seksyen 08)">
             Kandungan tidak diluluskan. Ia TIDAK hilang; ia kembali kepada anda sebagai draf
             boleh sunting.
           </Card>
@@ -267,7 +267,7 @@ export const PanduanConsole: React.FC = () => {
       {/* 09 — BAJET RUANG KAD */}
       <div>
         <SectionLabel>09 — Bajet Ruang Kad</SectionLabel>
-        <Card title="Satu bajet, dua medan — dan apa maksud warna petak">
+        <Card title="Satu bajet, dua medan: apa maksud warna petak">
           <>
             Setiap kad bento (Hero, Menegak, Standard, dll.) ada saiz fizikal tetap, kad TAK
             boleh melimpah. Tajuk dan huraian satu kad berkongsi SATU bajet ruang, bukan dua
@@ -385,32 +385,32 @@ export const PanduanConsole: React.FC = () => {
         <Card title="Tujuan seksyen ini">
           Bilangan editor manusia tidak mencukupi untuk mengisi semua slot, jadi AI kerap
           diarahkan untuk menulis kandungan secara langsung. Tanpa konteks penuh, AI boleh
-          tersasar — tidak tahu apa yang perlu ditulis, cara mengesahkan fakta atau perkara yang
+          tersasar, tidak tahu apa yang perlu ditulis, cara mengesahkan fakta atau perkara yang
           dilarang. Seksyen ini ialah arahan tetap yang perlu dibaca oleh AI SEBELUM mula bekerja
           dan tidak perlu diterangkan semula setiap kali tugasan diberikan.
         </Card>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mt-3">
-          <Card title="Peraturan sumber — mutlak">
+          <Card title="Peraturan sumber (mutlak)">
             <strong>Wikipedia diharamkan sepenuhnya</strong> (membaca, merujuk atau membuat
-            semakan silang — semuanya dilarang). Setiap fakta yang ditulis mesti BENAR-BENAR
+            semakan silang, semuanya dilarang). Setiap fakta yang ditulis mesti BENAR-BENAR
             terdapat dalam perenggan penuh sumber yang dibaca, bukan sekadar dalam tajuk hasil
             carian, petikan carian atau andaian. Sumber mestilah halaman KHUSUS, bukan laman
-            utama sesebuah domain. <strong>Sumber mesti cukup terkini dan relevan</strong> —
+            utama sesebuah domain. <strong>Sumber mesti cukup terkini dan relevan</strong>:
             sahkan tarikh penerbitan atau kemas kini sumber, dan pastikan maklumat berkenaan belum
             berubah sejak tarikh itu (contohnya jawatan atau status seseorang, atau keputusan
             yang mungkin dipinda kemudian). Jangan petik maklumat lapuk sebagai fakta semasa.
-            Sumber boleh dalam apa-apa bahasa (Arab, Inggeris dan sebagainya) — utamakan sumber
+            Sumber boleh dalam apa-apa bahasa (Arab, Inggeris dan sebagainya), utamakan sumber
             yang paling berautoriti bagi topik berkenaan, bukan berdasarkan bahasanya. Jangan
-            gunakan alat ringkasan automatik untuk "membaca" sumber — buka sumber asal secara
+            gunakan alat ringkasan automatik untuk "membaca" sumber; buka sumber asal secara
             langsung dan baca kandungan asalnya.
           </Card>
-          <Card title="Semakan oleh ChatGPT — sumber wajib disertakan">
+          <Card title="Semakan oleh ChatGPT (sumber wajib disertakan)">
             Apabila menghantar draf kepada ChatGPT untuk disemak, WAJIB sertakan URL sumber dan
             petikan langsung (salin-tampal) daripada sumber dalam mesej yang sama. Tanpa
             kedua-duanya, ChatGPT hanya boleh menilai bahasa, BUKAN mengesahkan bahawa setiap
             fakta benar-benar terdapat dalam sumber. Arahkan ChatGPT membandingkan SETIAP fakta
             dalam draf dengan petikan yang disertakan. Sebarang amaran ChatGPT bahawa sesuatu
-            fakta tidak disokong oleh petikan tidak boleh diabaikan — buang atau betulkan fakta
+            fakta tidak disokong oleh petikan tidak boleh diabaikan; buang atau betulkan fakta
             tersebut.
           </Card>
           <Card title="Kriteria topik">
@@ -427,12 +427,12 @@ export const PanduanConsole: React.FC = () => {
             walaupun sepintas lalu, jangan gunakan nada yang seolah-olah mengesahkan atau
             menggalakkannya tanpa konteks kritikal. Jika ragu-ragu sama ada sesuatu topik,
             program atau amalan sesuai atau kontroversi, JANGAN teruskan selagi belum mendapat
-            kepastian — pilih topik lain atau tanya terlebih dahulu.
+            kepastian, pilih topik lain atau tanya terlebih dahulu.
           </Card>
           <Card title="Gaya penulisan dan format">
             Adjung Brief bukan portal berita semata-mata; gayanya menggabungkan berita dengan
             majalah. Perenggan pertama mesti memuatkan fakta utama (apa, siapa dan bila). Selepas
-            itu, kandungan boleh berkembang dengan konteks yang lebih luas — bukan sekadar tajuk
+            itu, kandungan boleh berkembang dengan konteks yang lebih luas, bukan sekadar tajuk
             berita tanpa isi dan bukan juga entri ensiklopedia. Gunakan <em>sentence case</em>{' '}
             untuk tajuk, bukan Title Case. Gunakan tulisan condong (<code>*teks*</code>) hanya
             untuk istilah ASING atau transliterasi (contohnya <em>ʿiddah</em>, <em>jilbāb</em>),
@@ -440,9 +440,9 @@ export const PanduanConsole: React.FC = () => {
             untuk tujuan hiasan.
           </Card>
           <Card title="Proses dan had teknikal">
-            Semak kandungan sedia ada dalam slot sasaran terlebih dahulu — elakkan topik berulang
+            Semak kandungan sedia ada dalam slot sasaran terlebih dahulu, elakkan topik berulang
             dan jangan terbitkan lebih daripada bilangan yang diminta. Slot penuh (cth. 10/10)
-            BUKAN halangan — sistem mempunyai putaran automatik selepas kira-kira 24 jam (nilai
+            BUKAN halangan; sistem mempunyai putaran automatik selepas kira-kira 24 jam (nilai
             lalai ditetapkan di Tetapan → Tetapan Am Slot, boleh dilaraskan oleh Ketua Editor).
             Kandungan baharu akan masuk ke status "Menunggu Slot Kosong" dan dinaikkan ke slot
             secara automatik. Jangan
@@ -452,13 +452,13 @@ export const PanduanConsole: React.FC = () => {
             Slot, boleh berbeza jika Ketua Editor melaraskannya); gunakan singkatan jika nama
             sumber masih tidak muat.
           </Card>
-          <Card title="Latar belakang — mengapa peraturan ini ketat">
+          <Card title="Latar belakang (mengapa peraturan ini ketat)">
             Disusun pada 2026-09-04 selepas insiden sebenar: satu artikel direka-reka SEPENUHNYA
             ("Serangan Rusia musnah 100,000 naskhah buku BookChef") dan dikaitkan secara palsu
             dengan URL sumber sebenar yang langsung tidak menyebut fakta tersebut. Kandungan itu
-            telah dipadam, tetapi kelemahan proses yang menjadi puncanya — semakan oleh ChatGPT
-            tanpa sumber yang disertakan dan ketiadaan larangan Wikipedia yang dinyatakan secara
-            eksplisit — boleh berulang jika perkara ini tidak dijadikan peraturan tetap.
+            telah dipadam, tetapi kelemahan proses yang menjadi puncanya, iaitu semakan oleh
+            ChatGPT tanpa sumber yang disertakan dan ketiadaan larangan Wikipedia yang dinyatakan
+            secara eksplisit, boleh berulang jika perkara ini tidak dijadikan peraturan tetap.
           </Card>
         </div>
       </div>
