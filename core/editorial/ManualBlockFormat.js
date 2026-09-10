@@ -398,7 +398,16 @@ export function parseManualBlockFields(block) {
 // anything typed into it, since patch() targets an index that no longer exists after re-derive).
 // The "must have a title to publish" rule still applies server-side at actual save time.
 export function parseManualSummaryBlocks(summaryText) {
-  if (!summaryText || (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:'))) return [];
+  // Cheap short-circuit BEFORE the full split+parse below — MESTI case-insensitive, sepadan
+  // dengan parseManualBlockFields (yang dipanggil serta-merta selepas ni) dan MANUAL_BLOCK_SPLIT_REGEX
+  // (kedua-duanya guna bendera 'i'). Dahulu literal-case .includes('Tajuk:')/.includes('Event:') --
+  // blok yang label medannya huruf kecil (cth "tajuk:", yang parseManualBlockFields SUDAH terima
+  // sejak pembetulan case-sensitivity #272/#273) gagal semakan cepat ni dan fungsi terus pulangkan
+  // [] tanpa cuba hurai langsung, walhal parseManualBlockFields sendiri akan berjaya kalau dipanggil.
+  // Kesan sebenar: pembaca Draf Saya/SlotManagerModal papar senarai kosong bagi manualSummary yang
+  // sah tapi berlabel huruf kecil, walau pembetulan besar #272/#273 sepatutnya sudah menampung kes ni.
+  const t = summaryText ? summaryText.toLowerCase() : '';
+  if (!t || (!t.includes('tajuk:') && !t.includes('event:'))) return [];
   const blocks = (summaryText || '')
     .split(MANUAL_BLOCK_SPLIT_REGEX)
     // MANUAL_BLOCK_SPLIT_REGEX's alternatives overlap on the standard "\n\n____...____\n\n"
