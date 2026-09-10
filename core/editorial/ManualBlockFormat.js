@@ -345,16 +345,16 @@ export function parseManualBlockFields(block) {
     } else if (trimmed.startsWith('Imej:')) {
       const nilai = trimmed.replace(/^Imej:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'imej'; else terapkanLabelTunggal('imej', nilai);
-    } else if (trimmed.startsWith('Penganjur:')) {
+    } else if (/^Penganjur:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Penganjur:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'penganjur'; else terapkanLabelTunggal('penganjur', nilai);
-    } else if (trimmed.startsWith('Lokasi:')) {
+    } else if (/^Lokasi:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Lokasi:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'lokasi'; else terapkanLabelTunggal('lokasi', nilai);
-    } else if (trimmed.startsWith('Akses:')) {
+    } else if (/^Akses:/i.test(trimmed)) {
       const nilai = trimmed.replace(/^Akses:\s*/i, '');
       if (nilai.trim() === '') labelTunggalMenanti = 'akses'; else terapkanLabelTunggal('akses', nilai);
-    } else if (trimmed.startsWith('Penerangan:')) {
+    } else if (/^Penerangan:/i.test(trimmed)) {
       fields.penerangan = trimmed.replace(/^Penerangan:\s*/i, '').trim();
       medanSemasa = 'penerangan';
       continue;
