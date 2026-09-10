@@ -231,7 +231,7 @@ export const SistemRekaBentukConsole: React.FC = () => {
               Ganti sepenuhnya atribut <code className="bg-stone-100 px-1 py-0.5 rounded text-[10px]">title=</code> native
               (32 tempat, digantikan 2026-07-25). Halaman ni sendiri guna Tooltip, hover atas swatch warna di atas.
             </p>
-            <Tooltip text="Contoh tooltip Adjung — opacity+blur, maroon, tiada border">
+            <Tooltip text="Contoh tooltip Adjung — opacity+blur, krim/hitam, tiada border">
               <span className="inline-flex shrink-0">
                 <Button>Hover Saya</Button>
               </span>
