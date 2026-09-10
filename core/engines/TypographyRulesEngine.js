@@ -39,9 +39,17 @@ export function parseTypographyTokens(text, rules = [], scope = 'all', language 
   if (applicableRules.length === 0) return [{ text, style: 'normal' }];
 
   // 2. Sort rules by Priority (DESC), then Term Length (DESC - longest match wins)
+  //
+  // PEMBETULAN (2026-09-11, bug-hunt) — `Number(priority) || 50` gugurkan priority=0 (nilai
+  // SAH — keutamaan terendah dlm `ORDER BY priority DESC`), jatuh balik ke 50, punca sama
+  // pepijat yang dibaiki hari ni di slotRoutes.js POST /adjung-typography-rules DAN di
+  // parseTypographyTokensClient (TypographyRenderer.tsx). Fail ni (parseTypographyTokens,
+  // dipakai laluan pratonton "Uji Peraturan" slotRoutes.js GET /adjung-typography-rules/test)
+  // terlepas pembetulan tu — peraturan priority=0 diuji admin nampak seolah-olah priority=50,
+  // TAK padan susunan sebenar yang client guna semasa render frontpage sebenar.
   applicableRules.sort((a, b) => {
-    const prioA = Number(a.priority) || 50;
-    const prioB = Number(b.priority) || 50;
+    const prioA = a.priority !== undefined && a.priority !== null ? Number(a.priority) : 50;
+    const prioB = b.priority !== undefined && b.priority !== null ? Number(b.priority) : 50;
     if (prioB !== prioA) return prioB - prioA;
 
     const lenA = (a.term || '').length;
