@@ -40,8 +40,13 @@ export function parseTypographyTokensClient(
   if (applicableRules.length === 0) return [{ text, style: 'normal' }];
 
   applicableRules.sort((a, b) => {
-    const prioA = Number(a.priority) || 50;
-    const prioB = Number(b.priority) || 50;
+    // PEMBETULAN (2026-09-11, bug-hunt) — `Number(priority) || 50` gugurkan priority=0
+    // (nilai SAH — keutamaan terendah dalam susunan ORDER BY priority DESC di pelayan)
+    // jadi 50, punca sama pepijat yang dibaiki hari ni di slotRoutes.js POST
+    // /adjung-typography-rules. Rule priority=0 dari pelayan disusun client SEOLAH-OLAH
+    // priority=50, tersalah tempat dalam susunan keutamaan aplikasi condong/tebal.
+    const prioA = a.priority !== undefined && a.priority !== null ? Number(a.priority) : 50;
+    const prioB = b.priority !== undefined && b.priority !== null ? Number(b.priority) : 50;
     if (prioB !== prioA) return prioB - prioA;
     return (b.term || '').length - (a.term || '').length;
   });
