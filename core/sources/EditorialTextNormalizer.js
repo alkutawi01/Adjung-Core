@@ -60,7 +60,15 @@ export function getApplicableRules(rules = [], scope = 'brief', sourceId = null)
       const matchesSource = !rule.sourceId || rule.sourceId === 'global' || rule.sourceId === sourceId;
       return matchesSource;
     })
-    .sort((a, b) => (a.orderIndex || 10) - (b.orderIndex || 10));
+    // Pembetulan (2026-09-11, bug-hunt): `a.orderIndex || 10` menganggap `orderIndex: 0` sebagai
+    // "tiada nilai" (0 falsy dalam JS) dan diam-diam gantikan dengan 10 — memusnahkan niat editor
+    // yang sengaja tetapkan 0 supaya peraturan tu jalan PALING AWAL (sebelum peraturan lain yang
+    // guna lalai 10). Kesan: peraturan orderIndex=0 disusun semula seolah-olah orderIndex=10,
+    // urutan pelaksanaan sebenar (decode_entities -> strip_dateline -> substitute/regex ikut
+    // orderIndex) jadi silap untuk mana-mana peraturan yang cuba jalan dahulu daripada lalai.
+    // `?? 10` KEKALKAN 0 (dan sebarang nombor sah lain), cuma jatuh balik ke 10 bila orderIndex
+    // benar-benar `null`/`undefined` (peraturan lama tanpa nilai disimpan).
+    .sort((a, b) => (a.orderIndex ?? 10) - (b.orderIndex ?? 10));
 }
 
 /**
