@@ -104,8 +104,17 @@ export function isSafeHttpUrl(url) {
 
 export function truncateWords(text, maxWords = 100) {
   if (!text) return '';
-  const words = text.split(/\s+/);
-  if (words.length <= maxWords) return text;
+  // Pembetulan (2026-09-11, bug-hunt): dahulu split(/\s+/) terus pada `text` mentah TANPA
+  // trim() dahulu — teks berjeda di hadapan/belakang (biasa selepas HTML strip/RSS feed
+  // mentah, cth " Berita utama...") menghasilkan token KOSONG palsu ("".split hasil ["",
+  // "Berita", ...]) yang dikira sebagai SATU "perkataan" dalam had `maxWords`. Kesan: had
+  // kata jadi off-by-one (satu perkataan SEBENAR kurang drpd sepatutnya dipotong), DAN
+  // token kosong tu bocor ke output bercantum ("... " . join(' ') mengekalkan ruang hadapan
+  // palsu). trim() dahulu memastikan setiap token dalam array ialah perkataan sebenar.
+  const trimmed = text.trim();
+  if (trimmed === '') return '';
+  const words = trimmed.split(/\s+/);
+  if (words.length <= maxWords) return trimmed;
   return words.slice(0, maxWords).join(' ') + '...';
 }
 
