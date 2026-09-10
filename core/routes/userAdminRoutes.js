@@ -87,7 +87,13 @@ async function cariKandunganBelumTerbit(dbAll, penName) {
 // hasil-hurai SENTIASA sepadan indeks demi indeks (satu-satunya cara selamat "zip" dua array
 // tanpa parseManualBlockFields tunggal, yang tidak dieksport).
 const bahagikanBlokMentah = (manualSummary) => {
-  if (!manualSummary || (!manualSummary.includes('Tajuk:') && !manualSummary.includes('Event:'))) return [];
+  // Semakan cepat MESTI case-insensitive, sepadan dengan MANUAL_BLOCK_SPLIT_REGEX (bendera 'i')
+  // dan parseManualBlockFields (case-insensitive sejak #272/#273) -- pepijat corak sama #274/#275
+  // (ManualBlockFormat.js parseManualSummaryBlocks): guard literal-case .includes('Tajuk:')/
+  // .includes('Event:') tersilap pulangkan [] utk blok berlabel huruf kecil (cth "tajuk:") walau
+  // split+parse sebenar di bawah akan berjaya kalau dipanggil terus.
+  const t = manualSummary ? manualSummary.toLowerCase() : '';
+  if (!t || (!t.includes('tajuk:') && !t.includes('event:'))) return [];
   return manualSummary.split(MANUAL_BLOCK_SPLIT_REGEX).filter((b) => b.trim().length > 0);
 };
 const DRAFT_BLOCK_SEPARATOR = '\n\n________________________________________\n\n';

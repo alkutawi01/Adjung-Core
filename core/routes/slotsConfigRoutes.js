@@ -37,7 +37,12 @@ async function bolehTulisNota(dbAll, req, slotIndex) {
 // parseManualSummaryTemplate/syncManualObjectsForSlot di server.js), corak "disalin sengaja
 // tak disatukan" yang sama macam ManualBlockFormat.js/server.js parser berganda.
 function kekalkanNotaLama(manualSummaryBaharu, notaLamaByUuid) {
-  if (!manualSummaryBaharu || !manualSummaryBaharu.includes('UUID:')) return manualSummaryBaharu;
+  // Semakan cepat MESTI case-insensitive -- pepijat corak sama #274/#275 (ManualBlockFormat.js
+  // parseManualSummaryBlocks / userAdminRoutes.js bahagikanBlokMentah): guard literal-case
+  // .includes('UUID:') tersilap short-circuit blok berlabel huruf kecil (cth "uuid:"), walhal
+  // regex split di bawah + parseManualBlockFields (dipanggil kemudian) kedua-duanya sudah
+  // case-insensitive sejak #272/#273.
+  if (!manualSummaryBaharu || !/uuid:/i.test(manualSummaryBaharu)) return manualSummaryBaharu;
   const blocks = manualSummaryBaharu.split(/(?:\r?\n){2,}(?=UUID:|Tajuk:|Event:)|____+|----+|====+|___+/i);
   const diperbetul = blocks.map((block) => {
     const uuidMatch = block.match(/^UUID:\s*(.*)$/m);
@@ -74,7 +79,8 @@ function kekalkanNotaLama(manualSummaryBaharu, notaLamaByUuid) {
 // Slot Bar DIKECUALIKAN — tiada pemisahan draf/terbit untuk tier tu, seluruh giliran ialah SATU
 // hantaran keseluruhan setiap Simpan (lihat nota isBarLikeRemoval/isBarUpdate di server.js).
 function kekalkanDrafOrangLain(manualSummaryBaharu, manualSummaryLama, namaPenggunaSemasa) {
-  if (!manualSummaryLama || !manualSummaryLama.includes('UUID:')) return manualSummaryBaharu;
+  // Sama pembetulan case-insensitive seperti kekalkanNotaLama() di atas.
+  if (!manualSummaryLama || !/uuid:/i.test(manualSummaryLama)) return manualSummaryBaharu;
   const blokLama = manualSummaryLama.split(MANUAL_BLOCK_SPLIT_REGEX).filter((b) => b.trim().length > 0);
   const drafOrangLain = blokLama.filter((block) => {
     const fields = parseManualBlockFields(block);

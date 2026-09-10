@@ -3250,7 +3250,18 @@ const parseManualSummaryTemplate = (summaryText, defaultSlot) => {
   if (!summaryText.trim()) {
     return [];
   }
-  if (!summaryText.includes('Tajuk:') && !summaryText.includes('Event:')) {
+  // Semakan cepat MESTI case-insensitive -- pepijat corak sama #274/#275
+  // (ManualBlockFormat.js parseManualSummaryBlocks / userAdminRoutes.js bahagikanBlokMentah /
+  // slotsConfigRoutes.js kekalkanNotaLama+kekalkanDrafOrangLain): guard literal-case
+  // .includes('Tajuk:')/.includes('Event:') tersilap layan blok berlabel huruf kecil (cth
+  // "tajuk:") sebagai "tiada blok terstruktur langsung", pulangkan fallback SATU-item drpd
+  // manualTitle/manualSummary lapuk slot dan bukan hurai kandungan blok sebenar -- walhal
+  // MANUAL_BLOCK_SPLIT_REGEX (bendera 'i') di bawah dan parseManualBlockFields (case-insensitive
+  // sejak #272/#273) kedua-duanya akan berjaya kalau split terus dipanggil. Laluan ni SPESIAL
+  // kerana ia laluan TERBIT SEBENAR (syncManualObjectsForSlot) -- fallback silap di sini bermakna
+  // kandungan blok huruf kecil terbit sebagai draf lapuk/kosong, bukan cuma UI paparan salah.
+  const _tLower = summaryText.toLowerCase();
+  if (!_tLower.includes('tajuk:') && !_tLower.includes('event:')) {
     return [{
       title: defaultSlot.manualTitle || '',
       summary: defaultSlot.manualSummary || '',
