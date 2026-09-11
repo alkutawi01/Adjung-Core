@@ -783,6 +783,20 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const existing = await dbGet("SELECT * FROM adjung_desks WHERE id = ?", [id]);
       if (!existing) return res.status(404).json({ error: 'Desk not found' });
 
+      // Gerbang deskName tak boleh kosong (2026-09-12, dapatan bug-hunt, corak SAMA
+      // deskId di PUT /rss-desk-rules/:id) — POST (cipta, ~baris 741) sudah tolak
+      // `!deskName || !deskName.trim()` sejak awal, tapi PUT (sunting) ni terlepas semakan
+      // sama: `deskName !== undefined ? deskName.trim() : existing.deskName` benarkan
+      // rentetan kosong/ruang sahaja ('   ') ditulis terus ke lajur `deskName`. Kesan
+      // sebenar: Bidang jadi papar TANPA nama dalam dropdown Editorium/borang Jana AI, DAN
+      // blok kaskad penamaan-semula di bawah (targetDesksExcluded) senyap dilangkau sebab
+      // `if (newDeskName && ...)` gagal pada rentetan kosong — peraturan pengecualian global
+      // yang patut ikut nama baharu terus tersadai pada nama lama selamanya. Sekat pada
+      // titik tulis, sama gerbang macam laluan cipta.
+      if (deskName !== undefined && !deskName.trim()) {
+        return res.status(400).json({ error: 'Sila masukkan Nama Desk.' });
+      }
+
       const newDeskName = deskName !== undefined ? deskName.trim() : existing.deskName;
 
       await dbRun(`
@@ -1285,6 +1299,17 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const { term, style, category, matchType, scope, language, caseSensitive, priority, status, enabled, excludeTerms } = req.body;
       const existing = await dbGet("SELECT * FROM adjung_typography_rules WHERE id = ?", [id]);
       if (!existing) return res.status(404).json({ error: 'Typography rule not found' });
+
+      // Gerbang term tak boleh kosong (2026-09-12, dapatan bug-hunt, corak SAMA deskName/
+      // deskId di atas) — POST (cipta, ~baris 1251) sudah tolak `!term || !term.trim()` sejak
+      // awal, PUT (sunting) ni terlepas semakan sama: `term !== undefined ? term.trim() :
+      // existing.term` benarkan rentetan kosong/ruang ditulis terus ke lajur `term`. Istilah
+      // tipografi kosong dibina jadi corak padanan (regex \b\b) yang sepadan SETIAP kedudukan
+      // teks, berpotensi terapkan gaya (italic, dsb.) meluas tak terkawal pada kandungan
+      // editorial sebenar. Sekat pada titik tulis, sama gerbang macam laluan cipta.
+      if (term !== undefined && !term.trim()) {
+        return res.status(400).json({ error: 'Sila masukkan Istilah.' });
+      }
 
       const now = new Date().toISOString();
       const newVersion = (Number(existing.ruleVersion) || 1) + 1;
