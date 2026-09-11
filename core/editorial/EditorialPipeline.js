@@ -537,10 +537,12 @@ ${slot.sourcesList.trim()}
       // di server.js) supaya /api/system/ai/slot_costs boleh kumpul kos betul-betul ikut slot
       // tanpa perlu JOIN silang ke pipeline_logs (yang berkongsi SATU runId merentasi semua slot
       // dalam kitaran berjadual yang sama, punca pepijat cross-product asal).
+      // usedGrounding = needsLiveSearch SEBENAR panggilan ni (bukan anggapan ikut strategi slot) —
+      // lihat nota ALTER TABLE di server.js dan pembetulan /slot_costs (aiCostRoutes.js).
       await dbRun(`
-        INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex)
-        VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?)
-      `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, -1]);
+        INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex, usedGrounding)
+        VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?, ?)
+      `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, -1, needsLiveSearch ? 1 : 0]);
 
       return {
         status: 'SUCCESS',
@@ -685,10 +687,12 @@ ${slot.sourcesList.trim()}
 
     // slotIndex disimpan eksplisit (2026-09-03, dapatan bug-hunt — lihat nota ALTER TABLE di
     // server.js) — sama rasional seperti baris Ticker di atas.
+    // usedGrounding = needsLiveSearch SEBENAR panggilan ni (bukan anggapan ikut strategi slot) —
+    // lihat nota ALTER TABLE di server.js dan pembetulan /slot_costs (aiCostRoutes.js).
     await dbRun(`
-      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex)
-      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?)
-    `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, slotIndex]);
+      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex, usedGrounding)
+      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?, ?)
+    `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, slotIndex, needsLiveSearch ? 1 : 0]);
 
     return {
       status: 'SUCCESS',

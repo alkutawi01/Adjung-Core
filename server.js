@@ -3103,7 +3103,21 @@ const initEditorialOS = (dbConn) => {
                                                           // (ia tulis terus ke inTheNewsText, bukan cipta editorial_objects),
                                                           // jadi AI dipanggil SETIAP larian walau pool sumber tak berubah.
                                                           dbConn.run("ALTER TABLE system_settings ADD COLUMN tickerSourceHash TEXT", () => {
-                                                            resolve();
+                                                            // usedGrounding (2026-09-11, dapatan bug-hunt) -- lihat nota
+                                                            // GET /api/system/ai/slot_costs (aiCostRoutes.js): pengiraan
+                                                            // groundingCalls di sana dahulu anggap SEMUA panggilan AI bagi
+                                                            // slot strategi "Structured Sources -> Search Fallback" guna
+                                                            // carian langsung (grounding, +$0.01 setiap panggilan), padahal
+                                                            // EditorialPipeline.js (needsLiveSearch) HANYA aktifkan carian
+                                                            // langsung utk strategi tu bila contentPool KOSONG (fallback
+                                                            // sebenar-benar berlaku) -- kebanyakan panggilan strategi ni ada
+                                                            // pool berjaya, jadi tak pernah sentuh carian langsung. Lajur ni
+                                                            // simpan KEPUTUSAN SEBENAR (searchTools dihantar atau tidak) bagi
+                                                            // setiap panggilan, supaya /slot_costs boleh kira grounding betul
+                                                            // ikut panggilan sebenar, bukan anggapan ikut strategi slot.
+                                                            dbConn.run("ALTER TABLE ai_usage_logs ADD COLUMN usedGrounding INTEGER DEFAULT 0", () => {
+                                                              resolve();
+                                                            });
                                                           });
                                                         });
                                                       });

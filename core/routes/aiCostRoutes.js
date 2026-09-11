@@ -144,12 +144,27 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
   // disimpan terus pada setiap baris ai_usage_logs (EditorialPipeline.js) — kumpul terus ikut lajur
   // ni, tiada JOIN silang. Baris LAMA (sebelum lajur ni wujud) ada slotIndex NULL, dikumpul di
   // bawah -1 (sama makna "tidak diketahui" seperti lalai lama).
+  //
+  // PEMBETULAN KEDUA (2026-09-11, dapatan bug-hunt) — groundingCalls dahulu dikira ikut STRATEGI
+  // slot sahaja (`isGrounding = searchStrategy === 'Search Only' || '... -> Search Fallback'`),
+  // bukan ikut panggilan SEBENAR. Tapi EditorialPipeline.js (needsLiveSearch) HANYA hidupkan
+  // carian langsung (grounding) utk "Structured Sources -> Search Fallback" apabila contentPool
+  // KOSONG (fallback sebenar-benar berlaku) — apabila pool sumber slot berjaya diambil (kes biasa),
+  // AI langsung TAK guna carian langsung untuk panggilan tu, sifar kos grounding tambahan. Kod lama
+  // anggap SETIAP panggilan slot strategi ni kos +$0.01 grounding walaupun sebahagian besarnya tak
+  // pernah sentuh carian langsung — menggelembungkan kos dilaporkan bagi slot fallback yang jarang
+  // benar-benar jatuh balik ke carian. Lajur `usedGrounding` (ai_usage_logs, diisi ikut
+  // `needsLiveSearch` SEBENAR panggilan tu di EditorialPipeline.js) kini SATU sumber kebenaran —
+  // kumpul terus daripada situ, bukan anggapan ikut jenis strategi slot. Baris LAMA (sebelum lajur
+  // ni wujud) jatuh ke usedGrounding NULL/0 — dikira TIADA grounding (anggapan konservatif; lebih
+  // baik understate kos lama drpd terus overstate seperti sebelum ni).
   router.get('/slot_costs', requirePermission('manageSettings'), async (req, res) => {
     try {
       const rows = await dbAll(`
         SELECT
           COALESCE(l.slotIndex, -1) as slotIndex,
           COUNT(l.id) as aiCalls,
+          SUM(CASE WHEN l.usedGrounding = 1 THEN 1 ELSE 0 END) as groundingCalls,
           SUM(l.promptTokens) as promptTokens,
           SUM(l.completionTokens) as completionTokens,
           SUM(l.estimatedCost) as tokenCost
@@ -159,13 +174,8 @@ export function createAiCostRoutes(dbAll, dbGet, dbRun) {
         ORDER BY slotIndex ASC
       `);
 
-      const slots = await dbAll("SELECT slotIndex, searchStrategy FROM slots_config WHERE layoutTemplateId = 'frontpage'");
-
       const breakdown = rows.map(r => {
-        const slot = slots.find(s => s.slotIndex === r.slotIndex);
-        const isGrounding = slot && (slot.searchStrategy === 'Search Only' || slot.searchStrategy === 'Structured Sources -> Search Fallback');
-
-        const groundingCalls = isGrounding ? r.aiCalls : 0;
+        const groundingCalls = r.groundingCalls || 0;
         const groundingCost = groundingCalls * 0.01;
         const totalCostUSD = r.tokenCost + groundingCost;
 
