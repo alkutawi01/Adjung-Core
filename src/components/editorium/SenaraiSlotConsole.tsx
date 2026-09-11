@@ -407,7 +407,13 @@ export const SenaraiSlotConsole: React.FC<Props> = ({ currentEditoriumRole, onLi
           const aktif: Record<number, KandunganRingkas[]> = {};
           const menunggu: Record<number, KandunganRingkas[]> = {};
           for (const r of senaraiKandungan) {
-            if (r.status !== 'approved' && r.status !== 'pending') continue;
+            // 'scheduled' (bakal terbit, blm sampai scheduledPublishAt) turut dikira "menunggu"
+            // di sini — sepadan STATUS_MASIH_HIDUP (core/editorial/Scheduling.js) yang anggap
+            // scheduled masih memegang slot. Sebelum ni ditinggalkan terus (bukan aktif/menunggu),
+            // jadi kandungan berjadual senyap TAK KELIHATAN langsung dalam Slot Manager (kiraan
+            // Menunggu bawah kiraan sebenar + panel "Akan aktif: <tarikh>" jadi mati sebab tiada
+            // baris berstatus scheduled sampai ke situ) — dapatan bug-hunt 2026-09-11.
+            if (r.status !== 'approved' && r.status !== 'pending' && r.status !== 'scheduled') continue;
             const ringkas: KandunganRingkas = {
               id: r.id, tajuk: r.title || '(tiada tajuk)',
               scheduledPublishAt: r.scheduledPublishAt || null,
