@@ -1290,7 +1290,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
         'success',
         hasil?.status === 'pending'
           ? (hasil?.slotPenuh
-            ? 'Kandungan dihantar dan dah lulus — cuma menunggu slot kosong (naik taraf automatik).'
+            ? 'Kandungan dihantar dan dah lulus, cuma menunggu slot kosong (naik taraf automatik).'
             : 'Kandungan dihantar dan kini Menunggu Semakan.')
           : 'Kandungan diterbitkan.',
         onLihatIndeks ? { label: 'Lihat di Indeks →', onClick: () => onLihatIndeks({ slot: `Slot ${editingSlotIndex + 1}`, status: statusSebenar }) } : undefined

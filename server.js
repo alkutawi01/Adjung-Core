@@ -62,7 +62,7 @@ import { createAuditLogRoutes } from './core/routes/auditLogRoutes.js';
 import { createLayoutRoutes } from './core/routes/layoutRoutes.js';
 import { createUiLabelRoutes } from './core/routes/uiLabelRoutes.js';
 import { SEMUA_LABEL_LALAI } from './src/config/istilah.ts';
-import { createContentRoutes, runSchedulingTick } from './core/routes/contentRoutes.js';
+import { createContentRoutes, runSchedulingTick, putarSegeraJikaLayak } from './core/routes/contentRoutes.js';
 import { denganKunciKandungan } from './core/utils/kunciKandungan.js';
 import { pilihBackupUntukDibuang, HAD_SAIZ_BACKUP_BYTES } from './core/utils/hadBackup.js';
 import { createNotificationRoutes } from './core/routes/notificationRoutes.js';
@@ -4145,16 +4145,25 @@ const syncManualObjectsForSlot = async (slotIndex, manualSummary, slotConfig, ro
               AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
           `, [slotIndex]);
           if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
-            finalStatus = 'pending';
-            // Keputusan terbit DAH dibuat (bolehTerbitTerus benar) — punca pending ni SEMATA-MATA
-            // slot penuh, bukan menunggu kelulusan manusia. Tandakan 'slot_penuh' supaya
-            // runSchedulingTick() (contentRoutes.js) nampak calon ni dan boleh putar-auto-arkib
-            // selepas 24 jam — SEBELUM pembetulan ni, laluan ni (Urus Slot, bukan Indeks) sentiasa
-            // tersalah tanda 'semakan', jadi calon overflow di sini kekal terperangkap SELAMA-
-            // LAMANYA sehingga Ketua Editor perasan dan klik "Siar" secara manual (disahkan
-            // reproduce langsung 2026-09-01 — Slot 32 penuh 10/10, kandungan baharu simpan
-            // 'semakan' bukan 'slot_penuh', putaran tak pernah tercetus walau 24+ jam berlalu).
-            sebabMenungguNi = 'slot_penuh';
+            // Semak dahulu sama ada slot ni SEBENARNYA boleh dikosongkan SEKARANG (kandungan
+            // approved tertua dah lepasi ambang rotasi hadJamRotasiSlotPenuh) sebelum jatuhkan ke
+            // 'pending' (2026-09-11, dapatan Izzat — "sepatutnya bila editor klik terbit, sistem
+            // check kekosongan slot dahulu... bukan keluar toast 'menunggu'"). Lihat nota penuh
+            // putarSegeraJikaLayak() (contentRoutes.js) — fungsi ni sambungkan logik rotasi (4)
+            // runSchedulingTick() ke SAAT TERBIT itu sendiri, bukan tunggu tik 90 saat seterusnya.
+            const dikosongkanSerentak = await putarSegeraJikaLayak(dbGet, dbRun, dbAll, slotIndex);
+            if (!dikosongkanSerentak) {
+              finalStatus = 'pending';
+              // Keputusan terbit DAH dibuat (bolehTerbitTerus benar) — punca pending ni SEMATA-MATA
+              // slot penuh, bukan menunggu kelulusan manusia. Tandakan 'slot_penuh' supaya
+              // runSchedulingTick() (contentRoutes.js) nampak calon ni dan boleh putar-auto-arkib
+              // selepas 24 jam — SEBELUM pembetulan ni, laluan ni (Urus Slot, bukan Indeks) sentiasa
+              // tersalah tanda 'semakan', jadi calon overflow di sini kekal terperangkap SELAMA-
+              // LAMANYA sehingga Ketua Editor perasan dan klik "Siar" secara manual (disahkan
+              // reproduce langsung 2026-09-01 — Slot 32 penuh 10/10, kandungan baharu simpan
+              // 'semakan' bukan 'slot_penuh', putaran tak pernah tercetus walau 24+ jam berlalu).
+              sebabMenungguNi = 'slot_penuh';
+            }
           }
         }
       }

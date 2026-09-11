@@ -1016,7 +1016,7 @@ export const IndeksConsole: React.FC<IndeksConsoleProps> = ({
         slot: `Slot ${Number(reactivateSlotIndex) + 1}`,
       } : i));
       onToast?.('success', body.slotPenuh
-        ? 'Kandungan dihantar dan dah lulus — cuma menunggu slot kosong (naik taraf automatik).'
+        ? 'Kandungan dihantar dan dah lulus, cuma menunggu slot kosong (naik taraf automatik).'
         : 'Kandungan disiarkan semula.');
       setActiveItemModal(null);
     } catch (err: any) {
