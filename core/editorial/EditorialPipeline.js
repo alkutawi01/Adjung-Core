@@ -457,6 +457,31 @@ ${slot.sourcesList.trim()}
     }
     const { parsedJson, promptTokens, completionTokens, groundingUrls = [] } = aiResult;
 
+    // Rekod kos AI SEBAIK SAHAJA panggilan berjaya (2026-09-11, dapatan bug-hunt) — dahulu INSERT
+    // ai_usage_logs bagi slot BUKAN-Ticker cuma berlaku di HUJUNG fungsi ni (selepas validation
+    // tajuk/huraian, bajet ruang kad, DAN Bidang/Topik semuanya lulus), sedangkan ketiga-tiga
+    // semakan tu (baris di bawah) `throw` bila gagal. Panggilan AI di atas SUDAH SEBENARNYA
+    // dibilkan oleh pembekal (Gemini/Claude) sebaik sahaja ia pulang -- kandungan yang gagal
+    // validation lepas tu (biasa: bajet ruang kad, Topik tak disertakan) bukan bermakna kos AI tu
+    // tak pernah berlaku, cuma bermakna ia tak diterbitkan. Laluan lama silap anggap "tak
+    // diterbitkan = tak payah rekod kos", jadi setiap penjanaan AI yang gagal validation hilang
+    // terus daripada /statistics, /breakdown, /slot_costs -- understate kos AI SEBENAR secara
+    // senyap, lagi kerap slot yang kerap gagal Topik/bajet ruang. Laluan Ticker (di bawah)
+    // sudah betul (log lepas generate, sebelum apa-apa `throw` sebenar boleh berlaku), jadi
+    // padankan tingkah laku slot biasa dengan corak yang sama -- kira & simpan kos di sini,
+    // SEBAIK generate() berjaya, tak kira apa jadi pada validation selepas ni.
+    const pricingAwal = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [actualProviderId, actualModelToUse]);
+    let estimatedCostAwal = 0;
+    if (pricingAwal) {
+      estimatedCostAwal = ((promptTokens / 1000000) * pricingAwal.inputCostPerMillion) + ((completionTokens / 1000000) * pricingAwal.outputCostPerMillion);
+    }
+    if (slotIndex !== -1) {
+      await dbRun(`
+        INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex, usedGrounding)
+        VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?, ?)
+      `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCostAwal, timestamp, userPrompt, aiResult.text, slotIndex, needsLiveSearch ? 1 : 0]);
+    }
+
     // 7. Validate output
     if (slotIndex === -1) {
       const items = parsedJson.items || [];
@@ -678,21 +703,10 @@ ${slot.sourcesList.trim()}
       `, [objectId, revisionId, attr.key, attr.val]);
     }
 
-    // 9. Track AI Usage Logs (guna provider/model SEBENAR -- lihat nota failover di atas)
-    const pricing = await dbGet("SELECT * FROM ai_model_pricing WHERE providerId = ? AND modelName = ?", [actualProviderId, actualModelToUse]);
-    let estimatedCost = 0;
-    if (pricing) {
-      estimatedCost = ((promptTokens / 1000000) * pricing.inputCostPerMillion) + ((completionTokens / 1000000) * pricing.outputCostPerMillion);
-    }
-
-    // slotIndex disimpan eksplisit (2026-09-03, dapatan bug-hunt — lihat nota ALTER TABLE di
-    // server.js) — sama rasional seperti baris Ticker di atas.
-    // usedGrounding = needsLiveSearch SEBENAR panggilan ni (bukan anggapan ikut strategi slot) —
-    // lihat nota ALTER TABLE di server.js dan pembetulan /slot_costs (aiCostRoutes.js).
-    await dbRun(`
-      INSERT INTO ai_usage_logs (runId, providerId, modelName, capability, promptTokens, completionTokens, totalTokens, estimatedCost, currency, latencyMs, status, createdAt, promptText, responseText, slotIndex, usedGrounding)
-      VALUES (?, ?, ?, 'Editorial Generation', ?, ?, ?, ?, 'USD', 0, 'SUCCESS', ?, ?, ?, ?, ?)
-    `, [currentRunId, actualProviderId, actualModelToUse, promptTokens, completionTokens, promptTokens + completionTokens, estimatedCost, timestamp, userPrompt, aiResult.text, slotIndex, needsLiveSearch ? 1 : 0]);
+    // 9. Kos AI slot ni SUDAH direkod lebih awal (sebaik generate() berjaya, sebelum sebarang
+    // `throw` validation) -- lihat blok "Rekod kos AI SEBAIK SAHAJA panggilan berjaya" berhampiran
+    // permulaan fungsi ni. JANGAN log dua kali di sini (baris ni dahulu buat INSERT KEDUA bila
+    // sampai ke titik ni, menggandakan kos/panggilan setiap kandungan yang BERJAYA disiarkan).
 
     return {
       status: 'SUCCESS',
