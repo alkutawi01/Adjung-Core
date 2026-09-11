@@ -31,7 +31,29 @@ const HAD_NAMA = 100;
 const bulanSemasa = () => bulanMalaysia(); // 'YYYY-MM'
 
 const sahBulan = (b) => /^\d{4}-\d{2}$/.test(String(b || '')) && Number(String(b).slice(5, 7)) >= 1 && Number(String(b).slice(5, 7)) <= 12;
-const sahIso = (v) => typeof v === 'string' && v.trim() !== '' && !Number.isNaN(new Date(v).getTime());
+// sahIso() (dapatan bug-hunt 2026-09-12) — SAMA corak pepijat "regex/parse sahaja tak cukup
+// sahkan tarikh kalendar sebenar" yang dibaiki di validateTarikhSumber() (ContentBudget.js) dan
+// formatSatuTarikh() (EventDateValidator.js) 2026-09-09. `new Date(v).getTime()` cuma semak
+// rentetan BOLEH dihurai — ia TAK tolak tarikh mustahil, sebaliknya SENYAP gelongsor ke tarikh
+// lain: new Date('2026-02-30T14:30:00+08:00') pulangkan Date SAH (2 Mac, bukan NaN). Input medan
+// ni ialah <input type="datetime-local"> (PenajaConsole.tsx) yang editor taip/pilih terus, jadi
+// "30 Februari" boleh tersimpan sebagai mulaTajaan/tamatTajaan tanpa sebarang ralat 400 — julat
+// tajaan sebenar penaja jadi silap tanpa amaran. Sahkan komponen Y-M-D round-trip Date.UTC
+// (elak anjak zon waktu) SEBELUM terima rentetan tu sebagai tarikh sah.
+const sahIso = (v) => {
+  if (typeof v !== 'string' || v.trim() === '') return false;
+  const trimmed = v.trim();
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(trimmed);
+  if (!match) return false;
+  const [, tahunStr, bulanStr, hariStr] = match;
+  const tahunNum = Number(tahunStr);
+  const bulanNum = Number(bulanStr);
+  const hariNum = Number(hariStr);
+  const d = new Date(Date.UTC(tahunNum, bulanNum - 1, hariNum));
+  const kalendarSah = d.getUTCFullYear() === tahunNum && d.getUTCMonth() === bulanNum - 1 && d.getUTCDate() === hariNum;
+  if (!kalendarSah) return false;
+  return !Number.isNaN(new Date(trimmed).getTime());
+};
 // unik (2026-09-08, dapatan bug-hunt) — sahSenaraiSlot() dahulu cuma semak julat/integer, tak
 // tolak duplikat (cth [3,3]). sponsor_slots ada PRIMARY KEY (sponsorId, slotIndex), jadi
 // tulisSlotUntukSponsor() (DELETE semua slot sponsor tu, kemudian INSERT satu-satu TANPA
