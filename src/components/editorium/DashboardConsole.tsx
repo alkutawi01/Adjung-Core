@@ -197,10 +197,19 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
   // — dikira daripada itemsRingkas SAMA persis yang menentukan adaMenunggu, cuma .length
   // bukan .some(), supaya jawapan "berapa banyak" konsisten dengan gerbang status yang
   // sudah wujud (bukan pengiraan berasingan yang boleh menyimpang daripadanya).
+  //
+  // 'scheduled' turut dikira (2026-09-11, bug-hunt) — matriks ni cuma semak 'pending' sebelum
+  // ni, jadi slot yang HANYA ada kandungan berjadual (tiada 'pending', tiada 'approved') jatuh
+  // ke cabang else `bilanganMenunggu > 0 ? 'menunggu' : 'kosong'` sebagai 'kosong' (lencana
+  // MERAH "memerlukan perhatian", dikira dlm jumlahBermasalah) walhal slot tu SEBENARNYA ada
+  // kandungan bakal terbit sendiri tanpa tindakan editor lanjut — sama silap konsep macam
+  // SenaraiSlotConsole.tsx/hadKandunganSlot yang dibaiki round-round lepas (lihat CLAUDE.md).
+  // Kandungan berjadual patut dilayan sama seperti 'pending' di sini: bukan kosong, cuma belum
+  // aktif lagi.
   const slotMatrix = Array.from({ length: JUMLAH_SLOT }, (_, idx) => {
     const usage = slotUsage.find(s => s.slotIndex === idx);
     const liveCount = usage?.liveCount || 0;
-    const bilanganMenunggu = itemsRingkas.filter(i => i.slotIndex === idx && i.status === 'pending').length;
+    const bilanganMenunggu = itemsRingkas.filter(i => i.slotIndex === idx && (i.status === 'pending' || i.status === 'scheduled')).length;
     const status: 'terisi' | 'menunggu' | 'kosong' = liveCount > 0 ? 'terisi' : bilanganMenunggu > 0 ? 'menunggu' : 'kosong';
     return { slotIndex: idx, status, liveCount, bilanganMenunggu };
   });
