@@ -1,5 +1,20 @@
 [
   {
+    "time": "2026-09-11T05:24:59.222Z",
+    "summary": "Sambungkan butang bulat terapung 'tukar semua carousel' ke desktop juga (dulu md:hidden, mobile sahaja) -- berfungsi serentak dengan klik-ruang-kosong sedia ada",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
+    "time": "2026-09-11T05:04:32.636Z",
+    "summary": "Klik Topik di kad bento/Focus View kini navigasi terus ke Halaman Bidang, bukan lagi isi kotak carian; klik Bidang kekal ke carian",
+    "files": [
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/portal/FocusView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-11T03:39:10.794Z",
     "summary": "Elak toast 'menunggu slot kosong' palsu bila slot SEBENARNYA boleh dikosongkan serta-merta (kandungan tertua sudah >24 jam); rotasi kini dicetus terus di saat Terbit, bukan tunggu tik 90 saat",
     "files": [

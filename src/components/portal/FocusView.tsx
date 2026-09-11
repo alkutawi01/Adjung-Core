@@ -259,12 +259,14 @@ export interface FocusViewProps {
   icon?: React.ReactNode;
   desk?: string;
   topik?: string;
-  /** Cari Bidang/Topik (2026-08-07, permintaan Izzat — konsisten dengan kad bento: "topik di full
+  /** Klik Bidang/Topik (2026-08-07, permintaan Izzat — konsisten dengan kad bento: "topik di full
    *  view pun perlu ada microanimasi mcm di frontpage dan perlu ke search jgk, utk keselarasan").
-   *  Dipanggil dengan nilai mentah (desk ATAU topik) bila salah satu segmen eyebrow diklik.
-   *  Pemanggil (FrontpageView) tutup Focus View dahulu sebelum isi kotak carian — lihat
-   *  cariDariEyebrow di sana. `undefined` = eyebrow papar sahaja, tiada kesan klik. */
-  onCariEyebrow?: (nilai: string) => void;
+   *  DISEMAK SEMULA 2026-09-11 — klik Topik kini navigasi ke Halaman Bidang (bukan carian), klik
+   *  Bidang KEKAL ke carian; lihat cariDariEyebrow (FrontpageView.tsx) untuk keputusan sebenar.
+   *  Dipanggil dengan (nilai diklik, jenis segmen, nama Bidang kandungan ni). Pemanggil
+   *  (FrontpageView) tutup Focus View dahulu sebelum bertindak. `undefined` = eyebrow papar
+   *  sahaja, tiada kesan klik. */
+  onCariEyebrow?: (nilai: string, jenis: 'desk' | 'topik', deskItem: string) => void;
   /** Warna Bidang (CategoryRegistry.color). Eyebrow kad guna warna ini, jadi Focus View mesti guna
    *  yang sama — kandungan yang sama tidak sepatutnya bertukar warna identiti apabila dibuka.
    *  Jatuh balik ke marun Adjung kalau Bidang tiada warna. */
@@ -413,11 +415,11 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // " | " literal sama seperti eyebrowLabel() guna — `label` di atas KEKAL sumber pengesahan/
   // gate render ("ada isi ke tidak"), cuma tak dipakai lagi untuk PAPARAN teks (perlukan bahagian
   // berasingan bagi setiap zon klik).
-  const eyebrowKlikProps = (nilai: string): React.HTMLAttributes<HTMLSpanElement> => {
+  const eyebrowKlikProps = (nilai: string, jenis: 'desk' | 'topik'): React.HTMLAttributes<HTMLSpanElement> => {
     if (!onCariEyebrow || !nilai) return {};
     return {
-      onClick: (e) => { e.stopPropagation(); onCariEyebrow(nilai); },
-      onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCariEyebrow(nilai); } },
+      onClick: (e) => { e.stopPropagation(); onCariEyebrow(nilai, jenis, (desk || '').trim()); },
+      onKeyDown: (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onCariEyebrow(nilai, jenis, (desk || '').trim()); } },
       role: 'button',
       tabIndex: 0,
       'aria-label': `Cari "${nilai}"`,
@@ -436,14 +438,14 @@ export const FocusView: React.FC<FocusViewProps> = ({
   const eyebrowNodes: React.ReactNode = (() => {
     const d = (desk || '').trim();
     const t = (topik || '').trim();
-    if (!d) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>;
-    if (!t) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>;
+    if (!d) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t, 'topik')}>{t}</span>;
+    if (!t) return <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d, 'desk')}>{d}</span>;
     if (icon) {
       return (
         <>
           <span className="fv-eyebrow-ikon" aria-hidden="true" style={{ display: 'inline-flex', alignItems: 'center' }}>{icon}</span>
           <span className="fv-eyebrow-kumpulan-keluar">
-            <span className="eyebrow-topik-teks" style={{ fontWeight: 'var(--weight-bold, 700)' }} {...eyebrowKlikProps(d)}>{d}</span>
+            <span className="eyebrow-topik-teks" style={{ fontWeight: 'var(--weight-bold, 700)' }} {...eyebrowKlikProps(d, 'desk')}>{d}</span>
             {/* Jarak eksplisit (margin), BUKAN teks ruang mentah `{' | '}` (2026-08-17, Izzat:
                 "kenapa terlalu rapat? sepatutnya ada jarak antara perkataan dengan tanda |") —
                 bekas label eyebrow (FrontpageView.tsx, pembetulan jajaran ikon sebelum ini)
@@ -453,16 +455,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 sekeliling "|" hilang walau kod tulis `{' | '}` dgn ruang jelas. Span eksplisit
                 dgn margin tak terjejas isu ni (bukan teks-ruang telanjang). */}
             <span aria-hidden="true" style={{ margin: '0 4px' }}>|</span>
-            <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
+            <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t, 'topik')}>{t}</span>
           </span>
         </>
       );
     }
     return (
       <>
-        <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d)}>{d}</span>
+        <span className="eyebrow-topik-teks" {...eyebrowKlikProps(d, 'desk')}>{d}</span>
         <span aria-hidden="true" style={{ margin: '0 4px' }}>|</span>
-        <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t)}>{t}</span>
+        <span className="eyebrow-topik-teks" {...eyebrowKlikProps(t, 'topik')}>{t}</span>
       </>
     );
   })();
