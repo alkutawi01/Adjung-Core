@@ -6,6 +6,7 @@ import { getAmSettings } from './slotAmRoutes.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { isSafeHttpUrl } from '../sources/SourceSanitizer.js';
+import EditorialValidator from '../editorial/EditorialValidator.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots — those stay defined in
 // server.js since the internal 5-minute scheduler also calls them directly, so they're passed in
@@ -122,6 +123,21 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           });
         }
         kiraanBatchSeslot.set(slotIdx, (kiraanBatchSeslot.get(slotIdx) || 0) + 1);
+        // EditorialValidator.validate (2026-09-11, dapatan bug-hunt susulan XSS #297) — laluan AI
+        // pipeline biasa (EditorialPipeline.js) WAJIB panggil ini sebelum simpan (tolak
+        // tajuk/huraian kosong untuk semua tier bukan-BAR, yang memang tiada medan huraian).
+        // batch_paste langsung terlepas semakan ni — sebab budgetCheck di bawah cuma tolak
+        // huraian PANJANG melampau (nisbah > 1), BUKAN huraian KOSONG (nisbah 0 selagi tajuk
+        // sendiri capai 80% bajet solonya, cth tajuk 64+ aksara pada slot KOMPAK, lulus
+        // validateContentBudget walau huraian terus tak diisi). Laluan ni auto-terbit tanpa
+        // semakan manusia (Terbit Terus) — patut sekurang-kurangnya sepadan gerbang paling asas
+        // laluan AI biasa, bukan lebih longgar daripadanya.
+        if (!TIER_SLOTS.BAR.includes(slotIdx)) {
+          const emptyCheck = EditorialValidator.validate(item.title, item.summary);
+          if (!emptyCheck.isValid) {
+            return res.status(400).json({ error: `Slot ${slotIdx + 1}, "${(item.title || '(tanpa tajuk)').slice(0, 40)}": ${emptyCheck.reason}` });
+          }
+        }
         const budgetCheck = validateContentBudget(slotIdx, item.title, item.summary);
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: `Slot ${slotIdx + 1}, "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
