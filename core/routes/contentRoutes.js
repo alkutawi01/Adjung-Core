@@ -144,7 +144,7 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     if (!kiraanAktif || kiraanAktif.n >= hadKandunganSlot) return; // tiada ruang (lagi)
 
     const calon = await dbGet(`
-      SELECT o.id AS objectId, r.id AS revisionId, r.title FROM editorial_objects o
+      SELECT o.id AS objectId, r.id AS revisionId, r.title, r.scheduledExpiresAt FROM editorial_objects o
       JOIN editorial_revisions r ON r.objectId = o.id
       JOIN editorial_attribute_values eav ON eav.objectId = o.id AND eav.revisionId = r.id
         AND eav.attributeId = 'sebabMenunggu' AND eav.valueText = 'slot_penuh'
@@ -155,6 +155,22 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     if (!calon) return; // tiada calon menunggu slot kosong
 
     const kini = new Date().toISOString();
+    // scheduledExpiresAt LAPUK (2026-09-11, dapatan bug-hunt) — kandungan boleh masuk giliran
+    // 'slot_penuh' ni SAMBIL MEMBAWA scheduledExpiresAt sedia ada: kandungan yang asalnya
+    // dijadualkan Terbit DAN Luput serentak, tapi pada saat scheduledPublishAt matang, slot
+    // didapati penuh — runSchedulingTick() (1) jatuhkan status ke 'pending'/slot_penuh dan
+    // kosongkan scheduledPublishAt SAHAJA (scheduledExpiresAt tidak disentuh, lihat nota di
+    // sana). Giliran 'slot_penuh' TIADA HAD MASA (boleh beratur berjam-jam/berhari sehingga
+    // ruang terbuka), jadi pada saat calon ni AKHIRNYA dipromosi di sini, masa sebenar sudah
+    // boleh jauh melepasi scheduledExpiresAt asal tu. Tanpa semakan ni, tik Luput/arkib
+    // berjadual SETERUSNYA (90 saat) terus nampak status='approved' + scheduledExpiresAt lapuk
+    // -> mengarkibkan SEMULA kandungan yang BARU SAHAJA berjaya keluar giliran, dlm masa < 90
+    // saat, senyap, tiada kaitan nampak dengan punca sebenar (giliran yang mengambil masa lebih
+    // lama drpd jangkaan Jadual Luput asal). Disahkan reproduce: sim310. Kosongkan di sini
+    // (bukan biar tik Luput yang "betulkan") sebelum UPDATE approved di bawah.
+    const scheduledExpiresAtBaharu = (calon.scheduledExpiresAt && isDue(calon.scheduledExpiresAt))
+      ? null
+      : calon.scheduledExpiresAt;
     // Pengawal `AND status = 'pending'` (2026-09-08, dapatan bug-hunt) — dahulu UPDATE ni
     // TIADA pengawal langsung (bandingkan dengan (1)/(2)/(4) runSchedulingTick yang semuanya
     // ada `AND status = 'scheduled'`/`'approved'`). Fungsi ni dipanggil dari BANYAK tapak
@@ -167,8 +183,8 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
     // "background job menimpa keputusan editorial manual" yang sudah dibaiki berulang kali
     // dalam projek ni (Semakan Tak Aktif, purge usia RSS, dll — lihat CLAUDE.md).
     const hasilPromosi = await dbRun(
-      "UPDATE editorial_revisions SET status = 'approved', updatedAt = ? WHERE id = ? AND status = 'pending'",
-      [kini, calon.revisionId]
+      "UPDATE editorial_revisions SET status = 'approved', scheduledExpiresAt = ?, updatedAt = ? WHERE id = ? AND status = 'pending'",
+      [scheduledExpiresAtBaharu, kini, calon.revisionId]
     );
     if (!hasilPromosi || hasilPromosi.changes === 0) continue; // status berubah sejak SELECT — langkau, gelung cuba calon lain
     await tetapkanSebabMenunggu(dbGet, dbRun, calon.objectId, calon.revisionId, '');
