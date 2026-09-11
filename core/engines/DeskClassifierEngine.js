@@ -187,7 +187,16 @@ export function calculateDeskScores(text, category, rules = [], desks = [], glob
   const activeRules = safeRules.filter(r => r.enabled !== 0);
 
   for (const rule of activeRules) {
-    const targetDesk = deskMap[rule.deskId] || Object.values(deskMap).find(d => d.deskName.toLowerCase() === rule.deskId.toLowerCase());
+    // Pengawal deskId null/kosong (2026-09-12, dapatan bug-hunt, defence-in-depth di samping
+    // gerbang PUT /api/system/rss-desk-rules/:id di slotRoutes.js) — `rule.deskId` boleh jadi
+    // `null` pada baris rosak sedia ada (disimpan SEBELUM gerbang tu wujud). Tanpa semakan ni,
+    // `rule.deskId.toLowerCase()` di bawah lontar TypeError tak ditangkap, menghentikan SELURUH
+    // gelung pengelasan (calculateDeskScores dipanggil sekali per-item RSS) buat SEMUA item
+    // seterusnya dalam larian yang sama — satu baris peraturan rosak lumpuhkan pengelasan Bidang
+    // sepenuhnya secara senyap. Langkau peraturan tanpa deskId sah, teruskan yang lain.
+    const deskIdBersih = (rule.deskId || '').toLowerCase();
+    if (!deskIdBersih) continue;
+    const targetDesk = deskMap[rule.deskId] || Object.values(deskMap).find(d => d.deskName.toLowerCase() === deskIdBersih);
     if (!targetDesk) continue;
 
     const kw = (rule.keyword || '').toLowerCase().trim();

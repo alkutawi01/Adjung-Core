@@ -934,6 +934,23 @@ export function createSlotRoutes(dbAll, dbRun, dbGet) {
       const existing = await dbGet("SELECT * FROM rss_desk_rules WHERE id = ?", [id]);
       if (!existing) return res.status(404).json({ error: 'Desk rule not found' });
 
+      // Gerbang deskId tak boleh kosong (2026-09-12, dapatan bug-hunt) — POST (cipta, ~baris 884)
+      // sudah tolak `!deskId` sejak awal, tapi laluan PUT (sunting) ni terlepas semakan yang SAMA:
+      // `deskId !== undefined ? deskId : existing.deskId` benarkan '' MAHUPUN `null` eksplisit
+      // ditulis terus ke lajur `deskId` (cuma `undefined` yang dielak, bukan nilai kosong/tiada).
+      // Kesan sebenar: peraturan dengan `deskId=null` tersimpan buat DeskClassifierEngine.js
+      // (calculateDeskScores) crash TypeError pada SETIAP panggilan seterusnya —
+      // `deskMap[rule.deskId]` gagal (undefined), fallback `.find(d => ... === rule.deskId.
+      // toLowerCase())` panggil `.toLowerCase()` atas `null` terus lontar ralat tak ditangkap.
+      // Ralat tu keluar drpd gelung `for (const item of parsedItems)` (slotRoutes.js, larian RSS
+      // berjadual) SEBELUM item lain dalam sumber tu sempat diproses, jadi SATU baris peraturan
+      // rosak lumpuhkan pengelasan Bidang untuk SEMUA item SEMUA sumber RSS pada SETIAP larian
+      // seterusnya (deskRules dikongsi merentasi semua sumber) — senyap sehingga seseorang tengok
+      // Log Audit. Sekat pada titik tulis, sama gerbang macam laluan cipta.
+      if (deskId !== undefined && !deskId) {
+        return res.status(400).json({ error: 'Bidang sasaran diperlukan.' });
+      }
+
       await dbRun(`
         UPDATE rss_desk_rules SET
           deskId = ?,
