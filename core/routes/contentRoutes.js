@@ -1300,6 +1300,28 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       const nextScheduledPublishAt = scheduledPublishAt !== undefined ? (scheduledPublishAt || null) : rev.scheduledPublishAt;
       const nextScheduledExpiresAt = scheduledExpiresAt !== undefined ? (scheduledExpiresAt || null) : rev.scheduledExpiresAt;
 
+      // Jadual Luput MESTI selepas Jadual Terbit (2026-09-11, dapatan bug-hunt) — tiada semakan
+      // ni wujud di mana-mana (klien IndeksConsole.tsx hantar kedua-dua medan dalam SATU PATCH
+      // "Simpan Jadual" tanpa `min`/pengesahan susunan, pelayan pula terus terima nilai mentah
+      // tanpa banding satu sama lain). Kesan sebenar: Ketua Editor tetapkan Jadual Terbit 5 hari
+      // lagi + Jadual Luput 2 hari lagi (tersilap taip, atau langsung terbalik dua medan) —
+      // runSchedulingTick() (2) di atas terbitkan ia macam biasa bila 5 hari tiba, tapi tik
+      // SETERUSNYA (90 saat lepas terbit) terus nampak scheduledExpiresAt yang dah lama LEPAS
+      // "due" (isDue() guna <=, bukan semak ia >= scheduledPublishAt) lalu ARKIBKAN semula
+      // SERTA-MERTA — kandungan yang sengaja dijadualkan hidup berhari-hari lenyap dalam masa
+      // seminit selepas terbit, senyap, tiada log ralat (kedua-dua tik "berjaya" ikut definisi
+      // masing-masing). Disemak HANYA bila kedua-dua tarikh BERKESAN wujud serentak (satu PATCH
+      // boleh hantar cuma satu medan, cth batal Jadual Luput sahaja — tak relevan di sini).
+      if (nextScheduledPublishAt && nextScheduledExpiresAt) {
+        const terbitMs = new Date(nextScheduledPublishAt).getTime();
+        const luputMs = new Date(nextScheduledExpiresAt).getTime();
+        if (!isNaN(terbitMs) && !isNaN(luputMs) && luputMs <= terbitMs) {
+          return res.status(400).json({
+            error: 'Jadual Luput mesti selepas Jadual Terbit. Sila betulkan salah satu tarikh.',
+          });
+        }
+      }
+
       // Satu transaksi untuk keseluruhan fasa tulis PATCH: revisi baharu (edit kandungan) +
       // salinan atribut lama + kemas kini atribut + kemas kini objek (PIPELINE-TRANSACTION-001,
       // audit #46.10/#47.7, dibaiki 2026-08-13). Sebelum ni setiap penulisan auto-commit
