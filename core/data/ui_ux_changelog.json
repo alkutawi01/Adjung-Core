@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-09-11T06:34:17.450Z",
+    "summary": "Bingkai kad bento di desktop: tambah garis sempadan nipis (border-stone-200), buang bayang (shadow) -- telefon kekal asal (bayang, tiada border). Terpakai pada semua tier termasuk Bar",
+    "files": [
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/portal/cards/BarCard.tsx"
+    ]
+  },
+  {
     "time": "2026-09-11T06:15:22.624Z",
     "summary": "Tukar icon butang terapung tukar-carousel drpd RotateCw (nampak macam refresh) kepada dua butang anak panah bertindan: > seterusnya (atas), < sebelum (bawah) -- undur carousel adalah ciri baharu",
     "files": [
