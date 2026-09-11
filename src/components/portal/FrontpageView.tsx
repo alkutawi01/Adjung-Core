@@ -6492,19 +6492,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           )}
         </div>
       )}
-      {/* Kembali ke Atas + Tukar Semua kini SATU tindanan menegak di bucu kanan-bawah (2026-09-04,
+      {/* Kembali ke Atas + Tukar Semua SATU tindanan menegak di bucu kanan-bawah (2026-09-04,
           Izzat: "letak butang tukar carousel tu di bawah butang kembali ke atas...skrg ni mcm main
           game pulak ada butang kiri kanan" — versi asal letak Tukar Semua di bucu KIRI berasingan,
-          nampak macam kawalan D-pad permainan. Tukar Semua kekal PALING BAWAH (bottom-6, `di bawah`
-          secara literal), Kembali ke Atas naik ke bottom-24 di telefon SAHAJA (bila kedua-dua
-          kelihatan serentak) supaya tak bertindih — di desktop Kembali ke Atas kekal bottom-6 sebab
-          Tukar Semua langsung tak dirender (md:hidden, desktop guna klik ruang kosong grid). */}
+          nampak macam kawalan D-pad permainan). Tukar Semua kekal PALING BAWAH (bottom-6, `di
+          bawah` secara literal), Kembali ke Atas naik ke bottom-24 bila kedua-dua kelihatan
+          serentak supaya tak bertindih.
+
+          Butang Tukar Semua DISAMBUNG ke desktop juga (2026-09-11, Izzat: "di telefon ada butang
+          di atas butang terapung... sila buat butang yg sama di desktop" — buat DULU berfungsi
+          serentak dengan klik ruang kosong grid, bukan gantikan) — sebelum ni `md:hidden` sengaja
+          sorok di desktop sebab klik-ruang-kosong (kendaliKlikRuangKosong) dianggap cukup; kini
+          KEDUA-DUA cara wujud serentak, tiada konflik sebab kedua-duanya panggil majuSemuaKarusel()
+          yang sama. `bottom-24` pada Kembali ke Atas kini terpakai di SEMUA saiz skrin (bukan
+          `md:bottom-6` lagi) sebab Tukar Semua tak lagi terhad kepada telefon. */}
       {showScrollToTop && (
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className={`fixed right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group ${
-            modCarousel === 'klik' ? 'bottom-24 md:bottom-6' : 'bottom-6'
+            modCarousel === 'klik' ? 'bottom-24' : 'bottom-6'
           }`}
           aria-label="Kembali ke atas"
         >
@@ -6515,7 +6522,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         <button
           type="button"
           onClick={majuSemuaKarusel}
-          className="md:hidden fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+          className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
           aria-label="Tukar semua kandungan carousel"
         >
           <RotateCw className="w-5 h-5 group-active:rotate-180 transition-transform duration-300" />
