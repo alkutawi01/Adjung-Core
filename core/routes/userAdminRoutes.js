@@ -253,9 +253,16 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
       if (!emelSah) {
         return res.status(400).json({ error: 'Format emel tidak sah.' });
       }
-      const rolesToAssign = Array.isArray(roles) ? roles.filter((r) => ROLE_IDS_SAH.includes(r)) : [];
-      if (rolesToAssign.length === 0) {
-        return res.status(400).json({ error: 'Pilih sekurang-kurangnya satu peranan.' });
+      // Tolak SELURUH permintaan kalau ADA peranan tidak sah (2026-09-12, dapatan bug-hunt) —
+      // dahulu cuma TAPIS senyap peranan tak sah (`.filter()`) dan teruskan asalkan sekurang-
+      // kurangnya SATU peranan sah tinggal, berbeza daripada PATCH /users/:id/roles (~baris 635)
+      // yang tolak 400 SELURUH permintaan bila mana-mana satu peranan tak sah. Kesan: permintaan
+      // cipta akaun dgn roles=['ketua_editor','tYpo'] senyap-senyap jadi akaun BERPERANAN TUNGGAL
+      // (ketua_editor sahaja) tanpa ralat — Pentadbir yang niat bagi dua peranan tak pernah tahu
+      // satu terjatuh. Diselaraskan: SAMA gerbang tegas seperti PATCH.
+      const rolesToAssign = Array.isArray(roles) ? roles : [];
+      if (rolesToAssign.length === 0 || rolesToAssign.some((r) => !ROLE_IDS_SAH.includes(r))) {
+        return res.status(400).json({ error: `Peranan tidak sah. Guna gabungan: ${ROLE_IDS_SAH.join(', ')}.` });
       }
 
       const existing = await dbGet('SELECT id FROM users WHERE LOWER(email) = ?', [e]);
