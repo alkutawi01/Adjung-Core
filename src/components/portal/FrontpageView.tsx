@@ -269,12 +269,15 @@ export const EyebrowKad: React.FC<{
   item: { desk?: string; topik?: string };
   bidang?: { icon: string | null; iconSvg: string | null };
   saiz?: number;
-  /** Cari Bidang/Topik (2026-08-07, permintaan Izzat — "boleh ke kalau klik topik automatik akan
-   *  search topik tu di kotak search", disahkan "dua2 la kot" untuk Bidang SEKALI). Dipanggil
-   *  dengan nilai mentah (desk ATAU topik) bila salah satu segmen diklik; `undefined` = eyebrow
-   *  papar sahaja, tiada kesan klik (jatuh balik selamat untuk pemanggil yang belum sambung
-   *  carian). */
-  onCari?: (nilai: string) => void;
+  /** Klik Bidang/Topik (2026-08-07, permintaan Izzat — "boleh ke kalau klik topik automatik akan
+   *  search topik tu di kotak search", disahkan "dua2 la kot" untuk Bidang SEKALI; disemak semula
+   *  2026-09-11, Izzat: "bukan ke search tp buka halaman bidang" — klik Topik kini navigasi terus
+   *  ke Halaman Bidang, bukan isi kotak carian; klik Bidang KEKAL ke carian, tak disentuh). Dipanggil
+   *  dengan (nilai mentah diklik, jenis segmen, nama Bidang item ni) — `jenis`/`deskItem` bolehkan
+   *  pemanggil lakukan tindakan berbeza ikut segmen (Bidang vs Topik) tanpa meneka daripada `nilai`
+   *  sahaja. `undefined` = eyebrow papar sahaja, tiada kesan klik (jatuh balik selamat untuk
+   *  pemanggil yang belum sambung carian/navigasi). */
+  onCari?: (nilai: string, jenis: 'desk' | 'topik', deskItem: string) => void;
 }> = ({ item, bidang, saiz = 11, onCari }) => {
   const desk = (item.desk || '').trim();
   const topik = (item.topik || '').trim();
@@ -285,10 +288,10 @@ export const EyebrowKad: React.FC<{
   // role="button"+tabIndex+onKeyDown: segmen ni span, bukan <button>, supaya kekal padan
   // struktur eyebrow sedia ada (flex-item tunggal, lihat nota "blockify" di bawah) — tapi tetap
   // boleh dicapai papan kekunci.
-  const propsKlik = (nilai: string) => onCari && nilai ? {
-    onClick: (e: React.MouseEvent) => { e.stopPropagation(); onCari(nilai); },
+  const propsKlik = (nilai: string, jenis: 'desk' | 'topik') => onCari && nilai ? {
+    onClick: (e: React.MouseEvent) => { e.stopPropagation(); onCari(nilai, jenis, desk); },
     onKeyDown: (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCari(nilai); }
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); onCari(nilai, jenis, desk); }
     },
     role: 'button' as const,
     tabIndex: 0,
@@ -313,8 +316,8 @@ export const EyebrowKad: React.FC<{
     <span className="eyebrow-kad" style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
       <span
         className="eyebrow-ikon"
-        style={{ display: 'inline-flex', alignItems: 'center', width: saiz, height: saiz, flexShrink: 0, ...(bolehGunaIkon ? propsKlik(desk).style : {}) }}
-        {...(bolehGunaIkon ? propsKlik(desk) : {})}
+        style={{ display: 'inline-flex', alignItems: 'center', width: saiz, height: saiz, flexShrink: 0, ...(bolehGunaIkon ? propsKlik(desk, 'desk').style : {}) }}
+        {...(bolehGunaIkon ? propsKlik(desk, 'desk') : {})}
       >
         {bolehGunaIkon && (
           <BidangIcon
@@ -338,11 +341,11 @@ export const EyebrowKad: React.FC<{
           pada kedua-duanya (2026-08-07). */}
       <span className="eyebrow-topik">
         {bolehGunaIkon ? (
-          <span className="eyebrow-topik-teks" {...propsKlik(topik)}>{topik}</span>
+          <span className="eyebrow-topik-teks" {...propsKlik(topik, 'topik')}>{topik}</span>
         ) : (
           <>
-            <span className="eyebrow-topik-teks" {...propsKlik(desk)}>{desk}</span>
-            {topik && <>{' | '}<span className="eyebrow-topik-teks" {...propsKlik(topik)}>{topik}</span></>}
+            <span className="eyebrow-topik-teks" {...propsKlik(desk, 'desk')}>{desk}</span>
+            {topik && <>{' | '}<span className="eyebrow-topik-teks" {...propsKlik(topik, 'topik')}>{topik}</span></>}
           </>
         )}
       </span>
@@ -3469,12 +3472,25 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
 
   /** Klik segmen Bidang/Topik pada eyebrow kad ATAU Focus View (2026-08-07, permintaan Izzat —
    *  "boleh ke kalau klik topik automatik akan search topik tu di kotak search", + "dua2 la kot"
-   *  untuk Bidang sekali) — isi kotak carian dengan nilai yang diklik terus dan buka kotak.
-   *  Kalau dipanggil dari DALAM Focus View (klik eyebrow artikel semasa dibaca), tutup Focus View
-   *  dahulu supaya keputusan carian di frontpage kelihatan serta-merta di belakangnya, bukan
-   *  tersembunyi di sebalik lapisan skrin penuh Focus View. */
-  const cariDariEyebrow = (nilai: string) => {
+   *  untuk Bidang sekali). DISEMAK SEMULA 2026-09-11 (Izzat: "kalau klik pada topik... bukan ke
+   *  search tp buka halaman bidang") — klik Bidang KEKAL isi kotak carian (tak disentuh, tak
+   *  diminta ubah); klik Topik kini navigasi TERUS ke Halaman Bidang (/bidang/{slug}) bagi Bidang
+   *  induk kandungan tu, bukan lagi ke carian. Kalau dipanggil dari DALAM Focus View (klik eyebrow
+   *  artikel semasa dibaca), tutup Focus View dahulu — sama ada carian ATAU Halaman Bidang
+   *  sepatutnya kelihatan serta-merta, bukan tersembunyi di sebalik lapisan skrin penuh Focus View.
+   *  Slug dicari terus daripada `activeBidangList` (sumber kebenaran CategoryRegistry.slug, sama
+   *  peta yang dipakai BriefNavigator/navigatorFields) — jatuh balik ke slug dikira ringkas kalau
+   *  Bidang tu entah bagaimana tiada padanan Taksonomi (kandungan lama/desk lapuk, sama corak
+   *  jaring keselamatan navigatorFields di atas). */
+  const cariDariEyebrow = (nilai: string, jenis: 'desk' | 'topik', deskItem: string) => {
     closeFocus();
+    if (jenis === 'topik') {
+      const namaBidang = (deskItem || '').trim();
+      const padanan = activeBidangList.find((b) => b.name.toLowerCase() === namaBidang.toLowerCase());
+      const slugFallback = namaBidang.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'umum';
+      navigate(`/bidang/${padanan?.slug || slugFallback}`);
+      return;
+    }
     setSearchQuery(nilai);
     setSearchExpanded(true);
     setSearchOpen(true);
