@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-11T06:15:22.624Z",
+    "summary": "Tukar icon butang terapung tukar-carousel drpd RotateCw (nampak macam refresh) kepada dua butang anak panah bertindan: > seterusnya (atas), < sebelum (bawah) -- undur carousel adalah ciri baharu",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-11T05:24:59.222Z",
     "summary": "Sambungkan butang bulat terapung 'tukar semua carousel' ke desktop juga (dulu md:hidden, mobile sahaja) -- berfungsi serentak dengan klik-ruang-kosong sedia ada",
     "files": [

@@ -8,7 +8,7 @@ import { setPemenggalanPengecualian, SOFT_HYPHEN } from '../../../core/editorial
 import { JENIS_ANIMASI_ASAS, pilihJenisRawak } from '../../../core/editorial/AnimasiConfig.js';
 import { tarikhMalaysia } from '../../../core/utils/waktuMalaysia.js';
 import { motion, AnimatePresence } from 'motion/react';
-import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil, Settings, RotateCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, X, Lock, Search, Pencil, Settings } from 'lucide-react';
 import { ToastContainer, ToastMessage } from '../common/Toast';
 import { renderMarkdownRingkas } from '../../lib/markdownRingkas';
 import { penggalSukuKata } from '../../../core/editorial/PemenggalSukuKata.js';
@@ -3046,6 +3046,26 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         const actualSlotIdx = slotItem.rawIndex > 0 ? slotItem.rawIndex - 1 : slotItem.index;
         const semasa = next[actualSlotIdx] || 0;
         next[actualSlotIdx] = (semasa + 1) % items.length;
+      });
+      return next;
+    });
+  }, [rawBentoNewsItems]);
+
+  // Undur semua carousel (2026-09-11, permintaan Izzat — "tukar kepada icon < dan >... >
+  // seterusnya, < sebelum") — cerminan TEPAT majuSemuaKarusel() di atas, cuma tolak 1 (dengan
+  // bungkusan modulo supaya index negatif pusing ke hujung senarai) bukan tambah 1. Kongsi SATU
+  // sumber kebenaran struktur data (`rawBentoNewsItems`) dan syarat gerbang (items.length <= 1
+  // dilangkau) dengan majuSemuaKarusel — dua fungsi bersaudara, ubah satu, semak yang satu lagi.
+  const mundurSemuaKarusel = React.useCallback(() => {
+    setCarouselIndices(prev => {
+      const next = { ...prev };
+      rawBentoNewsItems.forEach((slotItem) => {
+        if (!slotItem) return;
+        const items = slotItem.items || [];
+        if (items.length <= 1) return;
+        const actualSlotIdx = slotItem.rawIndex > 0 ? slotItem.rawIndex - 1 : slotItem.index;
+        const semasa = next[actualSlotIdx] || 0;
+        next[actualSlotIdx] = (semasa - 1 + items.length) % items.length;
       });
       return next;
     });
@@ -6511,22 +6531,40 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           className={`fixed right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group ${
-            modCarousel === 'klik' ? 'bottom-24' : 'bottom-6'
+            modCarousel === 'klik' ? 'bottom-44' : 'bottom-6'
           }`}
           aria-label="Kembali ke atas"
         >
           <ChevronLeft className="w-5 h-5 rotate-90 group-hover:-translate-y-0.5 transition-transform" />
         </button>
       )}
+      {/* Seterusnya/Sebelum carousel (2026-09-11, Izzat: "icon ni salah, kan? ni icon refresh
+          sedangkan yg kita perlukan adalah icon tukar carousel... tukar kepada icon < dan >.
+          > atas, < bawah. > seterusnya, < sebelum") — RotateCw (ikon muat-semula) digantikan DUA
+          butang bersaudara (> di atas = seterusnya/maju, < di bawah = sebelum/undur), setiap satu
+          ikon anak panah TUNGGAL supaya makna klik jelas serta-merta (anak panah kanan = maju,
+          anak panah kiri = undur) berbanding satu ikon pusing generik yang tak nyatakan ARAH.
+          mundurSemuaKarusel() ialah cermin majuSemuaKarusel() (lihat definisi berdekatan atas
+          fail ni) — undur ialah ciri BAHARU, carousel sebelum ni cuma boleh maju. */}
       {modCarousel === 'klik' && (
-        <button
-          type="button"
-          onClick={majuSemuaKarusel}
-          className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
-          aria-label="Tukar semua kandungan carousel"
-        >
-          <RotateCw className="w-5 h-5 group-active:rotate-180 transition-transform duration-300" />
-        </button>
+        <>
+          <button
+            type="button"
+            onClick={majuSemuaKarusel}
+            className="fixed bottom-24 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+            aria-label="Kandungan carousel seterusnya"
+          >
+            <ChevronRight className="w-5 h-5 group-active:translate-x-0.5 transition-transform" />
+          </button>
+          <button
+            type="button"
+            onClick={mundurSemuaKarusel}
+            className="fixed bottom-6 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+            aria-label="Kandungan carousel sebelum"
+          >
+            <ChevronLeft className="w-5 h-5 group-active:-translate-x-0.5 transition-transform" />
+          </button>
+        </>
       )}
       <ToastContainer toasts={toasts} onDismiss={dismissToast} />
     </div>
