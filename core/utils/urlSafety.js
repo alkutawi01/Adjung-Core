@@ -15,15 +15,69 @@ import { Agent, fetch as fetchUndici } from 'undici';
 // SELESAIKAN nama domain kepada IP sebenar dan semak IP tu — bukan sekadar nama hos yang
 // ditaip — supaya domain yang direka khas untuk "DNS rebinding" (rekod A menghala ke IP dalaman)
 // turut disekat, bukan hanya lolos disebabkan namanya bukan "localhost" secara literal.
+// kembangIpv6 (dapatan bug-hunt 2026-09-12, susulan terus pembetulan 100.64.0.0/10 di bawah) —
+// semakan asal cuma tangkap alamat IPv4-tertanam kalau rentetan LITERAL bermula `::ffff:` tepat.
+// Tapi format tu bukan satu-satunya cara sah tulis IPv4-tertanam dalam IPv6 — `::127.0.0.1`
+// (bentuk mampatan `::`, tanpa `ffff:`), `0:0:0:0:0:0:127.0.0.1` (bentuk penuh tak dimampatkan),
+// dan `0:0:0:0:0:ffff:127.0.0.1` (bentuk penuh DENGAN `ffff`) SEMUANYA rentetan IPv6 sah yang
+// diselesaikan `net.isIP()`/DNS AAAA kepada 127.0.0.1 sama persis — disahkan `net.isIP()` Node
+// pulangkan 6 (sah) untuk kesemuanya — tapi TIADA satu pun bermula literal `::ffff:`, jadi semua
+// LOLOS semakan lama sebagai "bukan peribadi" walaupun sebenarnya loopback/RFC1918/dsb. Editor
+// yang daftar sumber RSS/rujukan boleh guna hos literal `[::127.0.0.1]` atau domain dengan rekod
+// AAAA dalam bentuk ni untuk terus memintas sekatan SSRF sepenuhnya. Fungsi ni kembangkan
+// MANA-MANA rentetan IPv6 sah kepada 8 kumpulan hex penuh (uruskan mampatan `::` di mana jua ia
+// berlaku, dan kumpulan terakhir dalam format bertitik IPv4), supaya pengesanan IPv4-tertanam
+// tak lagi bergantung pada SATU corak rentetan literal.
+function kembangIpv6(ip) {
+  let mentah = ip;
+  let ekorIpv4 = null;
+  const kedudukanTitikTerakhir = mentah.lastIndexOf(':');
+  const bahagianEkor = mentah.slice(kedudukanTitikTerakhir + 1);
+  if (bahagianEkor.includes('.')) {
+    // Kumpulan terakhir dalam format bertitik (cth "...::127.0.0.1") — tukar ke 2 kumpulan hex.
+    const oktet = bahagianEkor.split('.').map(Number);
+    if (oktet.length !== 4 || oktet.some((n) => Number.isNaN(n) || n < 0 || n > 255)) return null;
+    ekorIpv4 = oktet;
+    mentah = mentah.slice(0, kedudukanTitikTerakhir + 1) +
+      ((oktet[0] << 8) | oktet[1]).toString(16) + ':' +
+      ((oktet[2] << 8) | oktet[3]).toString(16);
+  }
+  const bahagianMampat = mentah.split('::');
+  if (bahagianMampat.length > 2) return null; // lebih daripada satu `::` — tak sah
+  let kiri = bahagianMampat[0] ? bahagianMampat[0].split(':') : [];
+  let kanan = bahagianMampat.length === 2 && bahagianMampat[1] ? bahagianMampat[1].split(':') : [];
+  kiri = kiri.filter((s) => s !== '');
+  kanan = kanan.filter((s) => s !== '');
+  const jumlahHilang = 8 - (kiri.length + kanan.length);
+  if (bahagianMampat.length === 1 && jumlahHilang !== 0) return null; // tiada `::` tapi bukan 8 kumpulan
+  if (jumlahHilang < 0) return null;
+  const kumpulanTengah = bahagianMampat.length === 2 ? new Array(jumlahHilang).fill('0') : [];
+  const kumpulanPenuh = [...kiri, ...kumpulanTengah, ...kanan];
+  if (kumpulanPenuh.length !== 8) return null;
+  const nilaiHex = kumpulanPenuh.map((s) => parseInt(s || '0', 16));
+  if (nilaiHex.some((n) => Number.isNaN(n) || n < 0 || n > 0xffff)) return null;
+  return { kumpulan: nilaiHex, ekorIpv4 };
+}
+
 const isIpDalamJulatPeribadi = (ip, family) => {
   if (family === 6) {
     const lower = ip.toLowerCase();
     if (lower === '::1') return true; // loopback
     if (lower.startsWith('fe80:') || lower.startsWith('fe8') || lower.startsWith('fe9') || lower.startsWith('fea') || lower.startsWith('feb')) return true; // link-local
     if (lower.startsWith('fc') || lower.startsWith('fd')) return true; // unique local (setara RFC1918)
-    if (lower.startsWith('::ffff:')) {
-      // IPv4-mapped — semak bahagian IPv4-nya.
-      return isIpDalamJulatPeribadi(lower.replace('::ffff:', ''), 4);
+    // Semak SEMUA notasi IPv4-tertanam (bukan cuma corak literal `::ffff:`) — lihat komen
+    // kembangIpv6() di atas. Kumpulan 0-5 (96 bit pertama) sifar bermakna 32 bit terakhir
+    // ialah alamat IPv4 tertanam (mampat `::x.x.x.x` ATAU bentuk penuh tak dimampatkan
+    // `0:0:0:0:0:[ffff]:x.x.x.x`) — semak bahagian IPv4 tu ikut peraturan IPv4 sedia ada.
+    const dikembang = kembangIpv6(lower);
+    if (dikembang && dikembang.kumpulan.slice(0, 5).every((n) => n === 0) &&
+        (dikembang.kumpulan[5] === 0 || dikembang.kumpulan[5] === 0xffff)) {
+      const [g6, g7] = [dikembang.kumpulan[6], dikembang.kumpulan[7]];
+      const a = (g6 >> 8) & 0xff, b = g6 & 0xff, c = (g7 >> 8) & 0xff, d = g7 & 0xff;
+      // Elak salah tangkap alamat "unspecified" (::) / IPv4-compatible sifar (::0.0.0.0) yang
+      // bukan IPv4 tertanam sebenar — kalau 32 bit terakhir pun sifar sepenuhnya DAN bukan
+      // representasi eksplisit `0.0.0.0`, ia cuma `::`, biar laluan lain tangani.
+      return isIpDalamJulatPeribadi(`${a}.${b}.${c}.${d}`, 4);
     }
     return false;
   }
