@@ -5,6 +5,7 @@ import { requirePermission } from '../middleware/auth.js';
 import { getAmSettings } from './slotAmRoutes.js';
 import { denganKunciKandungan } from '../utils/kunciKandungan.js';
 import { logAudit } from '../audit/AuditLog.js';
+import { isSafeHttpUrl } from '../sources/SourceSanitizer.js';
 
 // Thin route wrappers around runEditorialPipeline/runAllScheduledSlots — those stay defined in
 // server.js since the internal 5-minute scheduler also calls them directly, so they're passed in
@@ -183,7 +184,17 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           const finalTitle = item.title ? item.title.trim() : '';
           const finalSummary = item.summary ? item.summary.trim() : '';
           const finalCategory = item.category ? item.category.trim().toUpperCase() : 'UMUM';
-          const finalUrl = item.source_url || '#';
+          // isSafeHttpUrl (2026-09-11, dapatan bug-hunt — sama kelas pepijat kritikal
+          // RssDirectEngine.js 2026-09-08 dan EditorialPipeline.js 2026-09-09) — `source_url`
+          // di sini datang daripada JSON MENTAH yang ditampal terus (cabang "1. Try direct JSON
+          // parsing" / "2. Try to extract JSON blocks" di atas, biasanya hasil ChatGPT/Gemini —
+          // lihat attribute 'source' hardcode 'ChatGPT/Gemini Manual Paste' di bawah), BUKAN
+          // sentiasa daripada regex `https?://[^\s\n]+` cabang 3 yang sudah terhad skema. AI
+          // boleh berhalusinasi/tersasar hantar "javascript:alert(document.cookie)" dalam medan
+          // JSON tu, dan laluan ni terus simpan sebagai atribut 'url' kandungan yang dipaparkan
+          // `<a href>` awam (Terbit Terus, tiada semakan manusia) — stored-XSS. Gerbang guna
+          // isSafeHttpUrl sama seperti kedua-dua laluan yang sudah dibaiki.
+          const finalUrl = isSafeHttpUrl(item.source_url) ? item.source_url.trim() : '#';
 
           if (!finalTitle) continue;
 
