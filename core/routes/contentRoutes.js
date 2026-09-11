@@ -186,6 +186,60 @@ async function promosikanMenungguSlotKosongTanpaKunci(dbAll, dbGet, dbRun, slotI
   }
 }
 
+// putarSegeraJikaLayak (2026-09-11, dapatan Izzat — "sepatutnya bila editor klik terbit, sistem
+// check kekosongan slot dahulu; kalau ada kosong (sbb ada kandungan >24 jam), automatik terbit,
+// bukan keluar toast 'menunggu'... sistem tak boleh beza situasi 'slot penuh tapi boleh dikosongkan
+// SEKARANG' drpd 'slot penuh, semua < 24 jam, betul2 kena tunggu'"). SEBELUM pembetulan ni, gerbang
+// hadKandunganSlot di setiap laluan terbit (PATCH /content/:id di bawah, syncManualObjectsForSlot
+// server.js) terus jatuhkan kandungan ke 'pending'+slot_penuh sebaik kiraan approved >= had — TANPA
+// pernah semak dahulu sama ada kandungan approved TERTUA dalam slot tu dah pun melepasi ambang
+// rotasi (hadJamRotasiSlotPenuh). Keputusan "boleh dikosongkan sekarang" cuma pernah dibuat oleh
+// tik berjadual (4) runSchedulingTick() di atas, setiap 90 saat — bukan pada saat editor menekan
+// Terbit. Kesan: editor nampak toast "menunggu slot kosong" + kandungan singgah 'pending' sekejap
+// (sehingga tik seterusnya), walau slot tu SEBENARNYA sudah layak dikosongkan serta-merta.
+//
+// Fungsi ni sambungkan logik rotasi (4) runSchedulingTick() ke SAAT TERBIT itu sendiri (bukan
+// tunggu tik): kalau kandungan approved tertua dalam slot dah lepasi ambang, ARKIBKAN terus di sini
+// (log audit + notify SAMA seperti tik berjadual) dan pulangkan `true` — pemanggil biar kandungan
+// baharu terus 'approved', TIADA 'pending' sekejap, TIADA toast mengelirukan. Pulangkan `false`
+// (pemanggil kekal fallback sedia ada ke 'pending'+slot_penuh) bila kandungan tertua BELUM lepasi
+// ambang — kes tu MEMANG perlu tunggu sebenar, tiada apa boleh dikosongkan sekarang.
+//
+// WAJIB dipanggil SEBELUM INSERT revisi baharu kandungan yang sedang diterbitkan (bukan selepas)
+// supaya kiraan `kiraanAktif` di pemanggil tidak terjejas oleh baris yang baru ditambah.
+export async function putarSegeraJikaLayak(dbGet, dbRun, dbAll, slotIndex) {
+  if (TIER_SLOTS.BAR.includes(slotIndex)) return false; // Bar tak sokong alur Draf/Terbit
+  const { hadJamRotasiSlotPenuh } = getAmSettings();
+  const ambangRotasiIso = new Date(Date.now() - (hadJamRotasiSlotPenuh || 24) * 60 * 60 * 1000).toISOString();
+  const terlama = await dbGet(`
+    SELECT o.id AS objectId, r.id AS revisionId, r.title, o.createdAt FROM editorial_objects o
+    JOIN editorial_revisions r ON r.objectId = o.id
+    WHERE o.slotIndex = ? AND r.status = 'approved'
+      AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
+    ORDER BY o.createdAt ASC LIMIT 1
+  `, [slotIndex]);
+  if (!terlama || terlama.createdAt > ambangRotasiIso) return false; // tiada calon layak — kena tunggu sebenar
+
+  const kini = new Date().toISOString();
+  const hasilRotasi = await dbRun(
+    "UPDATE editorial_revisions SET status = 'archived', updatedAt = ? WHERE id = ? AND status = 'approved'",
+    [kini, terlama.revisionId]
+  );
+  if (!hasilRotasi || hasilRotasi.changes === 0) return false; // status berubah sejak SELECT — pemanggil kekal fallback ke 'pending'
+
+  await logAudit(dbRun, {
+    actorId: null, actorName: 'Penjadual Sistem (Putaran Slot)',
+    action: 'kandungan-putar-auto-arkib-24-jam', targetType: 'kandungan', targetId: terlama.objectId,
+    detail: (terlama.title || '').slice(0, 100),
+  });
+  const editorRows = await dbAll('SELECT editorId FROM slot_editors WHERE slotIndex = ?', [slotIndex]);
+  await notifyMany(dbRun, (editorRows || []).map((r) => r.editorId), {
+    type: 'kandungan_putar_arkib', title: 'Kandungan anda diarkibkan automatik (giliran slot, 24 jam)',
+    detail: stripMarkdownEsm(terlama.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${slotIndex}:${terlama.objectId}`,
+  });
+  return true;
+}
+
 // The Ticker (slotIndex -1) never writes to editorial_objects, in either Manual or AI Generated
 // mode — it always lives as a single "---"-delimited text blob in system_settings.inTheNewsText
 // (see EditorialPipeline.js's slotIndex===-1 branch, and the ticker save path in POST
@@ -1203,7 +1257,15 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
                 AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
             `, [targetSlotIndex, id]);
             if (kiraanAktif && kiraanAktif.n >= hadKandunganSlot) {
-              sebabMenungguBaharu = 'slot_penuh';
+              // Semak dahulu sama ada slot ni SEBENARNYA boleh dikosongkan SEKARANG (kandungan
+              // approved tertua dah lepasi ambang rotasi) sebelum jatuhkan ke 'pending' — lihat
+              // nota penuh putarSegeraJikaLayak() di atas fail ni. Kalau berjaya (true), slot ni
+              // BUKAN lagi penuh, sebabMenungguBaharu kekal '' (approved terus, tiada toast
+              // "menunggu" mengelirukan untuk kes yang sepatutnya boleh terbit serta-merta).
+              const dikosongkanSerentak = await putarSegeraJikaLayak(dbGet, dbRun, dbAll, targetSlotIndex);
+              if (!dikosongkanSerentak) {
+                sebabMenungguBaharu = 'slot_penuh';
+              }
             }
           }
         }
