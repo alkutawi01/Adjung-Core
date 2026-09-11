@@ -204,6 +204,29 @@ test('pengecualian editor: corak dengan serpihan SATU huruf (mana-mana kedudukan
   }
 });
 
+// Pembetulan 2026-09-11 (bug-hunt) — kelas aksara [A-Za-zÀ-ÿ'] yang mengesan "satu perkataan"
+// tak meliputi huruf transliterasi Arab (Ṣalāh, ʿIlm, Ḥadīth — Latin Extended-A/B & IPA
+// Extensions, di luar julat À-ÿ Latin-1 Supplement). Perkataan begini pernah terpecah jadi
+// serpihan ASCII terputus ("Ṣ", "al", "ā", "h") setiap kali penggalSukuKata() dipanggil,
+// menghalang carian pengecualianPemenggalan (kunci kata PENUH) dan mengelirukan algoritma
+// (K)(K)V(K) dengan serpihan yang bukan perkataan sebenar. Sama corak pepijat yang dibaiki di
+// IstilahGlosari.tsx/TypographyRulesEngine.js — kelas aksara diganti \p{L}\p{M} + bendera 'u'.
+test('perkataan transliterasi Arab (Ṣalāh, ʿIlm, Ḥadīth) tidak dipecah jadi serpihan ASCII', () => {
+  const teks = 'Ṣalāh dan ʿIlm serta Ḥadīth ialah istilah penting dalam pentadbiran agama';
+  const hasil = penggalSukuKata(teks);
+
+  // Kata transliterasi mesti KEKAL UTUH — tiada soft hyphen disisip di dalamnya sama sekali,
+  // sebab algoritma vokal ASCII (adalahVokal) tak kenal ā/ī/ū sebagai vokal, jadi keputusan
+  // SELAMAT ialah biarkan sahaja, bukan cuba menggal berdasarkan serpihan yang salah.
+  assert.ok(hasil.includes('Ṣalāh'), 'Ṣalāh mesti kekal sebagai satu unit, bukan terpecah "Ṣ"/"al"/"ā"/"h"');
+  assert.ok(hasil.includes('ʿIlm'), 'ʿIlm mesti kekal sebagai satu unit');
+  assert.ok(hasil.includes('Ḥadīth'), 'Ḥadīth mesti kekal sebagai satu unit');
+
+  // Perkataan Melayu biasa dalam ayat yang SAMA tetap kena penggal seperti biasa — pembetulan
+  // ni tak boleh menjejaskan laluan sedia ada untuk teks ASCII biasa.
+  assert.equal(penggal('pentadbiran'), 'pen-tad-bi-ran');
+});
+
 test('pengecualian editor: senarai kosong/tak sah dikendalikan dengan selamat', () => {
   try {
     setPemenggalanPengecualian([]);

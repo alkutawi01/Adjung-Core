@@ -221,7 +221,16 @@ export function cariTitikPenggal(kata) {
  * pada URL/kod hanya akan merosakkannya.
  */
 function penggalSatuPerkataan(kata) {
-  if (!/^[A-Za-zÀ-ÿ']+$/.test(kata)) return kata;
+  // PEMBETULAN (2026-09-11, dapatan bug-hunt): kelas aksara À-ÿ (Latin-1 Supplement)
+  // cuma meliputi diakritik Eropah asas (é, ñ, ü, dsb), TIDAK meliputi huruf transliterasi
+  // Arab yang wujud sah dalam kandungan Adjung Brief (cth "Ṣalāh" [Ṣ=U+1E62, ā=U+0101],
+  // "ʿIlm", "Ḥadīth" — semua di Latin Extended-A/B atau IPA Extensions, di luar À-ÿ). Sama
+  // corak pepijat yang dibaiki di IstilahGlosari.tsx/TypographyRulesEngine.js — diganti
+  // \p{L}\p{M} (huruf + tanda gabungan Unicode) supaya perkataan begini dikesan sebagai SATU
+  // perkataan utuh (bukan terpecah pada setiap huruf diakritik), jadi carian pengecualianPemenggalan
+  // (kunci kata PENUH huruf kecil) dan algoritma (K)(K)V(K) beroperasi pada perkataan sebenar,
+  // bukan serpihan ASCII yang terputus.
+  if (!/^[\p{L}\p{M}']+$/u.test(kata)) return kata;
 
   // Pengecualian editor diperiksa DAHULU, sebelum algoritma (K)(K)V(K) — lihat komen
   // pengecualianPemenggalan di atas. Tiada had PANJANG_MIN di sini (tak macam cariTitikPenggal)
@@ -254,5 +263,5 @@ export function penggalSukuKata(teks) {
 
   return teks
     .split(SOFT_HYPHEN).join('')
-    .replace(/[A-Za-zÀ-ÿ']+/g, (kata) => penggalSatuPerkataan(kata));
+    .replace(/[\p{L}\p{M}']+/gu, (kata) => penggalSatuPerkataan(kata));
 }
