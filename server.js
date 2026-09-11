@@ -2519,6 +2519,20 @@ const initEditorialOS = (dbConn) => {
       // penuh. Lalai 24 jam (spesifikasi Izzat verbatim).
       dbConn.run("ALTER TABLE slot_am_settings ADD COLUMN hadJamRotasiSlotPenuh INTEGER DEFAULT 24", () => {});
 
+      // Migrasi tetapan sekali sahaja (2026-09-11, arahan Izzat: "kandungan pertama yang terpapar
+      // masa refresh di semua kad ialah kandungan terbaru... apabila user tekan > maka ia akan
+      // nampak kandungan yg lebih lama"). Susunan carousel ('rawak') dan Mula Ikut Masa (ON, offset
+      // kedudukan mula ikut jam pelawat) sebelum ni digabungkan menghasilkan kandungan PERTAMA
+      // dipaparkan tak konsisten/rawak, bukan sentiasa yang terbaru — walhal urutan senarai +
+      // butang Seterusnya/Sebelum (majuSemuaKarusel/mundurSemuaKarusel, FrontpageView.tsx) sudah
+      // betul bila susunanCarousel='terbaharu' (ORDER BY createdAt DESC, resolveSlotContent()
+      // server.js) dan mulaIkutMasa=0 (kedudukan mula sentiasa index 0 = terbaru). Klausa WHERE
+      // padan nilai LALAI SEDIA ADA sengaja (bukan UPDATE tanpa syarat) — jadi migrasi ni idempoten
+      // SECARA SEMULA JADI: kalau Ketua Editor dah tukar salah satu tetapan ni secara manual
+      // (nilai tak lagi padan 'rawak'/1), baris WHERE tak lagi padan pada boot seterusnya, migrasi
+      // senyap tak berbuat apa-apa — keputusan manual kekal dihormati, tak ditimpa semula.
+      dbConn.run("UPDATE slot_am_settings SET susunanCarousel = 'terbaharu', mulaIkutMasa = 0 WHERE susunanCarousel = 'rawak' AND mulaIkutMasa = 1", () => {});
+
       // source_link_checks (2026-08-05, Fasa 8b — semakan pautan mati) — satu rekod PER URL
       // sumber unik (bukan per-kandungan; URL sama dikongsi rentas kandungan disemak sekali,
       // bukan berulang-ulang). Diisi/dikemas kini oleh core/editorial/LinkChecker.js, dibaca oleh

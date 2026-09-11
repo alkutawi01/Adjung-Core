@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-11T07:31:35.159Z",
+    "summary": "Migrasi sekali sahaja: tukar Susunan Carousel ke 'Terbaharu dahulu' dan matikan 'Mula ikut masa akses' -- kandungan pertama setiap kad carousel kini sentiasa yang terbaru, tekan > menuju kandungan lebih lama",
+    "files": [
+      "server.js"
+    ]
+  },
+  {
     "time": "2026-09-11T07:09:35.211Z",
     "summary": "Rapatkan jarak menegak 3 butang terapung (kembali ke atas, seterusnya, sebelum) di telefon sahaja; desktop tidak berubah",
     "files": [
