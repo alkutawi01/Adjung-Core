@@ -79,6 +79,25 @@ const isIpDalamJulatPeribadi = (ip, family) => {
       // representasi eksplisit `0.0.0.0`, ia cuma `::`, biar laluan lain tangani.
       return isIpDalamJulatPeribadi(`${a}.${b}.${c}.${d}`, 4);
     }
+    // Awalan NAT64/DNS64 "well-known" 64:ff9b::/96 (RFC 6052) — dapatan susulan pass bug-hunt ni
+    // (2026-09-12), corak sama macam semakan IPv4-tertanam di atas tapi awalan BERBEZA. Rangkaian
+    // IPv6-sahaja (biasa pada banyak infrastruktur awan/rangkaian mudah alih moden) guna gateway
+    // NAT64 yang secara telus terjemah 64:ff9b::a.b.c.d KEPADA sambungan sebenar ke a.b.c.d IPv4 —
+    // ni BUKAN sekadar notasi alternatif macam ::ffff:/::(mampat) di atas, ia laluan RANGKAIAN
+    // sebenar (disintesis DNS64/gateway NAT64) yang menghala terus ke alamat IPv4 tertanam tu.
+    // Domain jahat/editor nakal boleh daftar rekod AAAA 64:ff9b::7f00:1 (127.0.0.1) atau
+    // 64:ff9b::a9fe:a9fe (169.254.169.254, metadata awan) — semakan awalan-sifar di atas TAK
+    // tangkap awalan ni langsung (group[0]=0x0064, group[1]=0xff9b, bukan sifar), jadi ia lolos
+    // sebagai "alamat awam" walhal sambungan sebenar (pada rangkaian bergateway NAT64) berakhir
+    // di IP dalaman/loopback yang sepatutnya disekat. Sama semakan bahagian IPv4 tertanam
+    // (group 6-7) macam di atas, awalan tetap group 0-5 = [0x0064, 0xff9b, 0, 0, 0, 0].
+    if (dikembang && dikembang.kumpulan[0] === 0x0064 && dikembang.kumpulan[1] === 0xff9b &&
+        dikembang.kumpulan[2] === 0 && dikembang.kumpulan[3] === 0 &&
+        dikembang.kumpulan[4] === 0 && dikembang.kumpulan[5] === 0) {
+      const [g6, g7] = [dikembang.kumpulan[6], dikembang.kumpulan[7]];
+      const a = (g6 >> 8) & 0xff, b = g6 & 0xff, c = (g7 >> 8) & 0xff, d = g7 & 0xff;
+      return isIpDalamJulatPeribadi(`${a}.${b}.${c}.${d}`, 4);
+    }
     return false;
   }
   const bahagian = ip.split('.').map(Number);

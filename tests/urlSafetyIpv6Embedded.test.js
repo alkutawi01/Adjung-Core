@@ -43,3 +43,24 @@ test('urlSafety - `::` (unspecified) sendiri kekal disekat oleh laluan lain', as
   const hasil = await sahkanUrlSelamatUntukFetch('http://[::]/');
   assert.equal(hasil.selamat, false);
 });
+
+// Susulan pass bug-hunt (2026-09-12), lepas semakan bentuk-notasi di atas: awalan NAT64/DNS64
+// "well-known" 64:ff9b::/96 (RFC 6052) ialah laluan RANGKAIAN sebenar (bukan sekadar notasi
+// alternatif) — rangkaian bergateway NAT64 terjemah 64:ff9b::a.b.c.d terus ke sambungan IPv4
+// a.b.c.d. Semakan awalan-sifar (::x.x.x.x / ::ffff:x.x.x.x) di atas TAK tangkap awalan ni
+// (group 0-1 = 0x0064/0xff9b, bukan sifar), jadi lolos sebagai "IPv6 awam" walhal sambungan
+// sebenar berakhir di IP dalaman/loopback tertanam.
+test('urlSafety - sekat loopback (127.0.0.1) tertanam awalan NAT64 64:ff9b::/96', async () => {
+  const hasil = await sahkanUrlSelamatUntukFetch('http://[64:ff9b::7f00:1]/');
+  assert.equal(hasil.selamat, false);
+});
+
+test('urlSafety - sekat metadata cloud (169.254.169.254) tertanam awalan NAT64 64:ff9b::/96', async () => {
+  const hasil = await sahkanUrlSelamatUntukFetch('http://[64:ff9b::a9fe:a9fe]/');
+  assert.equal(hasil.selamat, false);
+});
+
+test('urlSafety - benarkan alamat awam (8.8.8.8) tertanam awalan NAT64, tak regresi kes sah', async () => {
+  const hasil = await sahkanUrlSelamatUntukFetch('http://[64:ff9b::808:808]/');
+  assert.equal(hasil.selamat, true);
+});
