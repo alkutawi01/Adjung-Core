@@ -86,12 +86,19 @@ export function parseTypographyTokens(text, rules = [], scope = 'all', language 
     if (rule.matchType === 'regex') {
       regexPattern = rule.term;
     } else {
-      // Safe boundary lookbehind & lookahead to handle Malay prefixes/suffixes (scammers, scammernya)
-      regexPattern = `(?<![A-Za-z0-9])${escapeRegExp(rule.term)}(?![A-Za-z0-9])`;
+      // Sempadan Unicode (2026-09-11, dapatan bug-hunt, corak SAMA yang dibaiki di
+      // IstilahGlosari.tsx — lihat CLAUDE.md "Medan borang terima sebarang glif Unicode") —
+      // kelas ASCII [A-Za-z0-9] sebelum ni tak kenal huruf diakritik/pengubah (cth ʿ dalam
+      // transliterasi Arab "ʿIlm", disahkan reproduce: peraturan bertepatan "ilm" padan
+      // separuh perkataan "ʿIlm" sebab ʿ (U+02BF) dianggap sempadan). Kesan sebenar: peraturan
+      // condong/tebal Typography Rules Engine terpakai pada SEBAHAGIAN perkataan sahaja pada
+      // kandungan yang guna transliterasi Arab (NIQAB, dsb.), bukan seluruh istilah. Diganti
+      // lookaround \p{L}\p{N}\p{M} (huruf + nombor + tanda gabungan), perlukan bendera 'u'.
+      regexPattern = `(?<![\\p{L}\\p{N}\\p{M}])${escapeRegExp(rule.term)}(?![\\p{L}\\p{N}\\p{M}])`;
     }
 
     try {
-      const regex = new RegExp(regexPattern, flags);
+      const regex = new RegExp(regexPattern, rule.matchType === 'regex' ? flags : flags + 'u');
       let match;
       while ((match = regex.exec(text)) !== null) {
         if (match[0].length === 0) {

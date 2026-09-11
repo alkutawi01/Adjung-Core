@@ -78,11 +78,16 @@ export function parseTypographyTokensClient(
     if (rule.matchType === 'regex') {
       regexPattern = rule.term;
     } else {
-      regexPattern = `(?<![A-Za-z0-9])${escapeRegExp(rule.term)}(?![A-Za-z0-9])`;
+      // Sempadan Unicode (2026-09-11, dapatan bug-hunt, corak SAMA yang dibaiki di
+      // IstilahGlosari.tsx dan di engine pelayan TypographyRulesEngine.js) — kelas ASCII
+      // [A-Za-z0-9] tak kenal huruf diakritik/pengubah (cth ʿ dalam transliterasi Arab
+      // "ʿIlm"), jadi peraturan condong/tebal terpakai pada SEBAHAGIAN perkataan sahaja pada
+      // kandungan guna transliterasi Arab. Diganti \p{L}\p{N}\p{M}, perlukan bendera 'u'.
+      regexPattern = `(?<![\\p{L}\\p{N}\\p{M}])${escapeRegExp(rule.term)}(?![\\p{L}\\p{N}\\p{M}])`;
     }
 
     try {
-      const regex = new RegExp(regexPattern, flags);
+      const regex = new RegExp(regexPattern, rule.matchType === 'regex' ? flags : flags + 'u');
       let match: RegExpExecArray | null;
       while ((match = regex.exec(text)) !== null) {
         if (match[0].length === 0) {
