@@ -1,5 +1,5 @@
 import express from 'express';
-import { validateContentBudget, validateBidangTopik, TIER_SLOTS } from '../editorial/ContentBudget.js';
+import { validateContentBudget, validateBidangTopik, validateTarikhSumber, TIER_SLOTS } from '../editorial/ContentBudget.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requirePermission } from '../middleware/auth.js';
 import { getAmSettings } from './slotAmRoutes.js';
@@ -87,6 +87,11 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
             // the following line's content.
             const topikMatch = artBlock.match(/^\s*Topik\s*[:=]\s*(.+)$/im);
             const urlMatch = artBlock.match(/(?:Source|URL|Pautan)\s*[:=]?\s*(https?:\/\/[^\s\n]+)/i);
+            // Tarikh Sumber (2026-09-11, dapatan bug-hunt susulan) — label sama SEPERTI
+            // digunakan di ContentReview.tsx ("Tarikh Sumber:") supaya format tampalan pukal
+            // biasa (ChatGPT/Gemini turut sertakan tarikh asal) ditangkap, bukan digugurkan
+            // senyap. Lihat nota isSafeHttpUrl/EditorialValidator di atas untuk sejarah gerbang.
+            const tarikhMatch = artBlock.match(/(?:Tarikh\s*Sumber|Tarikh|Date)\s*[:=]?\s*(\d{4}-\d{2}-\d{2})/i);
 
             if (titleMatch && slotNum >= 0 && slotNum < 38) {
               parsedItems.push({
@@ -95,7 +100,8 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
                 summary: summaryMatch ? summaryMatch[1].trim().replace(/\s+/g, ' ').trim() : '',
                 category: categoryMatch ? categoryMatch[1].trim().toUpperCase() : 'UMUM',
                 topik: topikMatch ? topikMatch[1].trim() : '',
-                source_url: urlMatch ? urlMatch[1].trim() : '#'
+                source_url: urlMatch ? urlMatch[1].trim() : '#',
+                originalDate: tarikhMatch ? tarikhMatch[1].trim() : ''
               });
             }
           }
@@ -141,6 +147,19 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
         const budgetCheck = validateContentBudget(slotIdx, item.title, item.summary);
         if (!budgetCheck.isValid) {
           return res.status(400).json({ error: `Slot ${slotIdx + 1}, "${(item.title || '').slice(0, 40)}...": ${budgetCheck.reason}` });
+        }
+        // validateTarikhSumber (2026-09-11, dapatan bug-hunt susulan #297/#298) — laluan manual
+        // biasa (syncManualObjectsForSlot, server.js ~baris 3869) sudah kunci KERAS setiap sumber
+        // dengan gerbang ni sejak dasar "kewajipan Tarikh Sumber" 2026-09-04 (kandungan bersumber
+        // LUAR tanpa Tarikh Sumber tak boleh disiarkan). batch_paste terlepas semakan ni SEPENUHNYA
+        // — atribut `source` di sini sentiasa dihardcode 'ChatGPT/Gemini Manual Paste' (BUKAN
+        // 'Adjung Editorial'), jadi Tarikh Sumber sentiasa WAJIB bagi setiap item laluan ni, tanpa
+        // pengecualian. Sebelum baiki ni, gerbang cuma tak wujud — attribute originalDate pun
+        // tak pernah ditulis (lihat attributes[] di bawah) — dan laluan Terbit Terus ni terbitkan
+        // kandungan bersumber luar yang pembaca tak dapat tahu bila fakta asal itu diterbitkan.
+        const tarikhCheck = validateTarikhSumber(item.originalDate, 'ChatGPT/Gemini Manual Paste');
+        if (!tarikhCheck.isValid) {
+          return res.status(400).json({ error: `Slot ${slotIdx + 1}, "${(item.title || '').slice(0, 40)}...": ${tarikhCheck.reason}` });
         }
         // Bidang terkunci per-slot, Topik wajib untuk kandungan baharu — kecuali slot BAR.
         if (!TIER_SLOTS.BAR.includes(slotIdx)) {
@@ -211,6 +230,7 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
           // `<a href>` awam (Terbit Terus, tiada semakan manusia) — stored-XSS. Gerbang guna
           // isSafeHttpUrl sama seperti kedua-dua laluan yang sudah dibaiki.
           const finalUrl = isSafeHttpUrl(item.source_url) ? item.source_url.trim() : '#';
+          const finalOriginalDate = item.originalDate ? String(item.originalDate).trim() : '';
 
           if (!finalTitle) continue;
 
@@ -235,7 +255,8 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
             { key: 'desk', val: finalCategory },
             { key: 'url', val: finalUrl },
             { key: 'source', val: 'ChatGPT/Gemini Manual Paste' },
-            { key: 'topik', val: item.topik || '' }
+            { key: 'topik', val: item.topik || '' },
+            { key: 'originalDate', val: finalOriginalDate }
           ];
 
           for (const attr of attributes) {
