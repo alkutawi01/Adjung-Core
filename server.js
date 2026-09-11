@@ -4504,17 +4504,36 @@ const resolveSlotContent = async (slot, lang = 'ms') => {
       // archived test object kept rendering live because an OLDER revision was still 'approved').
       // The NOT EXISTS guard requires this candidate to genuinely be the object's latest revision
       // (no newer row of ANY status on top of it) before treating it as the current live content.
+      //
+      // PEMBETULAN (2026-09-11, dapatan bug-hunt): guard NOT EXISTS di atas dahulu bandingkan
+      // `version` merentasi SEMUA bahasa objek yang sama (`er2.objectId = er1.objectId AND
+      // er2.version > er1.version`, tiada syarat bahasa) — tapi version diberi NOMBOR SAMA
+      // (1.0, 2.0, ...) untuk SETIAP bahasa objek yang sama (lihat UNIQUE INDEX
+      // idx_editorial_revisions_unik_versi ON (objectId, version, language) — versi ni memang
+      // sengaja dikongsi silang bahasa, bukan penomboran global). Terjemahan auto (baris ~2233,
+      // ~4049, ~4176) sentiasa masuk version=1.0. Bila kandungan diedit semula via Semakan
+      // Kandungan (version chain 'ms' naik ke 2.0), guard lama nampak version 2.0 (bahasa 'ms')
+      // sebagai "lebih baharu" berbanding version 1.0 (bahasa 'en'/'zh'/'ar') PADA OBJEK YANG
+      // SAMA, walhal ia dua bahasa berasingan yang tak sepatutnya berlumba sesama sendiri —
+      // terjemahan yang masih 'approved' dan sah jadi kelihatan "bukan versi terkini" lalu
+      // TERUS gagal dipadan, laluan pulangkan balik ke 'ms' secara senyap untuk pembaca yang
+      // pilih bahasa lain. Disahkan sebenar via skrip sqlite scratch: objek dgn revisi 'en'
+      // v1.0 approved + revisi 'ms' v2.0 approved (selepas satu suntingan Semakan Kandungan)
+      // pulangkan `undefined` untuk lang='en', jatuh ke kandungan Melayu walau pembaca pilih
+      // togol Inggeris. Guard kini turut syarat `er2.language = er1.language` — "versi terkini"
+      // disemak DALAM bahasa yang sama sahaja, bahasa lain pada objek sama tak lagi menconteng
+      // version terkininya.
       let rev = await dbGet(`
         SELECT * FROM editorial_revisions er1
         WHERE er1.objectId = ? AND er1.status = 'approved' AND er1.language = ?
-          AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)
+          AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.language = er1.language AND er2.version > er1.version)
         ORDER BY er1.version DESC LIMIT 1
       `, [objectId, lang]);
       if (!rev && lang !== 'ms') {
         rev = await dbGet(`
           SELECT * FROM editorial_revisions er1
           WHERE er1.objectId = ? AND er1.status = 'approved' AND er1.language = 'ms'
-            AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.version > er1.version)
+            AND NOT EXISTS (SELECT 1 FROM editorial_revisions er2 WHERE er2.objectId = er1.objectId AND er2.language = er1.language AND er2.version > er1.version)
           ORDER BY er1.version DESC LIMIT 1
         `, [objectId]);
       }
