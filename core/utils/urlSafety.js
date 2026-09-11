@@ -35,6 +35,16 @@ const isIpDalamJulatPeribadi = (ip, family) => {
   if (a === 172 && b >= 16 && b <= 31) return true; // RFC1918
   if (a === 192 && b === 168) return true; // RFC1918
   if (a === 169 && b === 254) return true; // link-local, termasuk metadata cloud (169.254.169.254)
+  // 100.64.0.0/10 (RFC 6598, "Shared Address Space"/CGNAT) — dapatan bug-hunt (2026-09-12).
+  // Julat ni SENGAJA bukan RFC1918 (jadi tak ditangkap semakan 10/172.16-31/192.168 di atas),
+  // tapi ia BUKAN alamat awam sebenar — ISP guna untuk CGNAT DAN beberapa pembekal awan guna
+  // untuk metadata/rangkaian dalaman perkhidmatan (cth metadata Alibaba Cloud ECS terletak di
+  // 100.100.100.200, di luar julat 169.254.169.254 yang lazim). Editor yang daftar sumber
+  // RSS/URL rujukan/citation boleh menghala domain (DNS rebinding atau IP literal) ke julat ni
+  // dan pelayan (mana-mana dihoskan atas infrastruktur yang letak metadata/servis dalaman di
+  // sini) akan cuba mengambilnya — sama kelas risiko SSRF metadata cloud yang 169.254.169.254 di
+  // atas sengaja disekat, cuma julat CIDR berbeza yang sebelum ni terlepas pandang.
+  if (a === 100 && b >= 64 && b <= 127) return true;
   if (a === 0) return true; // "this network"
   return false;
 };
