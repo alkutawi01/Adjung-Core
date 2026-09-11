@@ -88,9 +88,13 @@ export const TIER_LABELS = {
 };
 
 // Saiz grid setiap tier (lajur×baris, unit sel bento) — permintaan Izzat 2026-08-08 supaya saiz
-// fizikal kad kelihatan terus di modal Urus Slot, bukan cuma nama tier. TICKER tiada saiz grid
-// (bukan kad bento, jalur teks berjalan) — sengaja tiada kunci di sini, pengguna semak isValid
-// sebelum papar.
+// fizikal kad kelihatan terus di modal Urus Slot, bukan cuma nama tier. TICKER dan BAR tiada
+// saiz grid bermakna di sini (TICKER: bukan kad bento, jalur teks berjalan; BAR: kad jalur nipis
+// bertindan dalam kluster col-span-2, bukan satu sel grid penuh cols×rows macam tier lain) —
+// sengaja tiada kunci untuk kedua-duanya, pengguna (TierKadConsole.tsx, SlotManagerModal.tsx)
+// semak kewujudan kunci sebelum papar. (2026-09-11: BAR dahulu ada nilai rosak '1×' — string
+// pincang tanpa nombor baris, papar label bocor "Bar (1×)" kepada editor sejak kunci ni wujud;
+// dibuang terus supaya ikut corak TICKER, bukan reka nombor baris yang tak bermakna utk bentuk kad ni.)
 export const TIER_GRID_SIZE = {
   HERO: '4×4',
   MENEGAK: '8×1',
@@ -98,7 +102,6 @@ export const TIER_GRID_SIZE = {
   SEGI_EMPAT_MEDIUM: '2×2',
   SEGI_EMPAT_SMALL: '4×2',
   KOMPAK: '2×1',
-  BAR: '1×',
 };
 
 // Peraturan Perlembagaan: label mesti 100% Bahasa Melayu; Bahasa Inggeris hanya dibenarkan
