@@ -195,38 +195,62 @@ class CategoryRegistry {
     `, [now, slug]);
   }
 
+  // PEMBETULAN (2026-09-11, bug-hunt, methodology "sibling function") — fungsi ni DUA pepijat
+  // yang SUDAH dibaiki di renameActiveCategory() (lihat komen panjang di fungsi tu), tapi tak
+  // pernah disambung ke sini walau kedua-duanya "namakan semula Bidang". Laluan
+  // POST /api/system/categories/rename (satu-satunya pemanggil fungsi ni) TIADA pemanggil UI
+  // (disahkan grep merentasi src/ — BidangConsole.tsx panggil /categories/rename-active sahaja),
+  // tapi ia TETAP laluan API SEBENAR, boleh dicapai (gerbang manageEditorial sahaja), dan
+  // pepijat lama sepenuhnya masih hidup di dalamnya:
+  //   1. Slug DITUKAR pada rename (dikira semula drpd nama baharu) — bertentangan terus dengan
+  //      dasar Izzat "Slug DIKUNCI kekal" (2026-09-02) yang MEMANG sebab renameActiveCategory()
+  //      wujud berasingan drpd fungsi ni. Pautan /bidang/{slug} lama pecah (404) sebaik dipanggil.
+  //   2. `slots_config.manualDesk`/`editorial_attribute_values.desk` TAK dicascade — kandungan
+  //      sedia ada hilang senyap drpd Halaman Bidangnya sendiri (sama pepijat yang dibaiki di
+  //      renameActiveCategory 2026-09-08/09-11).
+  // Disahkan reproduce hujung-ke-hujung sebelum pembetulan ni: `.simulasi/sim295-old-rename-
+  // route-stale.mjs` (slug bertukar, /bidang/<slug-lama> 404, /bidang/<slug-baharu> total=0).
+  // Dibetulkan: slug TAK PERNAH disentuh lagi (cermin renameActiveCategory persis), dan cascade
+  // manualDesk + desk yang sama diguna semula selepas tulis nama baharu.
   static async renameCategory(db, oldName, newName) {
     if (!oldName || !newName || oldName.trim() === '' || newName.trim() === '') return;
     const oldSlug = this.getSlug(oldName);
     const newNameClean = newName.trim();
     const newSlug = this.getSlug(newNameClean);
 
-    // If new slug is identical to old, just rename display name
-    if (oldSlug === newSlug) {
-      const now = new Date().toISOString();
-      await this.dbRun(db, `
-        UPDATE CategoryRegistry 
-        SET name = ?, updatedAt = ? 
-        WHERE slug = ?
-      `, [newNameClean, now, oldSlug]);
-      return;
+    const sourceReg = await this.dbGet(db, "SELECT * FROM CategoryRegistry WHERE slug = ?", [oldSlug]);
+    if (!sourceReg) return;
+
+    // Nama baharu padan slug BIDANG LAIN sedia ada (bukan Bidang sumber sendiri) — niat sebenar
+    // pemanggil ialah GABUNG dua Bidang, bukan namakan semula (mergeCategories() sudah betul
+    // cascade semuanya sendiri, termasuk manualDesk/desk).
+    if (newSlug !== oldSlug) {
+      const targetExists = await this.dbGet(db, "SELECT * FROM CategoryRegistry WHERE slug = ?", [newSlug]);
+      if (targetExists) {
+        await this.mergeCategories(db, oldName, newNameClean);
+        return;
+      }
     }
 
-    // Check if new category already exists
-    const targetExists = await this.dbGet(db, "SELECT * FROM CategoryRegistry WHERE slug = ?", [newSlug]);
-    if (targetExists) {
-      // Merge them instead
-      await this.mergeCategories(db, oldName, newNameClean);
-      return;
-    }
-
-    // Just update slug and name
+    // Namakan semula SEBENAR — slug KEKAL (dasar dikunci), cuma `name` bertukar.
     const now = new Date().toISOString();
     await this.dbRun(db, `
-      UPDATE CategoryRegistry 
-      SET slug = ?, name = ?, updatedAt = ? 
+      UPDATE CategoryRegistry
+      SET name = ?, updatedAt = ?
       WHERE slug = ?
-    `, [newSlug, newNameClean, now, oldSlug]);
+    `, [newNameClean, now, oldSlug]);
+
+    if (sourceReg.name.toLowerCase() !== newNameClean.toLowerCase()) {
+      await this.dbRun(db, `
+        UPDATE slots_config SET manualDesk = ?
+        WHERE layoutTemplateId = 'frontpage' AND LOWER(manualDesk) = LOWER(?)
+      `, [newNameClean, sourceReg.name]);
+      await this.dbRun(db, `
+        UPDATE editorial_attribute_values
+        SET valueText = ?
+        WHERE attributeId = 'desk' AND LOWER(valueText) = LOWER(?)
+      `, [newNameClean, sourceReg.name]);
+    }
   }
 
   static async mergeCategories(db, sourceCategory, targetCategory) {
