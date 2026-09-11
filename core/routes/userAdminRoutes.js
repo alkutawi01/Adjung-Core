@@ -602,12 +602,23 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         }
       }
 
+      // Padanan LOWER(TRIM()) (2026-09-12, bug-hunt round 318, susulan corak sama 2026-09-08
+      // di cariKandunganBelumTerbit() atas — lihat komen baris ~151) — query ni dahulu padan
+      // `eav.valueText = ?` TEPAT sedangkan GET /kandungan-belum-terbit (paparan "N menunggu"
+      // yang Pentadbir lihat SEBELUM tekan padam, guna cariKandunganBelumTerbit() di atas) sudah
+      // guna LOWER(TRIM()). Kesan sebenar: editor yang tukar KES HURUF nama pena sendiri
+      // (dibenarkan profileRoutes.js, cth "ahmad zaki" -> "Ahmad Zaki") ada kandungan pending
+      // lama dicap editorName kes lama — GET tunjuk betul (1 menunggu), tapi POST padam SEBENAR
+      // ni gagal jumpa baris tu (padanan tepat gagal), padam senyap SIFAR walau UI baru sahaja
+      // kata 1. Kandungan pending akaun yang ditamatkan tertinggal selama-lamanya walau Pentadbir
+      // ingat sudah dibersihkan. Disahkan reproduce via .simulasi/sim86-padam-kandungan-belum-
+      // terbit-case-mismatch.mjs.
       const rows = await dbAll(`
         SELECT eo.id FROM editorial_objects eo
         INNER JOIN (SELECT objectId, MAX(version) mv FROM editorial_revisions GROUP BY objectId) lv ON lv.objectId = eo.id
         INNER JOIN editorial_revisions er ON er.objectId = eo.id AND er.version = lv.mv
         INNER JOIN editorial_attribute_values eav ON eav.objectId = eo.id AND eav.revisionId = er.id AND eav.attributeId = 'editorName'
-        WHERE er.status = 'pending' AND eav.valueText = ?
+        WHERE er.status = 'pending' AND LOWER(TRIM(eav.valueText)) = LOWER(TRIM(?))
       `, [penName]);
       for (const r of rows || []) {
         await dbRun('DELETE FROM editorial_objects WHERE id = ?', [r.id]); // CASCADE ke revisions/attrs
