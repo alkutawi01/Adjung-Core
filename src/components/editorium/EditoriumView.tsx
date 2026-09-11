@@ -1108,29 +1108,51 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
                       </button>
                       {/* Tetapkan editor terus dari sini (2026-08-01) — sama data/peraturan macam
                           Editorium → Slot → Senarai Slot, cuma dibawa ke tempat editor sebenarnya
-                          mula menulis, supaya tak perlu keluar konteks pemilih slot ni. */}
-                      <Tooltip
-                        text={
-                          editorSlot.length === 0
-                            ? 'Tetapkan editor yang menguruskan slot ini'
-                            : `Editor slot ini: ${editorSlot.map((p) => p.nama).join(', ')}`
-                        }
-                      >
-                        <button
-                          type="button"
-                          onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}
-                          aria-label="Tetapkan editor yang menguruskan slot ini"
-                          className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-Adjung-maroon"
+                          mula menulis, supaya tak perlu keluar konteks pemilih slot ni.
+                          Gerbang `isEditorialAdmin` (2026-09-12, dapatan bug-hunt) — kunci
+                          `assignSlot` disambungkan ke POST /slot-editors pada 2026-08-05 dan
+                          SenaraiSlotConsole.tsx turut disorok ikut `bolehAgihSlot` masa tu (lihat
+                          komennya di situ), tapi butang "+ Editor"/popover di sini (dicipta
+                          2026-08-01, SEBELUM kunci itu wujud) tak pernah diselaraskan sekali. Kesan
+                          sebenar: Editor biasa yang ditugaskan slot sendiri (lulus `slotBolehTulis`)
+                          tetap nampak butang "+ Editor" boleh diklik, buka popover penuh, tanda
+                          editor lain, klik Simpan — cuma untuk terkena 403 "Tiada kebenaran" dari
+                          server lepas tu (peraturan sebenar TAK PERNAH pecah, cuma UI tunjuk kawalan
+                          yang server sentiasa tolak). Disamakan: bukan admin papar teks statik nama
+                          editor (maklumat berguna, bukan rahsia — sama seperti SenaraiSlotConsole),
+                          bukan butang. */}
+                      {isEditorialAdmin ? (
+                        <Tooltip
+                          text={
+                            editorSlot.length === 0
+                              ? 'Tetapkan editor yang menguruskan slot ini'
+                              : `Editor slot ini: ${editorSlot.map((p) => p.nama).join(', ')}`
+                          }
                         >
+                          <button
+                            type="button"
+                            onClick={(e) => { e.stopPropagation(); setPopoverEditorSlot((prev) => (prev === i ? null : i)); }}
+                            aria-label="Tetapkan editor yang menguruskan slot ini"
+                            className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right cursor-pointer hover:text-Adjung-maroon"
+                          >
+                            {editorSlot.length === 0 ? (
+                              <span className="text-stone-400 italic">+ Editor</span>
+                            ) : (
+                              <span className="text-stone-500">{editorSlot.map((p) => p.nama).join(', ')}</span>
+                            )}
+                          </button>
+                        </Tooltip>
+                      ) : (
+                        <span className="shrink-0 max-w-[7.5rem] truncate font-sans text-[10px] text-right text-stone-400">
                           {editorSlot.length === 0 ? (
-                            <span className="text-stone-400 italic">+ Editor</span>
+                            <span className="italic">Belum ditugaskan</span>
                           ) : (
-                            <span className="text-stone-500">{editorSlot.map((p) => p.nama).join(', ')}</span>
+                            editorSlot.map((p) => p.nama).join(', ')
                           )}
-                        </button>
-                      </Tooltip>
+                        </span>
+                      )}
                     </div>
-                    {popoverEditorSlot === i && (
+                    {isEditorialAdmin && popoverEditorSlot === i && (
                       <PenugasanEditorPopover
                         slotIndex={i}
                         pengguna={pengguna}
