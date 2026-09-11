@@ -181,7 +181,13 @@ export const DashboardConsole: React.FC<DashboardConsoleProps> = ({ onTukarTab }
     );
   }
 
-  const jumlahRekod = statusKandungan.menunggu + statusKandungan.aktif + statusKandungan.arkib;
+  // dijadualkan (status 'scheduled') disertakan (2026-09-11, dapatan bug-hunt) — sejak
+  // 'Dijadualkan' dipisahkan drpd 'menunggu' (commit c299f66, ia satu status TERSENDIRI,
+  // bukan sub-set 'pending'), jumlah ni tercicir kandungan berjadual sepenuhnya. Kesan:
+  // "Jumlah rekod" & peratus "Aktif" (aktif/jumlahRekod) di bawah kedua-duanya silap
+  // mengecilkan bilangan sebenar bila ada kandungan dalam Jadual Terbit — kandungan tu
+  // wujud (baris sebenar dlm editorial_objects), cuma belum aktif lagi.
+  const jumlahRekod = statusKandungan.menunggu + statusKandungan.dijadualkan + statusKandungan.aktif + statusKandungan.arkib;
 
   // Matriks 38 slot — status sebenar setiap slot (terisi/menunggu/kosong), dikira daripada
   // slotUsage (liveCount > 0 = terisi) + itemsRingkas (ada kandungan 'pending' = menunggu).
