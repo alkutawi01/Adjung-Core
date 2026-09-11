@@ -500,9 +500,16 @@ class CategoryRegistry {
   }
 
   // Namakan-semula SATU baris Bidang taksonomi — sengaja BUKAN renameCategory()/mergeCategories()
-  // di atas, sebab dua fungsi tu cascade-tulis-ganti string 'desk' dalam editorial_objects/
-  // editorial_attribute_values (melanggar peraturan "kandungan lama kekal"). Ni cuma ubah baris
-  // taksonomi tu sendiri.
+  // di atas (fungsi digabung tu remap `editorial_objects.categoryId` juga, yang dibekukan pada
+  // masa penciptaan objek dan sengaja tak disentuh selepas terbit — lihat nota di seluruh
+  // codebase "eo.categoryId dibekukan"). PEMBETULAN (2026-09-11, bug-hunt) — komen asal di sini
+  // dulu mendakwa attribute 'desk' turut sengaja TAK dicascade "supaya kandungan lama kekal",
+  // tapi 'desk' bukan teks editorial (tajuk/huraian); ia SATU-SATUNYA cara sistem padankan
+  // kandungan ke Bidang (bidangRoutes.js /bidang/:slug/artikel padan STRING nama, bukan id/slug).
+  // Tanpa cascade, kandungan sedia ada hilang senyap drpd Halaman Bidangnya sendiri selepas
+  // rename walau slug URL dikunci kekal (disahkan reproduce, .simulasi/sim-bidang-rename.mjs) —
+  // bertentangan terus dgn TUJUAN slug dikunci (nota di bawah). Kini dicascade (lihat di bawah,
+  // padanan LOWER() dua-hala sama corak mergeCategories()).
   //
   // Slug DIKUNCI kekal (2026-09-02, keputusan Izzat "ikut cadangan awak") — dahulu slug dikira
   // semula dari nama BAHARU pada setiap rename, jadi pautan Halaman Bidang (/bidang/{slug}) yang
@@ -554,6 +561,28 @@ class CategoryRegistry {
       await this.dbRun(db, `
         UPDATE slots_config SET manualDesk = ?
         WHERE layoutTemplateId = 'frontpage' AND LOWER(manualDesk) = LOWER(?)
+      `, [trimmedName, lamaRow.name]);
+      // PEMBETULAN (2026-09-11, bug-hunt) — attribute 'desk' kandungan sedia ada TAK PERNAH
+      // dikemas kini di sini sebelum ni (sengaja, nota di atas: elak cascade tulis-ganti
+      // kandungan lama, sama alasan renameCategory()/mergeCategories() TAK dipakai laluan ni).
+      // Tapi 'desk' bukan teks editorial (tajuk/huraian) yang peraturan "kandungan lama kekal"
+      // maksudkan — ia label pemetaan Bidang MURNI, dan SATU-SATUNYA cara sistem padankan
+      // kandungan ke Bidang di SELURUH kod (bidangRoutes.js /bidang/:slug/artikel, assign-slot,
+      // dropdown borang) ialah padanan STRING NAMA (bukan id/slug). Slug Bidang ni SENGAJA
+      // dikunci kekal (nota di atas) khusus supaya pautan awam /bidang/{slug} tak pernah pecah
+      // selepas rename — tapi tanpa cascade ni, pautan itu KEKAL 200 (tak 404) sedangkan SEMUA
+      // kandungan sedia ada yang sebelum ni terpapar di situ hilang senyap terus daripada
+      // senarai (bukan ralat, cuma kosong), sebab `LOWER(av.valueText) = LOWER(cat.name)` di
+      // bidangRoutes.js tak lagi padan nama BAHARU. Disahkan reproduce (.simulasi/
+      // sim-bidang-rename.mjs): kandungan approved WUJUD di /bidang/{slug}/artikel SEBELUM
+      // rename-active, `total` jatuh terus ke 0 SELEPAS, walau slug/URL tak berubah langsung.
+      // Padanan LOWER() dua-hala sama corak mergeCategories() di atas (yang MEMANG cascade
+      // 'desk' bila Bidang digabung) — rename-active kini konsisten dengan gerbang sedia ada tu,
+      // bukan pengecualian yang terlepas pandang.
+      await this.dbRun(db, `
+        UPDATE editorial_attribute_values
+        SET valueText = ?
+        WHERE attributeId = 'desk' AND LOWER(valueText) = LOWER(?)
       `, [trimmedName, lamaRow.name]);
     }
   }
