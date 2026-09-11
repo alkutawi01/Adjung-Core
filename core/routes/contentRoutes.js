@@ -1263,7 +1263,14 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       await dbRun('BEGIN TRANSACTION');
       try {
         if (isContentEdit) {
-          const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
+          // Skop `language = 'ms'` (2026-09-11, bug-hunt, sambungan pepijat sama-kelas
+          // resolveSlotContent()/CLAUDE.md "AMARAN WAJIB" — lihat nota penuh di POST
+          // .../revisions/:revisionId/restore di atas fail ni) — INSERT di bawah HARDCODE
+          // `language = 'ms'`, jadi nombor versi baharu mesti bersambung ikut version chain
+          // 'ms' objek ni sahaja, bukan turut kira version=1.0 tetap milik terjemahan automatik
+          // 'en' pada objectId yang sama (elak nombor version melompat tanpa sebab kalau
+          // gelagat penomboran terjemahan berubah pada masa depan).
+          const maxVersionRow = await dbGet("SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ? AND (language IS NULL OR language = 'ms')", [id]);
           const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
           const newTitle = title !== undefined ? title : rev.title;
           const newSummary = summary !== undefined ? summary : rev.summary;
@@ -1500,6 +1507,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
   // GET /api/system/content/:id/revisions — Sejarah Versi Sebenar (Fasa 6). Pulangkan setiap
   // baris editorial_revisions untuk objek ni (bukan cuma versi terkini), tersusun terbaharu dulu,
   // supaya panel "Sejarah versi" boleh papar & pulihkan versi lama.
+  //
+  // Skop `language IS NULL OR language = 'ms'` (2026-09-11, bug-hunt, sambungan pepijat sama-kelas
+  // resolveSlotContent()/CLAUDE.md "AMARAN WAJIB") — laluan ni dahulu tarik SEMUA baris seobjek
+  // TANPA sekat bahasa, jadi revisi terjemahan automatik (language='en', server.js baris ~2233,
+  // status HARDCODE 'approved') tersenarai bersama version chain 'ms' TANPA label sama sekali
+  // (query lama pun tak SELECT lajur `language`). Panel "Sejarah Versi" (IndeksConsole.tsx)
+  // hanya wujud untuk laluan Revision Editing 'ms' (CLAUDE.md "Dua laluan edit selepas terbit") —
+  // editor tak pernah sengaja nak pulih/lihat teks Inggeris di sini, tapi disahkan reproduce
+  // sebenar (.simulasi/sim-restore-lang-leak.mjs) editor BOLEH klik "Pulih" atas entri yang
+  // kelihatan macam versi lama biasa sedangkan sebenarnya revisi 'en' — lihat nota lengkap pada
+  // POST .../restore di bawah untuk kesan sebenar apabila itu berlaku.
   router.get('/content/:id/revisions', requireAuth, async (req, res) => {
     try {
       const { id } = req.params;
@@ -1511,7 +1529,7 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         return res.status(404).json({ error: 'Item tidak dijumpai.' });
       }
       const revisions = await dbAll(
-        "SELECT id, version, title, summary, status, createdBy, createdAt, updatedAt FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC",
+        "SELECT id, version, title, summary, status, createdBy, createdAt, updatedAt FROM editorial_revisions WHERE objectId = ? AND (language IS NULL OR language = 'ms') ORDER BY version DESC",
         [id]
       );
       res.json(revisions);
@@ -1547,6 +1565,22 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       if (!oldRev) {
         return res.status(404).json({ error: 'Versi tersebut tidak dijumpai untuk kandungan ini.' });
       }
+      // Sekat kepada revisi bahasa 'ms' (2026-09-11, bug-hunt, sambungan pepijat sama-kelas
+      // resolveSlotContent()/CLAUDE.md "AMARAN WAJIB") — laluan ni HARDCODE `language = 'ms'`
+      // pada INSERT revisi baharu di bawah (warisan reka bentuk lama, sebelum ciri terjemahan
+      // pelbagai bahasa wujud), tanpa pernah semak bahasa SEBENAR `oldRev` yang dipulihkan.
+      // GET /content/:id/revisions (di atas) dahulu turut tak tapis/dedah `language`, jadi panel
+      // "Sejarah Versi" (IndeksConsole.tsx) senaraikan revisi terjemahan automatik (language='en',
+      // server.js baris ~2233) bersama version chain 'ms' TANPA sebarang label pembeza — editor
+      // boleh klik "Pulih" pada entri yang kelihatan macam versi lama biasa, sedangkan sebenarnya
+      // teks Inggeris. Disahkan reproduce sebenar (.simulasi/sim-restore-lang-leak.mjs): memulihkan
+      // revisi 'en' menghasilkan revisi BAHARU berstatus 'approved' dgn TEKS INGGERIS tetapi
+      // `language` tersimpan sebagai 'ms' — bercemar terus ke version chain Melayu (berpotensi
+      // terus terbit di frontpage awam sebagai kandungan Melayu). Endpoint ni tak sokong pulih
+      // rentas-bahasa — tolak dgn jelas dahulu drpd biarkan ia bercampur senyap.
+      if (oldRev.language && oldRev.language !== 'ms') {
+        return res.status(400).json({ error: 'Versi ini ialah terjemahan automatik (bukan Bahasa Melayu) — laluan Pulih Versi tidak menyokong pemulihan rentas bahasa.' });
+      }
       // Jadual Terbit/Luput diwarisi daripada revisi TERKINI (bukan revisi lama yang dipulihkan
       // — 2026-08-20, dapatan audit). INSERT revisi baharu di bawah dahulu tak sertakan kedua-dua
       // lajur ni langsung, jadi ia jatuh ke NULL — kandungan Aktif ber-jadual-luput yang
@@ -1556,8 +1590,12 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // membatalkan tarikh luput yang Ketua Editor tetapkan untuk objek ni, jadi diwarisi daripada
       // revisi SEMASA (yang akan digantikan), bukan daripada oldRev (yang mungkin ditulis sebelum
       // jadual pun wujud).
+      // Skop `language = 'ms'` (2026-09-11, sambungan pembetulan di atas) — tanpa ni, revisi
+      // terjemahan 'en' berversi lebih tinggi (tak berlaku pada masa penemuan sebab terjemahan
+      // sentiasa version=1.0 tetap, tapi tak dijamin kekal begitu) boleh tersilap dipilih sebagai
+      // "revisi semasa" jadual Terbit/Luput diwarisi drpdnya.
       const revSemasaJadual = await dbGet(
-        "SELECT scheduledPublishAt, scheduledExpiresAt FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
+        "SELECT scheduledPublishAt, scheduledExpiresAt FROM editorial_revisions WHERE objectId = ? AND (language IS NULL OR language = 'ms') ORDER BY version DESC LIMIT 1",
         [id]
       );
 
@@ -1565,8 +1603,9 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       // VERSI lama akan mencipta revisi baharu (versi tertinggi) berstatus approved/pending,
       // menghidupkan semula objek yang dipadam sambil memintas laluan Pulihkan rasmi. Sama
       // sekatan macam PATCH: Pulihkan dulu, baru sunting/pulih versi.
+      // Skop `language = 'ms'` sama sebab seperti revSemasaJadual di atas.
       const revTerkini = await dbGet(
-        "SELECT id, status FROM editorial_revisions WHERE objectId = ? ORDER BY version DESC LIMIT 1",
+        "SELECT id, status FROM editorial_revisions WHERE objectId = ? AND (language IS NULL OR language = 'ms') ORDER BY version DESC LIMIT 1",
         [id]
       );
       if (revTerkini && revTerkini.status === 'dipadam') {
@@ -1667,7 +1706,11 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
         }
       }
 
-      const maxVersionRow = await dbGet('SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ?', [id]);
+      // Skop `language = 'ms'` (2026-09-11, sama sebab seperti nota bahasa di atas) — revisi
+      // BAHARU yang dicipta di bawah HARDCODE `language = 'ms'`, jadi nombor versinya mesti
+      // bersambung ikut version chain 'ms' sahaja, bukan turut kira version=1.0 tetap milik
+      // terjemahan 'en' (yang tak pernah menaik, tapi tak patut mempengaruhi penomboran 'ms').
+      const maxVersionRow = await dbGet("SELECT MAX(version) AS maxVersion FROM editorial_revisions WHERE objectId = ? AND (language IS NULL OR language = 'ms')", [id]);
       const nextVersion = (maxVersionRow && maxVersionRow.maxVersion ? maxVersionRow.maxVersion : 0) + 1;
       const nowIso = new Date().toISOString();
 
