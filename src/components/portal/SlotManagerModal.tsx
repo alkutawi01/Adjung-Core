@@ -167,6 +167,15 @@ const EDITOR_PLACEHOLDER = '—';
 const namaPenulisSepadan = (a?: string, b?: string): boolean =>
   (a || '').trim().toLowerCase() === (b || '').trim().toLowerCase();
 
+// Sentinel `initialUuid` (2026-09-11, dapatan bug-hunt susulan) untuk draf LAMA (sebelum ciri
+// UUID, 2026-08-01) yang blok teksnya tiada baris "UUID:" — parseManualSummaryBlocks() lalaikan
+// b.uuid='' bagi blok begitu, sama seperti '' yang bermaksud "modal ni tak menyasarkan draf
+// tertentu" (pemilih slot biasa). Dua makna berlainan berkongsi nilai falsy yang sama tanpa
+// sentinel ni — lihat komen penuh pada useState(active) di SlotManagerModal di bawah. Pemanggil
+// (DrafSayaConsole.tsx melalui EditoriumView.tsx) MESTI hantar sentinel ni, bukan '' terus, bila
+// draf yang diklik (d.uuid) kosong.
+export const DRAF_TANPA_UUID = '__draf_tanpa_uuid__';
+
 // Sumber rujukan berbilang (2026-08-15, simulasi Izzat pusingan 4 + audit ChatGPT --
 // "berbilang URL boleh masuk v1, bukan sebagai senarai pautan bebas, tapi koleksi sumber
 // dengan peraturan keserasian"). aiPromptSource (kolum DB sedia ada, TEXT bebas format,
@@ -712,14 +721,28 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
   // (dijalankan SEKALI semasa mount, sama macam `items` di bawah) dan bukan useEffect selepas
   // render — kalau tidak, kandungan pertama sempat terpapar sekelip mata sebelum bertukar.
   const [active, setActive] = useState(() => {
+    // '' bermakna modal ni TIDAK dibuka menyasarkan satu draf tertentu (pemilih slot biasa,
+    // EditoriumView.tsx sentiasa setDrafDibuka('') sebelum panggilan macam ni) — kekalkan
+    // kelakuan asal, kandungan pertama.
     if (!initialUuid) return 0;
+    // DRAF_TANPA_UUID (2026-09-11, dapatan bug-hunt susulan) — sentinel BUKAN rentetan kosong
+    // untuk draf LAMA (dicipta sebelum ciri UUID wujud, 2026-08-01) yang blok teksnya tiada
+    // baris "UUID:" langsung (parseManualSummaryBlocks() lalaikan b.uuid='' bagi blok begitu).
+    // Punca pepijat asal: "Draf Saya" hantar terus `d.uuid` (rentetan KOSONG bagi draf begini)
+    // sebagai initialUuid — nilai tu falsy SAMA seperti '' penanda "tiada sasaran" di atas, jadi
+    // semakan `if (!initialUuid) return 0` menelan KEDUA-DUA kes serentak dan terus mendaratkan
+    // editor pada kandungan PERTAMA slot secara senyap, walau draf yang diklik di Draf Saya ialah
+    // kandungan KE-BEBERAPA dalam giliran — boleh jadi kandungan tu bukan draf pun (sudah terbit
+    // orang lain). Sentinel ni benarkan padanan `b.uuid === ''` di bawah dijalankan sebenarnya
+    // untuk kes draf-tanpa-uuid, tanpa mengganggu makna '' sedia ada bagi "tiada sasaran".
+    const carianUuid = initialUuid === DRAF_TANPA_UUID ? '' : initialUuid;
     // Indeks mesti dikira daripada senarai DITAPIS sama macam `items` di bawah (2026-08-08,
     // Fasa 3) — kalau tidak, indeks daripada senarai PENUH (termasuk blok orang lain yang
     // tersembunyi) tak sepadan kedudukan sebenar dalam `items`, mendaratkan editor pada draf
     // yang salah.
     const i = parseManualSummaryBlocks(formConfig.manualSummary || '')
       .filter((b: any) => !b.penulis || namaPenulisSepadan(b.penulis, currentEditoriumName))
-      .findIndex((b: any) => b.uuid === initialUuid);
+      .findIndex((b: any) => b.uuid === carianUuid);
     return i >= 0 ? i : 0;
   });
   const [tab, setTab] = useState<'borang' | 'maklumat' | 'ai' | 'sejarah'>('borang');

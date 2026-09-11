@@ -3,6 +3,7 @@ import { bacaJsonSelamat, mesejRalat } from '../../utils/bacaJson';
 import { Check, AlignLeft, RefreshCw } from 'lucide-react';
 import { TIER_LABELS, tierForSlot } from '../../../core/editorial/GeometryConfig.js';
 import { validateContentBudget } from '../../../core/editorial/ContentBudget.js';
+import { DRAF_TANPA_UUID } from '../portal/SlotManagerModal';
 import { BidangIcon } from '../common/BidangIcon';
 import { StatusBadge } from '../common/StatusBadge';
 import { ModulTajuk } from '../common/ModulTajuk';
@@ -309,7 +310,13 @@ export const DrafSayaConsole: React.FC<DrafSayaConsoleProps> = ({ editorId, edit
                               (laluan kerja harian utama modul ni). */}
                           <button
                             type="button"
-                            onClick={() => onBukaDraf(d.slotIndex, d.uuid)}
+                            // d.uuid boleh kosong untuk draf LAMA (sebelum ciri UUID, 2026-08-01)
+                            // — hantar sentinel DRAF_TANPA_UUID, bukan '' terus, supaya
+                            // SlotManagerModal boleh bezakannya drpd "tiada draf disasarkan"
+                            // (lihat komen DRAF_TANPA_UUID, SlotManagerModal.tsx; 2026-09-11
+                            // dapatan bug-hunt susulan — '' terus dahulu mendaratkan editor pada
+                            // kandungan PERTAMA slot secara senyap, bukan draf yang diklik).
+                            onClick={() => onBukaDraf(d.slotIndex, d.uuid || DRAF_TANPA_UUID)}
                             className="w-full text-right font-mono text-[10px] uppercase tracking-wider text-Adjung-maroon font-semibold cursor-pointer focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm"
                           >
                             Sambung
