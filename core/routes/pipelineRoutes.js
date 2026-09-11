@@ -179,14 +179,18 @@ export function createPipelineRoutes(db, dbGet, dbRun, runEditorialPipeline, run
 
       // Had bilangan kandungan seslot (Tetapan Am Slot; 0 = tiada had) — dikuatkuasakan di sini
       // sama seperti POST /content (Pelan 02 #1). Dahulu tampal pukal ialah satu-satunya laluan
-      // penciptaan yang boleh menolak slot melebihi hadnya.
+      // penciptaan yang boleh menolak slot melebihi hadnya. Turut kira status 'scheduled' sebagai
+      // "masih hidup" (bug-hunt 2026-09-11, sepadan pembetulan POST /content contentRoutes.js —
+      // kandungan berjadual bakal terbit sendiri tanpa keputusan manusia kedua, jadi ia SUDAH
+      // menempah ruang slot walau belum 'approved'; query lama terlepasnya, membenarkan had
+      // dilanggar bila slot sasaran ada kandungan scheduled sedia ada).
       const { hadKandunganSlot } = getAmSettings();
       if (hadKandunganSlot > 0) {
         for (const [slotIdx, tambahan] of kiraanBatchSeslot) {
           const kiraan = await dbGet(`
             SELECT COUNT(*) AS n FROM editorial_objects o
             JOIN editorial_revisions r ON r.objectId = o.id
-            WHERE o.slotIndex = ? AND r.status IN ('approved', 'pending')
+            WHERE o.slotIndex = ? AND r.status IN ('approved', 'pending', 'scheduled')
               AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
           `, [slotIdx]);
           const sedia = kiraan ? kiraan.n : 0;

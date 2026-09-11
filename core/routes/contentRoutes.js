@@ -2357,13 +2357,18 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
       }
 
       // Had bilangan kandungan seslot (Tetapan Am Slot; 0 = tiada had). Dikira daripada kandungan
-      // yang masih hidup sahaja — kandungan arkib tidak mengambil ruang slot.
+      // yang masih hidup sahaja — kandungan arkib tidak mengambil ruang slot. "Masih hidup"
+      // MESTI turut merangkumi 'scheduled' (bug-hunt 2026-09-11) — kandungan berjadual bakal
+      // terbit sendiri tanpa keputusan manusia kedua (Scheduling.js STATUS_MASIH_HIDUP =
+      // ['approved','pending','scheduled']), jadi ia SUDAH menempah ruang slot walau belum
+      // 'approved'. Query lama (`status IN ('approved','pending')` sahaja) langsung tak nampak
+      // kandungan scheduled sedia ada, jadi had slot boleh dilanggar (disahkan sim228).
       const { hadKandunganSlot } = getAmSettings();
       if (hadKandunganSlot > 0) {
         const kiraan = await dbGet(`
           SELECT COUNT(*) AS n FROM editorial_objects o
           JOIN editorial_revisions r ON r.objectId = o.id
-          WHERE o.slotIndex = ? AND r.status IN ('approved', 'pending')
+          WHERE o.slotIndex = ? AND r.status IN ('approved', 'pending', 'scheduled')
             AND r.version = (SELECT MAX(version) FROM editorial_revisions WHERE objectId = o.id)
         `, [slotIndex]);
         if (kiraan && kiraan.n >= hadKandunganSlot) {
