@@ -929,9 +929,31 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             onChange={setSlotSubTab}
           />
           {slotSubTab === 'senarai' && <SenaraiSlotConsole currentEditoriumRole={effectiveEditorialRole} onLihatIndeks={lihatDiIndeks} editorAwal={editorAwalSlot} />}
-          {slotSubTab === 'tier' && <TierKadConsole />}
-          {slotSubTab === 'bidang' && <BidangConsole />}
-          {slotSubTab === 'tetapan_am' && <TetapanAmSlotConsole />}
+          {/* Gerbang `isEditorialAdmin` (2026-09-12, dapatan bug-hunt) — sub-tab "2. Tier Kad",
+              "3. Bidang" dan "4. Tetapan Am" semuanya tulis-ganti melalui endpoint pelayan
+              digerbang `manageEditorial` (tierSettingsRoutes.js, categoriesRoutes.js,
+              slotAmRoutes.js POST /slot-am-settings, systemRoutes.js PATCH
+              editor-publish-policy) — hanya Ketua Editor/Penolong ada kebenaran tu. Sebelum ni
+              ketiga-tiga sub-tab dipapar PENUH kepada SESIAPA sahaja yang boleh buka tab "Slot"
+              (tab induk sendiri tak disekat — Editor biasa perlu akses "1. Senarai Slot" untuk
+              tulis kandungan), jadi Editor biasa nampak borang berfungsi penuh yang SENTIASA
+              ditolak pelayan bila cuba simpan — sama corak dgn gerbang `isEditorialAdmin` yang
+              dah dipasang di kawalan agih slot (lihat nota di atas). */}
+          {slotSubTab === 'tier' && (
+            isEditorialAdmin
+              ? <TierKadConsole />
+              : <AksesDitolak mesej="Tier Kad khusus untuk Ketua Editor dan Penolong Ketua Editor." />
+          )}
+          {slotSubTab === 'bidang' && (
+            isEditorialAdmin
+              ? <BidangConsole />
+              : <AksesDitolak mesej="Bidang khusus untuk Ketua Editor dan Penolong Ketua Editor." />
+          )}
+          {slotSubTab === 'tetapan_am' && (
+            isEditorialAdmin
+              ? <TetapanAmSlotConsole />
+              : <AksesDitolak mesej="Tetapan Am Slot khusus untuk Ketua Editor dan Penolong Ketua Editor." />
+          )}
         </div>
       )}
 
