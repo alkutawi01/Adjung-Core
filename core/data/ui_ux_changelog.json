@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-11T07:09:35.211Z",
+    "summary": "Rapatkan jarak menegak 3 butang terapung (kembali ke atas, seterusnya, sebelum) di telefon sahaja; desktop tidak berubah",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-11T06:34:17.450Z",
     "summary": "Bingkai kad bento di desktop: tambah garis sempadan nipis (border-stone-200), buang bayang (shadow) -- telefon kekal asal (bayang, tiada border). Terpakai pada semua tier termasuk Bar",
     "files": [

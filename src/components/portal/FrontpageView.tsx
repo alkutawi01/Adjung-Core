@@ -6530,8 +6530,12 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
         <button
           type="button"
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          // Jarak dirapatkan di TELEFON sahaja (2026-09-11, Izzat: "rapatkan dalam 1-2pt setiap
+          // butang ni") — nilai md: kekal bottom-44/-24 asal (tak disentuh), base (tanpa md:)
+          // guna nilai piksel eksplisit sikit lebih rapat supaya tindanan tiga butang tak makan
+          // ruang skrin telefon berlebihan.
           className={`fixed right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group ${
-            modCarousel === 'klik' ? 'bottom-44' : 'bottom-6'
+            modCarousel === 'klik' ? 'bottom-[160px] md:bottom-44' : 'bottom-6'
           }`}
           aria-label="Kembali ke atas"
         >
@@ -6551,7 +6555,7 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
           <button
             type="button"
             onClick={majuSemuaKarusel}
-            className="fixed bottom-24 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
+            className="fixed bottom-[88px] md:bottom-24 right-6 z-40 p-3 bg-[#802334] text-white rounded-full shadow-xl hover:bg-[#601824] transition-all duration-300 flex items-center justify-center group"
             aria-label="Kandungan carousel seterusnya"
           >
             <ChevronRight className="w-5 h-5 group-active:translate-x-0.5 transition-transform" />
