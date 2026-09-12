@@ -4,7 +4,7 @@ import { requirePermission } from '../middleware/auth.js';
 import { hashPassword } from './authRoutes.js';
 import { logAudit } from '../audit/AuditLog.js';
 import { baseUrlEmel } from '../utils/baseUrl.js';
-import { notify, notifyMany } from '../notifications/Notify.js';
+import { notify, notifyMany, selesaikanMenungguKelulusan } from '../notifications/Notify.js';
 import { hantarEmel } from '../email/MailSender.js';
 import { janaTokenTamatTempoh, AWALAN_USERNAME_SEMENTARA } from '../auth/TokenLaluan.js';
 import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
@@ -620,8 +620,17 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         INNER JOIN editorial_attribute_values eav ON eav.objectId = eo.id AND eav.revisionId = er.id AND eav.attributeId = 'editorName'
         WHERE er.status = 'pending' AND LOWER(TRIM(eav.valueText)) = LOWER(TRIM(?))
       `, [penName]);
+      // Selesaikan notis "menunggu kelulusan" (2026-09-12, bug-hunt, sambungan corak sama
+      // DELETE tong-sampah kandungan tunggal di contentRoutes.js baris ~2345) — laluan ni
+      // memadam KEKAL objek 'pending' (bukan padam-lembut ke Tong Sampah), lalu objectId itu
+      // terus lesap DARI DB. Tanpa panggilan ni, notis "Kandungan menunggu kelulusan anda" yang
+      // dihantar bila kandungan ni jatuh ke 'pending' kekal belum-dibaca SELAMA-LAMANYA di Peti
+      // Makluman Ketua Editor/Penolong — malah lebih teruk drpd kes Tong Sampah (yang sekurang-
+      // kurangnya boleh dipulihkan): di sini objek dah tiada terus, notis jadi rujukan mati yang
+      // takkan pernah "diselesaikan" oleh mana-mana tindakan editorial akan datang.
       for (const r of rows || []) {
         await dbRun('DELETE FROM editorial_objects WHERE id = ?', [r.id]); // CASCADE ke revisions/attrs
+        await selesaikanMenungguKelulusan(dbRun, r.id);
       }
 
       await logAudit(dbRun, {
