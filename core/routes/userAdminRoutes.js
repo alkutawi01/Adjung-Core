@@ -8,7 +8,7 @@ import { notify, notifyMany, selesaikanMenungguKelulusan } from '../notification
 import { hantarEmel } from '../email/MailSender.js';
 import { janaTokenTamatTempoh, AWALAN_USERNAME_SEMENTARA } from '../auth/TokenLaluan.js';
 import { TIER_SLOTS } from '../editorial/GeometryConfig.js';
-import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks } from '../editorial/ManualBlockFormat.js';
+import { MANUAL_BLOCK_SPLIT_REGEX, parseManualSummaryBlocks, parseManualBlockFields } from '../editorial/ManualBlockFormat.js';
 import { padamSesiPengguna } from '../auth/SesiPengguna.js';
 import { denganKunciKandungan, denganKunciPeranananPengguna } from '../utils/kunciKandungan.js';
 import { getDasarAktifAmbangMs, loadDasarAktifSettings, PERANAN_TERPAKAI_DASAR_AKTIF } from './dasarAktifRoutes.js';
@@ -584,7 +584,24 @@ export function createUserAdminRoutes(dbAll, dbRun, dbGet) {
         const manualSummary = slot.manualSummary || '';
         const mentah = bahagikanBlokMentah(manualSummary);
         if (mentah.length === 0) continue;
-        const parsed = parseManualSummaryBlocks(manualSummary);
+        // Hurai SETIAP blok MENTAH terus (bukan panggil parseManualSummaryBlocks(manualSummary),
+        // yang DEDUP ikut UUID — lihat komen dedup di ManualBlockFormat.js ~baris 423, dibina
+        // 2026-09-04 khusus untuk kes double-submit yang tinggalkan blok DUPLIKAT literal sama
+        // dalam manualSummary). 2026-09-12, dapatan bug-hunt round #333: guna
+        // parseManualSummaryBlocks() DI SINI dahulu punya kesan sampingan tersembunyi — `mentah`
+        // (raw split, TIDAK dedup) dan `parsed` (hasil parseManualSummaryBlocks, DEDUP) boleh
+        // beza PANJANG bila slot ni ada draf duplikat, lalu gelung `mentah.forEach((raw, i) =>
+        // parsed[i])` di bawah zip INDEKS antara dua array beza panjang — selepas titik duplikat,
+        // setiap `meta` tersasar SATU kedudukan drpd `raw` sepadannya. Disahkan reproduce
+        // (scratch_test_dupe.mjs): akaun ditamatkan yang draf-nya kebetulan berduplikat (senario
+        // sebenar 2026-09-04) — laluan padam ni SILAP semak metadata blok LAIN drpd raw sepadan,
+        // satu salinan duplikat draf akaun yang patut dipadam tertinggal SENYAP dalam
+        // manualSummary walau Pentadbir sudah sahkan pemadaman (GET kandungan-belum-terbit pula
+        // guna parseManualSummaryBlocks() yang DEDUP, jadi ia hanya papar "1 draf" — Pentadbir tak
+        // pernah nampak petunjuk ada salinan kedua tertinggal). Parse SETIAP `raw` mentah secara
+        // BERASINGAN (bukan sekali untuk manualSummary penuh) supaya `parsed[i]` SENTIASA sepadan
+        // `mentah[i]`, tak kira ada duplikat atau tidak.
+        const parsed = mentah.map(parseManualBlockFields);
         const disimpan = [];
         let berubah = false;
         mentah.forEach((raw, i) => {
