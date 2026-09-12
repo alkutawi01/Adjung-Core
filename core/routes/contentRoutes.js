@@ -1587,6 +1587,32 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
             console.warn('Gagal naik taraf kandungan slot-berkosong:', e.message);
           });
         }
+
+        // beritahuPelulusKandungan (2026-09-12, bug-hunt, sambungan penemuan tik Jadual Terbit
+        // di atas fail ni) — laluan PATCH ni (Terbit/Siarkan Semula ditekan terus di Indeks,
+        // ContentReview.tsx/IndeksConsole.tsx handleUpdateStatus & handleReactivate) SAMA-SAMA
+        // boleh jatuhkan kandungan ke 'pending' (had slot penuh ATAU editor tiada kunci
+        // `publish`), tapi TAK PERNAH beritahu Ketua Editor/Penolong Ketua Editor yang kandungan
+        // ni kini menunggu tindakan mereka — cuma editor slot yang nampak toast "menunggu slot
+        // kosong" (notifyMany approved di atas TAK jalan sebab status BUKAN 'approved'). Laluan
+        // cipta baharu (syncManualObjectsForSlot, server.js) dan tik Jadual Terbit
+        // (runSchedulingTick di atas) kedua-duanya SUDAH beritahu pelulus untuk SETIAP kandungan
+        // yang mendarat 'pending' tak kira sebab — PATCH ni satu-satunya laluan utama yang
+        // tercicir, walhal ia laluan PALING KERAP dipakai editor (klik Terbit/Siarkan Semula
+        // dalam Indeks). Disemak `rev.status !== 'pending'` (bukan cuma effectiveStatus)
+        // supaya kandungan yang MEMANG dah 'pending' sebelum PATCH (cth edit teks semata-mata
+        // pada draf menunggu) tak hantar notis berulang setiap suntingan kecil.
+        if (effectiveStatus === 'pending' && rev.status !== 'pending') {
+          const slotUntukNotisPelulus = slotIndex !== undefined ? slotIndex : (objRow ? objRow.slotIndex : undefined);
+          await beritahuPelulusKandungan(dbAll, dbRun, {
+            type: 'kandungan_menunggu_kelulusan',
+            title: 'Kandungan menunggu kelulusan anda',
+            detail: `Slot ${(slotUntukNotisPelulus !== undefined ? slotUntukNotisPelulus : 0) + 1}: ${stripMarkdownEsm(title !== undefined ? title : rev.title || '')}`.slice(0, 150),
+            targetType: 'kandungan',
+            // objectId telanjang — sepadan WHERE targetId = ? di selesaikanMenungguKelulusan().
+            targetId: id,
+          }, req.session?.user?.id).catch((e) => console.error('Gagal beritahu pelulus (PATCH content):', e.message));
+        }
       }
 
       // Dua jenis Menunggu (2026-08-06) — catat/kemas kini sebab menunggu SETIAP kali status
