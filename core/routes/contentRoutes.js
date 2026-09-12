@@ -2285,6 +2285,17 @@ export function createContentRoutes(db, dbAll, dbGet, dbRun) {
           console.warn('Gagal naik taraf kandungan slot-berkosong (Padam):', e.message);
         });
       }
+      // Selesaikan notis "menunggu kelulusan" (2026-09-12, dapatan bug-hunt) — laluan ni satu-satunya
+      // cara kandungan 'pending' meninggalkan status tu yang TERLEPAS panggilan
+      // selesaikanMenungguKelulusan() (Terbit/Tolak/Pulihkan-status di atas semua panggilnya, lihat
+      // baris ~191/1495/2094). Ketua Editor/Penolong boleh terus Padam kandungan Menunggu (gerbang
+      // ni cuma manageEditorial, tiada sekatan status), hantar ia ke Tong Sampah tanpa pernah Terbit
+      // atau Tolak dahulu — notis "Kandungan menunggu kelulusan anda" pelulus kekal belum-dibaca
+      // SELAMA-LAMANYA walau kandungan tu dah tiada di Indeks langsung (sama gejala persis yang
+      // selesaikanMenungguKelulusan() dicipta untuk selesaikan, cuma laluan ni tercicir).
+      if (revSemasa.status === 'pending') {
+        await selesaikanMenungguKelulusan(dbRun, id);
+      }
       return res.json({ success: true, kekal: false });
     } catch (err) {
       console.error('Delete content item error:', err);
