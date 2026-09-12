@@ -5,7 +5,7 @@ import { getAmSettings } from './slotAmRoutes.js';
 import CategoryRegistry from '../category/CategoryRegistry.js';
 import { requireAuth, requirePermission, hasPermission } from '../middleware/auth.js';
 import { logAudit } from '../audit/AuditLog.js';
-import { notifyMany, selesaikanMenungguKelulusan } from '../notifications/Notify.js';
+import { notifyMany, selesaikanMenungguKelulusan, beritahuPelulusKandungan } from '../notifications/Notify.js';
 // stripMarkdownEsm (2026-09-09, sambungan vein bug-hunt markdown-leak) — Peti Makluman
 // (MaklumanDrawer.tsx) render n.tajuk/n.kandungan sebagai TEKS JSX literal (`{n.tajuk}`), BUKAN
 // melalui safeParseInline seperti kad frontpage/FocusView — konteks plain-text-SAHAJA yang sama
@@ -463,6 +463,29 @@ export async function runSchedulingTick(dbAll, dbGet, dbRun) {
             : 'Kandungan berjadual anda kini disiarkan',
           detail: stripMarkdownEsm(row.title || '').slice(0, 150), targetType: 'kandungan', targetId: `${objRow.slotIndex}:${row.objectId}`,
         });
+      }
+      // beritahuPelulusKandungan (2026-09-12, dapatan bug-hunt) — sebelum ni laluan ni
+      // (Jadual Terbit matang tapi slot penuh) HANYA beritahu editor slot ("menunggu slot
+      // kosong"), tak pernah beritahu Ketua Editor/Penolong Ketua Editor yang kandungan ni
+      // kini duduk dalam status 'pending' menunggu tindakan. Laluan MANUAL yang setara
+      // (syncManualObjectsForSlot, server.js) beritahu pelulus untuk SETIAP kandungan yang
+      // finalStatus jadi 'pending' — termasuk sebab 'slot_penuh', bukan hanya 'semakan' (lihat
+      // komen di sana: bolehTerbitTerus dah benar, tapi pelulus tetap perlu tahu ia duduk
+      // menunggu, sebab dialah yang boleh terbitkan terus secara manual kalau nak pintas
+      // giliran putaran 24 jam). Tik berjadual ni terlepas panggilan yang sama — kandungan
+      // berjadual yang jatuh ke 'pending'/slot_penuh senyap dari Peti Makluman pelulus,
+      // walau ia laluan KEDUA yang boleh hasilkan keadaan status='pending' yang SAMA persis.
+      if (statusJadual === 'pending') {
+        await beritahuPelulusKandungan(dbAll, dbRun, {
+          type: 'kandungan_menunggu_kelulusan',
+          title: 'Kandungan menunggu kelulusan anda',
+          detail: `Slot ${(objRow ? objRow.slotIndex : 0) + 1}: ${stripMarkdownEsm(row.title || '')}`.slice(0, 150),
+          targetType: 'kandungan',
+          // objectId telanjang — lihat nota sama di server.js/beritahuPelulusKandungan()
+          // pemanggil lain: selesaikanMenungguKelulusan() padan WHERE targetId = ? terus
+          // dengan objectId sahaja, bukan komposit "slotIndex:objectId".
+          targetId: row.objectId,
+        }).catch((e) => console.error('Gagal beritahu pelulus (tik jadual terbit):', e.message));
       }
     }
   } catch (err) {
