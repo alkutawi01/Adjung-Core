@@ -205,10 +205,21 @@ export function createEditorNotesRoutes(dbAll, dbRun, dbGet) {
       // baharu serentak (hidupkan semula nota arkib dengan teks disunting dalam SATU UPDATE).
       // Ini memintas terus peraturan "nota aktif beku" di atas — nota yang "dihidupkan semula"
       // ni pun tersiar semula dalam Peti Makluman dengan kandungan berbeza, tiada jejak sunting.
-      // Semak status AKAN JADI (selepas permintaan ini), bukan status sebelum ini.
+      // Semak status AKAN JADI (selepas permintaan ini) DAN status SEMASA (sebelum permintaan
+      // ini) — bukan salah satu sahaja. PEMBETULAN (2026-09-12, dapatan bug-hunt): gerbang
+      // 2026-09-02 di atas cuma menyekat kombinasi SATU PANGGILAN (kandungan + status='aktif'
+      // serentak), tapi terlepas laluan DUA PANGGILAN yang sama-sama memintas niat "nota aktif
+      // tak boleh disunting": (1) PATCH {status:'arkib', kandungan:'...baharu'} — lulus gerbang
+      // asal sebab SASARAN 'arkib' (bukan 'aktif'), walhal nota tu SEDANG 'aktif' semasa
+      // permintaan dibuat; (2) PATCH susulan {status:'aktif'} (tiada medan kandungan) — lulus
+      // gerbang asal sebab tiada percubaan ubah kandungan pada panggilan KEDUA ni. Disahkan
+      // reproduce (.simulasi/sim326-editornotes-bypass.mjs): nota aktif, kandungan asal, tukar
+      // jadi kandungan lain via 2 panggilan PATCH, nota kembali 'aktif' dengan kandungan baharu
+      // — persis senario yang gerbang asal cuba halang ("sunting senyap nota yg dah tersiar").
+      // Semak KEDUA status (semasa ATAU akan jadi) menutup kedua-dua arah laluan ni.
       const cubaUbahKandungan = [tajuk, kandungan, kategori, skop].some((v) => v !== undefined);
       const statusAkanJadiAktif = status !== undefined ? status === 'aktif' : sedia.status === 'aktif';
-      if (cubaUbahKandungan && statusAkanJadiAktif) {
+      if (cubaUbahKandungan && (statusAkanJadiAktif || sedia.status === 'aktif')) {
         return res.status(400).json({
           error: 'Nota yang sudah aktif tidak boleh disunting — ia sudah tersiar dalam Peti Makluman editor. Arkibkan nota ini dan terbitkan nota baharu sebaliknya.',
         });
