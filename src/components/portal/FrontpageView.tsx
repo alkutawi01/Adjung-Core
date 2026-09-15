@@ -6097,11 +6097,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               dipaut lagi di sini — "Mengenai Adjung" (modal) sekarang satu-satunya pautan
               pengenalan, laluan /tentang sendiri kekal wujud (tak dipadam), cuma tak diiklankan
               di footer. */}
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-8 mb-8 px-4">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 mb-8 px-4">
             {/* Logo / Kiri — merentasi KEDUA-DUA kolum di telefon/tablet (2026-08-05, permintaan
                 Izzat: "utk tablet dan telefon, jadikan dua kolum") supaya Institusi & Maklumat
                 duduk BERSEBELAHAN sebagai dua kolum tu, bukan logo tersorong sekali jadi kolum
-                pertama drpd tiga. Desktop (md:) kembali 1 drpd 3 kolum macam asal. */}
+                pertama drpd tiga/empat. Desktop (md:) kembali 1 drpd 4 kolum (Logo, Institusi,
+                Maklumat, Produk Adjung — dinaikkan drpd 3 kolum 2026-09-13 bila kolum Produk
+                Adjung ditambah, lihat komen berhampiran kolum tu di bawah). */}
             <div className="col-span-2 md:col-span-1 flex flex-col justify-start gap-3">
               {/* Simbol Adjung rasmi (segi empat tegak, nisbah 1:2, Sistem Identiti Visual Adjung
                   v1.0) di sebelah wordmark (2026-08-07, permintaan Izzat) — public/adjung-symbol.svg,
@@ -6168,6 +6170,25 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 {halamanAktif('polisi-privasi') && <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Polisi Privasi</Link></li>}
                 {halamanAktif('terma-penggunaan') && <li className="flex"><Link to="/terma-penggunaan" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Terma Penggunaan</Link></li>}
                 {halamanAktif('penafian') && <li className="flex"><Link to="/penafian" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Penafian</Link></li>}
+              </ul>
+            </div>
+
+            {/* Kolum PRODUK ADJUNG (2026-09-13, permintaan Izzat) — promosi silang produk LAIN
+                dalam keluarga Adjung Press, mula dengan Adjung Quick. Sengaja kolum BERASINGAN
+                daripada Institusi/Maklumat di atas (bukan satu lagi <li> disisipkan dalam
+                Maklumat, seperti percubaan pertama) — Maklumat khusus untuk halaman polisi/
+                hubungi PASAL Adjung Brief sendiri, manakala ni produk lain sepenuhnya, kategori
+                konsep berbeza yang layak label sendiri, bukan bercampur senyap dalam senarai
+                yang salah maksud. `col-span-2` di mobile (grid 2 lajur asal, logo pun col-span-2)
+                supaya kolum baharu ni ambil SATU baris penuh sendiri (elak jurang kosong sebelah
+                kanan kalau cuma ambil separuh lajur), `md:col-span-1` di desktop menyertai grid
+                4 lajur baharu (asalnya 3: Logo/Institusi/Maklumat). Pautan LUAR domain (Vercel
+                berasingan, bukan laluan React Router dalaman) — guna <a target="_blank"> sama
+                corak dengan pautan sumber kad sedia ada di fail ni, bukan <Link to>. */}
+            <div className="col-span-2 md:col-span-1 flex flex-col gap-2.5">
+              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Produk Adjung</h3>
+              <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
+                <li className="flex"><a href="https://adjung-quick.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Adjung Quick</a></li>
               </ul>
             </div>
           </div>
