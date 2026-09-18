@@ -85,14 +85,25 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
 
   return (
     <div ref={navRef} onKeyDown={onKeyDownNav} className="brief-navigator">
-      {/* Tab pencetus — SENTIASA kelihatan BILA TERTUTUP sahaja (bukan bergantung hover,
-          pengajaran daripada versi rail nipis yang terlalu halus untuk disedari). Disorok
-          semasa sidebar TERBUKA — Izzat tangkap dua kawalan tutup bertindih (tab "<" dan ×
-          header serentak kelihatan, mengelirukan); × header dah cukup untuk tutup. */}
+      {/* Tab pencetus — SENTIASA kelihatan BILA TERTUTUP sahaja (bukan bergantung hover semata,
+          pengajaran daripada versi rail nipis yang terlalu halus untuk disedari — tab ni jelas
+          kelihatan/berbayang, jadi soalan "hover buka" di sini bermaksud SATU LAGI cara buka,
+          bukan satu-satunya cara). Disorok semasa sidebar TERBUKA — Izzat tangkap dua kawalan
+          tutup bertindih (tab "<" dan × header serentak kelihatan, mengelirukan); × header dah
+          cukup untuk tutup.
+          Hover-buka DESKTOP SAHAJA (2026-09-18, permintaan Izzat) — `(hover: hover)` semak
+          peranti sebenar sokong hover (tetikus), bukan lebar skrin (`md:`) — treki disambung
+          papar cecair kalau telefon disambung tetikus/stylus turut dapat hover, betul-betul
+          padanan niat "desktop je" (peranti sentuh murni tak pernah cetus `onMouseEnter`
+          langsung, jadi klik/tap KEKAL satu-satunya cara di situ tanpa sebarang gerbang
+          tambahan). Klik masih berfungsi di kedua-dua platform (tak dibuang). */}
       {!terbuka && (
         <button
           type="button"
           onClick={() => setTerbuka(true)}
+          onMouseEnter={() => {
+            if (window.matchMedia('(hover: hover)').matches) setTerbuka(true);
+          }}
           aria-label="Buka navigasi Bidang"
           aria-expanded={false}
           className="fixed left-0 top-[450px] md:top-1/2 md:-translate-y-1/2 z-[300] bg-[var(--surface-page)] border border-l-0 border-[var(--border-default)] rounded-r-md shadow-md w-7 h-14 flex items-center justify-center text-stone-500 hover:text-Adjung-maroon transition-colors"

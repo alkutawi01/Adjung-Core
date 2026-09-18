@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-18T05:08:39.979Z",
+    "summary": "Tab navigasi Bidang (BriefNavigator) kini boleh dibuka dengan hover di desktop (peranti bertetikus sahaja, semak (hover:hover)), tambahan kepada klik sedia ada",
+    "files": [
+      "src/components/portal/BriefNavigator.tsx"
+    ]
+  },
+  {
     "time": "2026-09-11T07:31:35.159Z",
     "summary": "Migrasi sekali sahaja: tukar Susunan Carousel ke 'Terbaharu dahulu' dan matikan 'Mula ikut masa akses' -- kandungan pertama setiap kad carousel kini sentiasa yang terbaru, tekan > menuju kandungan lebih lama",
     "files": [
