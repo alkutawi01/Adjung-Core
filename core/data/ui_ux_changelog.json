@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-18T09:49:10.484Z",
+    "summary": "Footer: tukar label kolum 'Produk Adjung' -> 'Produk' (Adjung dah ada di logo sebelah), tambah pautan Adjung Foolscap (https://foolscap.adjung.com/)",
+    "files": [
+      "src/components/portal/FrontpageView.tsx"
+    ]
+  },
+  {
     "time": "2026-09-18T09:46:06.656Z",
     "summary": "Sidebar navigasi Bidang tutup sendiri bila cursor beralih keluar (desktop bertetikus sahaja) -- susulan hover-buka sebelum ni",
     "files": [

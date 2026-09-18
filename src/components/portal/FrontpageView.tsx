@@ -6186,9 +6186,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 berasingan, bukan laluan React Router dalaman) — guna <a target="_blank"> sama
                 corak dengan pautan sumber kad sedia ada di fail ni, bukan <Link to>. */}
             <div className="col-span-2 md:col-span-1 flex flex-col gap-2.5">
-              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Produk Adjung</h3>
+              {/* "Produk Adjung" -> "Produk" (2026-09-18, permintaan Izzat) — label sendiri dah
+                  duduk bawah wordmark "Adjung" (logo kolum pertama, di atas), jadi "Adjung"
+                  dalam tajuk kolum ni berlebihan/berulang, bukan maklumat baharu. */}
+              <h3 className="font-mono text-[9px] uppercase tracking-widest text-stone-400 font-bold">Produk</h3>
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
                 <li className="flex"><a href="https://adjung-quick.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Adjung Quick</a></li>
+                <li className="flex"><a href="https://foolscap.adjung.com/" target="_blank" rel="noopener noreferrer" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Adjung Foolscap</a></li>
               </ul>
             </div>
           </div>
