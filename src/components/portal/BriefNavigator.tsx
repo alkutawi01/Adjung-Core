@@ -121,8 +121,18 @@ export default function BriefNavigator({ fields }: BriefNavigatorProps) {
         />
       )}
 
-      {/* Sidebar itu sendiri — slide dari kiri, tinggi PENUH skrin, SATU scroll sahaja. */}
+      {/* Sidebar itu sendiri — slide dari kiri, tinggi PENUH skrin, SATU scroll sahaja.
+          Tutup-hover (2026-09-18, susulan Izzat: "kenapa tak tertutup sendiri bila saya
+          alihkan cursor ke lain?") — `onMouseLeave` PANEL SAHAJA (bukan overlay latar
+          `inset-0` di atas, yang meliputi SELURUH viewport — meletak pendengar di situ
+          bermakna tetikus "keluar" hanya bila keluar tepi skrin terus, tak pernah tercetus
+          secara praktikal). Gerbang `(hover: hover)` sama seperti buka — peranti sentuh
+          murni tak sekali-kali cetus mouseleave, jadi tab dibuka via TAP di situ kekal
+          terbuka sehingga klik luar/×/Esc seperti sedia ada, tak terjejas langsung. */}
       <div
+        onMouseLeave={() => {
+          if (window.matchMedia('(hover: hover)').matches) tutupSidebar();
+        }}
         className={`fixed left-0 top-0 bottom-0 z-[299] w-[260px] max-w-[80vw] bg-[var(--surface-page)] border-r border-[var(--border-default)] shadow-xl flex flex-col transition-transform ${
           terbuka ? 'translate-x-0' : '-translate-x-full'
         }`}

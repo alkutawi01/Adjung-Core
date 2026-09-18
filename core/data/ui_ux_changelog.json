@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-09-18T09:46:06.656Z",
+    "summary": "Sidebar navigasi Bidang tutup sendiri bila cursor beralih keluar (desktop bertetikus sahaja) -- susulan hover-buka sebelum ni",
+    "files": [
+      "src/components/portal/BriefNavigator.tsx"
+    ]
+  },
+  {
     "time": "2026-09-18T05:08:39.979Z",
     "summary": "Tab navigasi Bidang (BriefNavigator) kini boleh dibuka dengan hover di desktop (peranti bertetikus sahaja, semak (hover:hover)), tambahan kepada klik sedia ada",
     "files": [
