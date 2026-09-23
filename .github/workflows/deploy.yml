@@ -5,9 +5,12 @@ name: Deploy ke pengeluaran
 # classifier keselamatan platform sendiri, bukan isu kunci/kebenaran). Rujuk DEPLOY.md untuk
 # langkah manual (kekal sebagai fallback/rujukan sejarah, bukan lagi laluan utama rutin).
 on:
-  push:
-    branches: [main]
   workflow_dispatch: {}
+
+# Production deploys are intentionally manual. During active development,
+# dozens of closely spaced commits can otherwise rebuild/restart production
+# one-by-one and consume GitHub-hosted Actions minutes unnecessarily.
+# Run this workflow once after a coherent batch of changes is ready.
 
 jobs:
   deploy:
