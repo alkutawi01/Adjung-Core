@@ -1,0 +1,17 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "gray-on-color",
+        "value": "text-stone-700 on bg-amber-50",
+        "files": [
+          "src/components/editorium/IndeksConsole.tsx"
+        ],
+        "createdAt": "2026-09-03T16:53:04.674Z",
+        "reason": "pre-existing code unrelated to this edit; stone-700 on amber-50 is high contrast (dark gray on light amber), not washed out — false positive"
+      }
+    ]
+  }
+}
