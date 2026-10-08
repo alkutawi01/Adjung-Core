@@ -22,6 +22,7 @@ import EditorialPipeline from './core/editorial/EditorialPipeline.js';
 import PresentationComposer from './core/presentation/PresentationComposer.js';
 import CategoryRegistry from './core/category/CategoryRegistry.js';
 import { validateContentBudget, validateBidangTopik, validateMedanTambahan, validateHuraianPanjangWajib, validateSourceUrl, validateSumberNama, validateTarikhSumber, validateGlossLength } from './core/editorial/ContentBudget.js';
+import { panjangHuraianDikira } from './core/editorial/HuraianPanjangFormat.js';
 import { ceilingForSlot as getGeometryCeilingForSlot, TIER_SLOTS, MAX_PENERANGAN_CHARS, effectiveMinBriefLong } from './core/editorial/GeometryConfig.js';
 import { safeJsonParse } from './core/utils/jsonUtils.js';
 import { detectSourceType } from './core/editorial/SourceDetector.js';
@@ -3874,8 +3875,8 @@ const validateAndPrepareManualItems = async (slotIndex, manualSummary, slotConfi
         throw err;
       }
     }
-    if (effectiveMaxBriefLong && item.briefLong && item.briefLong.length > effectiveMaxBriefLong) {
-      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${item.briefLong.length}). Kandungan tidak disiarkan. Pendekkan huraian dahulu.`);
+    if (effectiveMaxBriefLong && item.briefLong && panjangHuraianDikira(item.briefLong) > effectiveMaxBriefLong) {
+      const err = new Error(`Huraian panjang bagi "${item.title.slice(0, 40)}..." melebihi had ${effectiveMaxBriefLong} aksara (semasa: ${panjangHuraianDikira(item.briefLong)}, tidak termasuk subtajuk). Kandungan tidak disiarkan. Pendekkan huraian dahulu.`);
       err.isValidationError = true;
       err.bolehSalinAI = true;
       throw err;

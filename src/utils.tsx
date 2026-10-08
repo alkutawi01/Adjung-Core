@@ -65,9 +65,16 @@ export function tanganiKekunciItalic(
   if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== 'i') return;
   e.preventDefault();
   const el = e.currentTarget;
-  const start = el.selectionStart ?? 0;
-  const end = el.selectionEnd ?? 0;
+  let start = el.selectionStart ?? 0;
+  let end = el.selectionEnd ?? 0;
   if (start === end) return; // tiada sorotan — tiada apa boleh ditogol
+  // Abaikan ruang kosong di hujung sorotan (2026-10-05, Izzat: "kalau terlebih select ruang
+  // kosong, sepatutnya sistem abaikan dan hanya italickan teks"). `*teks *` (asterisk penutup
+  // selepas ruang) TIDAK dikenali sebagai condong oleh parser, jadi ruang MESTI kekal di LUAR
+  // asterisk. Sorotan yang hanya ruang kosong = tiada apa ditogol.
+  while (start < end && /\s/.test(value[start])) start++;
+  while (end > start && /\s/.test(value[end - 1])) end--;
+  if (start === end) return;
   const selected = value.slice(start, end);
 
   let baharu: string, mulaBaharu: number, akhirBaharu: number;

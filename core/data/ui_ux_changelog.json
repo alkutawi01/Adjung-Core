@@ -1,5 +1,15 @@
 [
   {
+    "time": "2026-10-08T01:37:28.548Z",
+    "summary": "Subtajuk dalam huraian panjang (baris bermula ## dipaparkan sebagai subtajuk di Focus View, dikecualikan daripada had aksara, maksimum 5); Ctrl+I abaikan ruang kosong di hujung sorotan; paparan besar Ticker tanpa pemenggalan suku kata",
+    "files": [
+      "src/components/portal/FocusView.tsx",
+      "src/components/portal/SlotManagerModal.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "src/utils.tsx"
+    ]
+  },
+  {
     "time": "2026-09-18T09:49:10.484Z",
     "summary": "Footer: tukar label kolum 'Produk Adjung' -> 'Produk' (Adjung dah ada di logo sebelah), tambah pautan Adjung Foolscap (https://foolscap.adjung.com/)",
     "files": [

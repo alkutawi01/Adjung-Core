@@ -4,6 +4,7 @@ import {
 } from '../editorial/UrlSlug.js';
 import { janaOgImagePng } from '../editorial/OgImageRenderer.js';
 import { stripMarkdownEsm } from '../editorial/stripMarkdown.js';
+import { pecahHuraianPanjang, buangSubtajuk } from '../editorial/HuraianPanjangFormat.js';
 
 // Skema URL per-kandungan (2026-08-05, Fasa 9 — SEO & penemuan, keputusan Izzat):
 //   brief.adjung.com/<bidang-slug>/kandungan/<kod-pendek>
@@ -149,7 +150,17 @@ export function binaHtmlBot({ kandungan, url, objectId }) {
   // escapeHtml() (sedia ada) buat kerja BERBEZA — ia keluarkan aksara HTML tak selamat (&, <, >),
   // BUKAN sintaks markdown; medan boleh HTML-selamat dan MASIH papar asterisk literal serentak.
   const tajukBersih = stripMarkdownEsm(kandungan.title);
-  const ringkasanBersih = stripMarkdownEsm(kandungan.summary);
+  // Subtajuk huraian panjang (2026-10-06) — `kandungan.summary` di sini ialah huraian panjang
+  // (jatuh balik ke huraian ringkas). Baris "## ..." DIBUANG daripada huraian carian/kongsi
+  // (bukan ayat huraian), tetapi DIKEKALKAN sebagai <h2> sebenar dalam badan artikel di bawah
+  // supaya crawler nampak struktur yang sama dengan pembaca.
+  const ringkasanBersih = stripMarkdownEsm(buangSubtajuk(kandungan.summary)).replace(/\s*\n+\s*/g, ' ').trim();
+  const badanHtml = pecahHuraianPanjang(kandungan.summary)
+    .map((b) => {
+      const teks = escapeHtml(stripMarkdownEsm(b.teks));
+      return b.jenis === 'subtajuk' ? `<h2>${teks}</h2>` : `<p>${teks}</p>`;
+    })
+    .join('\n');
   const tajuk = escapeHtml(tajukBersih);
   const huraian = escapeHtml(potongIkutPerkataan(ringkasanBersih, 155));
   // Fallback ke kad OG DINAMIK per-artikel (2026-08-27, OgImageRenderer.js) bila kandungan sendiri
@@ -206,7 +217,7 @@ ${gambar ? `<meta property="og:image" content="${gambar}" />` : ''}
 <body>
 <article>
 <h1>${tajuk}</h1>
-<p>${escapeHtml(ringkasanBersih)}</p>
+${badanHtml}
 ${kandungan.source ? `<p>Sumber: ${escapeHtml(kandungan.source)}</p>` : ''}
 </article>
 </body>

@@ -13,6 +13,7 @@ import {
   MAX_EYEBROW_CHARS_BY_TIER, eyebrowLabel, eyebrowCeilingForSlot, topikCeilingForSlot,
   FOCUS_VIEW_EYEBROW_MAX_CHARS,
 } from './GeometryConfig.js';
+import { panjangHuraianDikira, validateSubtajuk } from './HuraianPanjangFormat.js';
 
 // Had minimum bajet KESELURUHAN (tajuk + huraian bersama) — nisbah minimum jumlah ruang kad yang
 // MESTI diguna (2026-08-08, keputusan Izzat, gantikan pendekatan huraian-sahaja 50% sebelum ni).
@@ -188,10 +189,13 @@ const validateHuraianPanjangWajib = (summaryLong, min) => {
       reason: `Huraian panjang wajib diisi (minimum ${min} aksara ditetapkan di Tetapan Am Slot).`,
     };
   }
-  if (trimmed.length < min) {
+  // Subtajuk ("## ...") dikecualikan daripada kiraan (2026-10-06, keputusan Izzat) — lihat
+  // HuraianPanjangFormat.js. Teks tanpa subtajuk dikira TEPAT sama seperti sebelum ini.
+  const dikira = panjangHuraianDikira(trimmed);
+  if (dikira < min) {
     return {
       isValid: false, bolehSalinAI: true,
-      reason: `Huraian panjang (${trimmed.length} aksara) terlalu pendek. Minimum ${min} aksara.`,
+      reason: `Huraian panjang (${dikira} aksara, tidak termasuk subtajuk) terlalu pendek. Minimum ${min} aksara.`,
     };
   }
   return { isValid: true };
@@ -210,18 +214,26 @@ const validateMedanTambahan = ({ summaryLong, source, topik, note } = {}) => {
   ];
   for (const [nama, nilai, had, min] of semakan) {
     if (typeof nilai !== 'string') continue;
-    if (had && nilai.length > had) {
+    // Huraian panjang: subtajuk dikecualikan daripada kiraan, dan susunannya disemak di sini
+    // (2026-10-06) supaya SETIAP laluan simpan yang sudah memanggil fungsi ini turut mewarisinya.
+    const ialahHuraianPanjang = nama === 'Huraian panjang';
+    const panjang = ialahHuraianPanjang ? panjangHuraianDikira(nilai) : nilai.length;
+    if (ialahHuraianPanjang) {
+      const semakSubtajuk = validateSubtajuk(nilai);
+      if (!semakSubtajuk.isValid) return semakSubtajuk;
+    }
+    if (had && panjang > had) {
       return {
         isValid: false, bolehSalinAI: true,
-        reason: `${nama} (${nilai.length} aksara) melebihi had ${had} aksara yang ditetapkan di Tetapan Am Slot. Kandungan tidak disiarkan.`,
+        reason: `${nama} (${panjang} aksara) melebihi had ${had} aksara yang ditetapkan di Tetapan Am Slot. Kandungan tidak disiarkan.`,
       };
     }
     // Had minimum HANYA terpakai bila editor BENAR-BENAR isi sesuatu — medan ni semua opsyenal,
     // ramai kandungan tiada langsung dan itu sah. Kosong terus tak pernah ditolak sebab minimum.
-    if (min && nilai.trim() && nilai.length < min) {
+    if (min && nilai.trim() && panjang < min) {
       return {
         isValid: false, bolehSalinAI: true,
-        reason: `${nama} (${nilai.length} aksara) terlalu pendek. Minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ini). Kandungan tidak disiarkan.`,
+        reason: `${nama} (${panjang} aksara) terlalu pendek. Minimum ${min} aksara yang ditetapkan di Tetapan Am Slot (atau kosongkan terus medan ini). Kandungan tidak disiarkan.`,
       };
     }
   }

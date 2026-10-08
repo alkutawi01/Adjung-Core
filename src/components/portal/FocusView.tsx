@@ -4,6 +4,17 @@ import { usePhoneViewport } from '../../hooks/usePhoneViewport';
 import { safeParseInline, stripMarkdown } from '../../utils';
 import { eyebrowLabel } from '../../../core/editorial/GeometryConfig.js';
 import { terapFocusSeo, buangSemulaFocusSeo } from '../../utils/seoMeta';
+import { pecahHuraianPanjang, buangSubtajuk } from '../../../core/editorial/HuraianPanjangFormat.js';
+
+// Gaya subtajuk dalam huraian panjang (2026-10-06, Izzat: "macam subtajuk artikel berita") —
+// SATU gaya dikongsi susun atur telefon DAN desktop (saiz dalam em, ikut saiz badan masing-masing)
+// supaya kedua-duanya tidak hanyut berasingan. Serif tebal, sedikit lebih besar daripada badan,
+// ruang lebih di ATAS berbanding di bawah supaya subtajuk "melekat" pada perenggan di bawahnya.
+const gayaSubtajukHuraian: React.CSSProperties = {
+  margin: '1.7em 0 0', fontFamily: 'var(--font-serif)', fontSize: '1.14em',
+  fontWeight: 'var(--weight-bold)' as any, lineHeight: 1.3, letterSpacing: 'var(--tracking-tight)',
+  color: 'var(--text-heading)', textWrap: 'balance' as any,
+};
 import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
 import { Tooltip } from '../common/Tooltip';
 import { EditPensil } from './FrontpageView';
@@ -658,10 +669,22 @@ export const FocusView: React.FC<FocusViewProps> = ({
   // newline berturutan) tak pernah padan — teks kekal SATU perenggan, \n tunggal collapse jadi
   // ruang oleh CSS (elemen <p> ni tiada white-space:pre-wrap). \n+ (SATU atau lebih newline)
   // jadikan SETIAP baris editor taip perenggannya sendiri, sepadan jangkaan biasa.
-  const paragraphs = React.useMemo(
-    () => text.split(/\n+/).filter(Boolean),
-    [text]
-  );
+  //
+  // Subtajuk (2026-10-06, keputusan Izzat) — baris bermula "## " dipaparkan sebagai subtajuk,
+  // baris lain kekal perenggan. Pembahagian dibuat oleh pecahHuraianPanjang() (modul kongsi
+  // HuraianPanjangFormat.js, guna pembahagi baris yang SAMA) supaya pengesahan simpan dan paparan
+  // sentiasa sependapat tentang baris mana subtajuk. `paragraphs` kekal senarai teks (selari
+  // indeks dengan `blokHuraian`).
+  const blokHuraian = React.useMemo(() => pecahHuraianPanjang(text), [text]);
+  const paragraphs = React.useMemo(() => blokHuraian.map((b) => b.teks), [blokHuraian]);
+  // Subtajuk SENGAJA tidak ditanda glosari (label pendek, garis bawah istilah mengganggu rupa
+  // subtajuk) dan tidak "menghabiskan" kemunculan pertama istilah — perenggan di bawahnya yang
+  // ditanda. Format condong (*teks*) tetap disokong melalui safeParseInline.
+  const renderBlokHuraian = (sudahDitanda: Set<string>) => blokHuraian.map((b) => (
+    b.jenis === 'subtajuk'
+      ? safeParseInline(b.teks)
+      : renderDenganGlosari(b.teks, petaGlosari, sudahDitanda, desk, safeParseInline)
+  ));
 
   // Susun atur mudah alih DAN desktop WUJUD SERENTAK dalam DOM (disorok/ditunjuk ikut CSS
   // responsif, bukan syarat JS, disahkan ketiadaan `isPhone ?` bersyarat langsung dalam fail ni)
@@ -692,16 +715,16 @@ export const FocusView: React.FC<FocusViewProps> = ({
     const sudahDitanda = new Set<string>();
     return {
       tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk, safeParseInline),
-      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, desk, safeParseInline)),
+      perenggan: renderBlokHuraian(sudahDitanda),
     };
-  }, [title, paragraphs, petaGlosari, desk]);
+  }, [title, blokHuraian, petaGlosari, desk]);
   const glosariDesktop = React.useMemo(() => {
     const sudahDitanda = new Set<string>();
     return {
       tajuk: renderDenganGlosari(title, petaGlosari, sudahDitanda, desk, safeParseInline),
-      perenggan: paragraphs.map((p) => renderDenganGlosari(p, petaGlosari, sudahDitanda, desk, safeParseInline)),
+      perenggan: renderBlokHuraian(sudahDitanda),
     };
-  }, [title, paragraphs, petaGlosari, desk]);
+  }, [title, blokHuraian, petaGlosari, desk]);
 
   const [bodyRef, bodyFade] = useOverflowFade();
 
@@ -765,7 +788,9 @@ export const FocusView: React.FC<FocusViewProps> = ({
     // `title` mentah. Kesan SAMA seperti bug huraian panjang: asterisk literal bocor ke
     // <title>/og:title/twitter:title/JSON-LD apabila tajuk artikel ada bahagian condong.
     const tajukBersih = stripMarkdown(String(title || '')) || '';
-    const descripsiBersih = stripMarkdown(text) || undefined;
+    // buangSubtajuk() dahulu (2026-10-06) — baris subtajuk "## ..." bukan sebahagian huraian
+    // carian/kongsi; tanpa ini tanda "##" bocor ke meta description sama seperti asterisk dahulu.
+    const descripsiBersih = stripMarkdown(buangSubtajuk(text)) || undefined;
     terapFocusSeo({
       title: tajukBersih,
       description: descripsiBersih || tajukBersih,
@@ -1116,8 +1141,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
                 lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty',
                 padding: '0 10px',
               }}>
-                {paragraphs.map((para, j) => (
-                  <p key={j} style={{ margin: j === 0 ? 0 : '0.9em 0 0' }}>{glosariMudahAlih.perenggan[j]}</p>
+                {blokHuraian.map((b, j) => (
+                  b.jenis === 'subtajuk'
+                    ? <h2 key={j} style={gayaSubtajukHuraian}>{glosariMudahAlih.perenggan[j]}</h2>
+                    : <p key={j} style={{ margin: j === 0 ? 0 : (blokHuraian[j - 1].jenis === 'subtajuk' ? '0.45em 0 0' : '0.9em 0 0') }}>{glosariMudahAlih.perenggan[j]}</p>
                 ))}
               </div>
             </div>
@@ -1461,8 +1488,10 @@ export const FocusView: React.FC<FocusViewProps> = ({
               <div ref={bodyRef} style={{ minHeight: 0, width: '100%', overflowY: 'auto', overflowX: 'hidden', overscrollBehavior: 'contain', scrollbarWidth: 'none', paddingRight: 'clamp(8px, 1vw, 16px)', paddingBottom: 'clamp(16px, 2.6vh, 26px)', ...bodyFade }}>
                 {paragraphs.length > 0 && (
                   <div key={`huraian-${identitiArtikel}`} className="fv-huraian-masuk" style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
-                    {paragraphs.map((para, j) => (
-                      <p key={j} style={{ margin: j === 0 ? 0 : '1em 0 0' }}>{glosariDesktop.perenggan[j]}</p>
+                    {blokHuraian.map((b, j) => (
+                      b.jenis === 'subtajuk'
+                        ? <h2 key={j} style={gayaSubtajukHuraian}>{glosariDesktop.perenggan[j]}</h2>
+                        : <p key={j} style={{ margin: j === 0 ? 0 : (blokHuraian[j - 1].jenis === 'subtajuk' ? '0.45em 0 0' : '1em 0 0') }}>{glosariDesktop.perenggan[j]}</p>
                     ))}
                   </div>
                 )}

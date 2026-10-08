@@ -693,6 +693,29 @@ mesti dipegang bila ubah/tambah apa-apa pada `MaklumanDrawer.tsx` atau laluan no
   write TOCTOU-prone di bawah beban serentak — guna kunci per-kekunci (`denganKunciNotifikasi`)
   atau corak setara, jangan andaikan panggilan berurutan sahaja akan pernah berlaku.
 
+### Subtajuk dalam Huraian panjang (2026-10-06, keputusan Izzat)
+Izzat: "artikel semata-mata tanpa subtajuk, bosan, pembaca langkau je." Baris yang bermula `## `
+dalam Huraian panjang ialah subtajuk; baris lain kekal perenggan. Tiada medan atau skema baharu.
+
+- **Satu modul kongsi**: `core/editorial/HuraianPanjangFormat.js` (`pecahHuraianPanjang`,
+  `buangSubtajuk`, `panjangHuraianDikira`, `validateSubtajuk`). Diimport pelayan DAN klien.
+  JANGAN salin regex atau peraturan ke tempat lain.
+- **Keputusan Izzat**: maksimum 5 subtajuk; subtajuk DIKECUALIKAN daripada had aksara huraian
+  panjang (minimum dan maksimum); Arahan AI WAJIBKAN subtajuk (dahulu melarang).
+- **Peraturan susunan** (`validateSubtajuk`, dipanggil dari dalam `validateMedanTambahan` supaya
+  setiap laluan simpan mewarisinya): tidak boleh di baris pertama, di hujung, atau berturut-turut;
+  subtajuk kosong ditolak; satu subtajuk maksimum 80 aksara (tanpa had ini, perenggan penuh boleh
+  diseludup keluar daripada kiraan aksara).
+- **Kiraan aksara mesti sama di tiga tempat**: `ContentBudget.js`, `server.js` (had maksimum
+  per-slot) dan pembilang `Field` di `SlotManagerModal.tsx` (prop `kiraPanjang`). Kandungan tanpa
+  subtajuk dikira TEPAT seperti dahulu (`buangSubtajuk` pulangkan rentetan asal tanpa disentuh).
+- **Paparan**: `FocusView.tsx`, SATU gaya `gayaSubtajukHuraian` dikongsi susun atur telefon dan
+  desktop. Subtajuk sengaja tidak ditanda glosari. Laluan SEO (`FocusView.tsx`) dan halaman bot
+  (`articleUrlRoutes.js`) buang baris subtajuk daripada meta description; halaman bot papar `<h2>`.
+- **Teks Arahan AI** `[Subtajuk dalam huraian panjang — WAJIB]` (`buildAiPrompt()`) cermin
+  `validateSubtajuk()`. Ubah satu, ubah kedua-duanya.
+- **Belum dibuat**: modal butiran di Indeks (`IndeksConsole.tsx`) masih papar `## ...` mentah.
+
 ## Bila teragak-agak
 
 Kalau perubahan melibatkan kandungan editorial sebenar (bukan kod), UI/UX yang belum

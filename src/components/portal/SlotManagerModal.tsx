@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { X, ChevronUp, ChevronDown, Trash2, Lock, Upload, AlertCircle } from 'lucide-react';
 import { validateContentBudget, validateBidangTopik, validateGlossLength } from '../../../core/editorial/ContentBudget.js';
+import { panjangHuraianDikira, MAKS_SUBTAJUK, MAKS_AKSARA_SUBTAJUK } from '../../../core/editorial/HuraianPanjangFormat.js';
 import { tierForSlot, ceilingForSlot, TIER_LABELS, TIER_GRID_SIZE, topikCeilingForSlot, effectiveMinBriefLong } from '../../../core/editorial/GeometryConfig.js';
 import { parseManualSummaryBlocks, serializeManualBentoQueue } from '../../../core/editorial/ManualBlockFormat.js';
 import { BidangIcon } from '../common/BidangIcon';
@@ -360,13 +361,19 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     // berfungsi, cuma tak pernah dapat input berperenggan utk diuji). Fix (wording ChatGPT):
     // eksplisit minta pecah ikut PERUBAHAN IDEA (bukan bilangan perenggan tetap — panjang
     // kandungan berbeza-beza), kekalkan naratif bersambung (bukan nota berasingan gaya blog).
-    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai naratif editorial yang mengalir dan mudah dibaca — JANGAN gunakan subtajuk, senarai bernombor, atau format berasingan (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Namun jangan hasilkan SATU blok teks yang terlalu panjang: pecahkan huraian kepada beberapa perenggan yang semula jadi berdasarkan perubahan idea atau perkembangan maklumat (bukan bilangan tetap — panjang berbeza ikut kandungan), dengan SATU baris kosong antara setiap perenggan. Setiap perenggan patut ada satu fokus utama (contoh: perenggan pembuka beri konteks/latar isu, perenggan seterusnya huraikan kenyataan/fakta utama, perenggan berikutnya jelaskan implikasi atau perkembangan berkaitan), tetapi kekal mengalir sebagai SATU naratif bersambung — bukan macam nota berasingan. Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber. Jangan sekali-kali menulis nota penjelasan tentang sumber, tahap keyakinan, keterbatasan maklumat atau proses anda mendapatkan maklumat (contoh SALAH: "walau bagaimanapun, maklumat sumber tidak memperincikan..."/"berdasarkan maklumat yang disahkan..."/"setakat yang dapat dihuraikan berdasarkan sumber..."); huraian hendaklah berdiri sepenuhnya sebagai artikel editorial untuk pembaca, bukan laporan tentang proses atau had rujukan anda sendiri.'
+    'Huraian panjang mesti memberikan konteks yang mencukupi untuk pembaca memahami perkembangan yang dilaporkan. Selain menerangkan apa yang berlaku, huraian hendaklah menjelaskan mengapa perkembangan ini penting atau mempunyai implikasi kepada keadaan semasa, jika maklumat sumber menyokongnya. Jika perkembangan ini berkait dengan peristiwa atau keputusan terdahulu yang penting untuk difahami, masukkan konteks tersebut secara ringkas. Tulis sebagai naratif editorial yang mengalir dan mudah dibaca — JANGAN gunakan senarai bernombor atau label berformat (contoh "Apa:"/"Kenapa penting:"/"Konteks:"). Namun jangan hasilkan SATU blok teks yang terlalu panjang: pecahkan huraian kepada beberapa perenggan yang semula jadi berdasarkan perubahan idea atau perkembangan maklumat (bukan bilangan tetap — panjang berbeza ikut kandungan), dengan SATU baris kosong antara setiap perenggan. Setiap perenggan patut ada satu fokus utama (contoh: perenggan pembuka beri konteks/latar isu, perenggan seterusnya huraikan kenyataan/fakta utama, perenggan berikutnya jelaskan implikasi atau perkembangan berkaitan), tetapi kekal mengalir sebagai SATU naratif bersambung — bukan macam nota berasingan. Jangan reka-reka kepentingan, implikasi atau hubungan yang tidak disokong sumber. Jangan sekali-kali menulis nota penjelasan tentang sumber, tahap keyakinan, keterbatasan maklumat atau proses anda mendapatkan maklumat (contoh SALAH: "walau bagaimanapun, maklumat sumber tidak memperincikan..."/"berdasarkan maklumat yang disahkan..."/"setakat yang dapat dihuraikan berdasarkan sumber..."); huraian hendaklah berdiri sepenuhnya sebagai artikel editorial untuk pembaca, bukan laporan tentang proses atau had rujukan anda sendiri.'
       + (isJournalMode
         ? ' Jika bahan rujukan merupakan artikel jurnal atau dokumen akademik, olah maklumat tersebut menjadi huraian editorial yang mudah difahami pembaca umum. Jangan menghasilkan ringkasan akademik, sorotan literatur atau ulasan terhadap jurnal. Tulis seolah-olah penulis telah memahami kandungan sumber tersebut dan menerangkan perkembangan, dapatan atau implikasinya kepada pembaca.'
         : ''), '',
+    // Subtajuk WAJIB (2026-10-06, keputusan Izzat — "galakkan supaya seragam, wajib ada dlm arahan
+    // AI"; sebab: "artikel semata-mata tanpa subtajuk, bosan, pembaca langkau je"). Dahulu seksyen
+    // di atas MELARANG subtajuk. Peraturan di bawah cermin TEPAT validateSubtajuk()
+    // (HuraianPanjangFormat.js) — kalau peraturan di sana berubah, kemas kini teks ini serentak.
+    '[Subtajuk dalam huraian panjang — WAJIB]',
+    `Huraian panjang MESTI mengandungi 2 hingga 3 subtajuk (maksimum keras ${MAKS_SUBTAJUK}) yang membahagikan huraian mengikut perubahan fokus. Tulis setiap subtajuk pada BARISNYA SENDIRI, bermula dengan dua tanda pagar dan satu ruang, contoh: "## Kesan kepada harga beras". Peraturan: (1) huraian MESTI bermula dengan perenggan pembuka, BUKAN subtajuk; (2) setiap subtajuk MESTI diikuti sekurang-kurangnya satu perenggan — jangan letak dua subtajuk berturut-turut dan jangan akhiri huraian dengan subtajuk; (3) subtajuk ringkas, paling banyak ${MAKS_AKSARA_SUBTAJUK} aksara, ditulis dalam sentence case (huruf besar pada perkataan pertama dan nama khas sahaja), tanpa noktah di hujung; (4) subtajuk mesti memberitahu pembaca ISI bahagian itu secara khusus, bukan label generik (contoh SALAH: "Pengenalan", "Latar belakang", "Kesimpulan", "Apa yang berlaku"); (5) jangan ulang tajuk utama sebagai subtajuk. Subtajuk TIDAK dikira dalam had aksara huraian panjang — had di bawah merujuk teks perenggan sahaja. Huraian tetap mesti mengalir sebagai SATU naratif bersambung; subtajuk cuma papan tanda untuk pembaca, bukan pemisah kepada nota berasingan.`, '',
     ...sumberSection, '',
     '[Format teks]',
-    'Gunakan teks biasa sahaja. JANGAN gunakan Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat.', '',
+    'Gunakan teks biasa sahaja. JANGAN gunakan Markdown (tiada **tebal**, *condong*, atau simbol _ untuk penekanan) — medan borang Adjung paparkan teks mentah, simbol Markdown akan terpapar literal kepada pembaca, bukan diformat. SATU-SATUNYA pengecualian ialah tanda "## " di awal baris subtajuk dalam Huraian panjang (lihat seksyen Subtajuk di atas).', '',
     ...(isSingleSourceMode ? [] : [
       '[Had usia sumber — WAJIB, bukan pilihan]',
       `Sumber MESTI diterbitkan dalam tempoh ${fc.aiPromptRecency || '-'} sebelum hari ini. Kira tarikh dengan teliti sebelum pilih sumber — kalau sumber yang anda jumpa lebih lama daripada had ini, JANGAN gunakan, cari sumber lain yang lebih baharu.`, '',
@@ -376,7 +383,7 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
     `Topik: sasarkan sekitar ${topikSafeMax} aksara (sempadan keras: maksimum ${hadTopik})`,
     `Tajuk: sasarkan antara ${minTitleTarget}–${titleSafeMax} aksara (sempadan keras: minimum ${minTitleTarget}, maksimum ${titleTarget})`,
     `Huraian ringkas: sasarkan antara ${minBriefTarget}–${briefSafeMax} aksara (sempadan keras: minimum ${minBriefTarget}, maksimum ${briefTarget})`,
-    `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong})`, '',
+    `Huraian panjang: sasarkan antara ${effectiveMinBriefLong()}–${briefLongSafeMax} aksara (sempadan keras: minimum ${effectiveMinBriefLong()}, maksimum ${ceiling.maxBriefLong}) — kira teks perenggan sahaja, baris subtajuk "## ..." TIDAK dikira`, '',
     '[Semakan sendiri — lakukan sebelum menghasilkan output akhir, jangan paparkan kiraan dalam output]',
     'Sebelum berikan jawapan akhir, kira semula aksara setiap medan (Topik/Tajuk/Huraian ringkas/Huraian panjang) satu-persatu dan bandingkan dengan sasaran di atas. Jika mana-mana medan melebihi had maksimum atau kurang daripada minimum, hasilkan semula medan tersebut sahaja sehingga memenuhi julat ditetapkan. Kandungan output akhir mesti teks tulen sahaja (Topik/Tajuk/Huraian ringkas/Huraian panjang) — jangan sertakan kiraan aksara atau nota semakan dalam jawapan akhir.', '',
     // "Bahasa sumber" (2026-08-16, dinamakan semula drpd "Bahasa kandungan" — soalan Izzat:
@@ -405,7 +412,11 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
       'Topik: Pentadbiran Fatwa',
       'Tajuk: Penyelarasan fatwa kebangsaan perkukuh kedudukan institusi agama',
       'Huraian ringkas: Perkembangan pentadbiran fatwa di Malaysia berkait rapat dengan usaha penyelarasan struktur institusi agama di peringkat kebangsaan.',
-      'Huraian panjang: (contoh dipendekkan) ... huraian penuh mengalir tanpa subtajuk, terangkan perkembangan/dapatan seolah-olah penulis sendiri memahaminya, bukan melaporkan kewujudan kajian ...',
+      'Huraian panjang: (contoh dipendekkan) ... perenggan pembuka, terangkan perkembangan/dapatan seolah-olah penulis sendiri memahaminya, bukan melaporkan kewujudan kajian ...',
+      '## (subtajuk khusus bahagian kedua)',
+      '... perenggan bahagian kedua ...',
+      '## (subtajuk khusus bahagian ketiga)',
+      '... perenggan bahagian ketiga ...',
       'Sumber: (nama jurnal ringkas, cth "Jurnal Syariah")',
       'URL: (kosongkan jika PDF tiada pautan berkaitan)',
       'Tarikh sumber: YYYY-MM-DD',
@@ -413,7 +424,11 @@ function buildAiPrompt(fc: any, ceiling: { maxBriefLong: number }, hadTopik: num
       'Topik: Dasar Data Awam',
       'Tajuk: Portal data terbuka kerajaan tambah 200 set data baharu bulan ini',
       'Huraian ringkas: Kerajaan memperluas portal data terbuka dengan 200 set data baharu merangkumi sektor kesihatan dan pengangkutan bagi galak penyelidikan awam.',
-      'Huraian panjang: (contoh dipendekkan) ... huraian penuh mengalir tanpa subtajuk, jelaskan apa berlaku dan kenapa ia penting ...',
+      'Huraian panjang: (contoh dipendekkan) ... perenggan pembuka, jelaskan apa berlaku ...',
+      '## (subtajuk khusus bahagian kedua)',
+      '... perenggan bahagian kedua, cth kenapa ia penting ...',
+      '## (subtajuk khusus bahagian ketiga)',
+      '... perenggan bahagian ketiga ...',
       'Sumber: (nama sebenar sumber anda)',
       'URL: (pautan sebenar yang anda sahkan wujud)',
       'Tarikh sumber: YYYY-MM-DD',
@@ -476,9 +491,13 @@ export function BudgetMeter({ slotIndex, ceiling, title, brief }: { slotIndex: n
 // 2026-08-16 disatukan supaya SEMUA medan editorial merentasi Editorium guna SATU fungsi sama,
 // bukan bertaburan versi tempatan berbeza-beza per modal).
 
-function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint, type }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; minLen?: number; hint?: string; type?: 'text' | 'date' }) {
-  const over = typeof maxLen === 'number' && value.length > maxLen;
-  const under = typeof minLen === 'number' && value.length > 0 && value.length < minLen;
+function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint, type, kiraPanjang }: { label: string; value: string; onChange: (v: string) => void; rows?: number; placeholder?: string; maxLen?: number; minLen?: number; hint?: string; type?: 'text' | 'date'; kiraPanjang?: (v: string) => number }) {
+  // `kiraPanjang` (2026-10-06) — Huraian panjang mengecualikan baris subtajuk daripada kiraan
+  // (panjangHuraianDikira, HuraianPanjangFormat.js); pembilang di sini MESTI guna kiraan yang sama
+  // dengan pelayan, kalau tidak editor nampak "lulus" tetapi simpanan ditolak (atau sebaliknya).
+  const panjang = kiraPanjang ? kiraPanjang(value) : value.length;
+  const over = typeof maxLen === 'number' && panjang > maxLen;
+  const under = typeof minLen === 'number' && value.length > 0 && panjang < minLen;
   // Sengkang ganda -> em dash automatik (2026-08-17, Izzat, gaya Telegram) — lihat
   // gantiSengkangGandaOtomatik() di utils.tsx utk sebab guna onChange (bukan onKeyDown macam
   // Ctrl+I) dan skop semakan (hanya dua aksara sebelum kursor).
@@ -503,11 +522,11 @@ function Field({ label, value, onChange, rows, placeholder, maxLen, minLen, hint
         </span>
         {typeof maxLen === 'number' && (
           <span className={`font-mono text-[9px] tabular-nums ${over || under ? 'text-[#a8241f]' : 'text-stone-400'}`}>
-            {value.length}/{maxLen}{typeof minLen === 'number' && <> · min {minLen}</>}
+            {panjang}/{maxLen}{typeof minLen === 'number' && <> · min {minLen}</>}
           </span>
         )}
       </span>
-      {under && <span className="font-sans text-[9px] text-[#a8241f] -mt-0.5">{minLen - value.length} aksara lagi diperlukan (minimum {minLen})</span>}
+      {under && <span className="font-sans text-[9px] text-[#a8241f] -mt-0.5">{minLen - panjang} aksara lagi diperlukan (minimum {minLen})</span>}
       {rows ? (
         <textarea
           rows={rows} value={value} placeholder={placeholder} onChange={kendaliPerubahan}
@@ -1937,7 +1956,7 @@ export const SlotManagerModal: React.FC<SlotManagerModalProps> = ({
                 {ceiling.maxBrief > 0 && (
                   <>
                     <Field label="Huraian ringkas" rows={4} value={current.brief || ''} onChange={(v) => patch(activeIndex, 'brief', v)} />
-                    <Field label="Huraian panjang" rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh, hanya di Focus View" maxLen={ceiling.maxBriefLong} minLen={effectiveMinBriefLong()} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
+                    <Field label="Huraian panjang" hint={`Subtajuk: mulakan baris dengan ## (maksimum ${MAKS_SUBTAJUK}, tidak dikira dalam had aksara)`} kiraPanjang={panjangHuraianDikira} rows={5} value={current.briefLong || ''} placeholder="Huraian panjang, untuk paparan menatal penuh, hanya di Focus View" maxLen={ceiling.maxBriefLong} minLen={effectiveMinBriefLong()} onChange={(v) => patch(activeIndex, 'briefLong', v)} />
                   </>
                 )}
 
