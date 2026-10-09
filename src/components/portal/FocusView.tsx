@@ -10,10 +10,11 @@ import { pecahHuraianPanjang, buangSubtajuk } from '../../../core/editorial/Hura
 // SATU gaya dikongsi susun atur telefon DAN desktop (saiz dalam em, ikut saiz badan masing-masing)
 // supaya kedua-duanya tidak hanyut berasingan. Serif tebal, sedikit lebih besar daripada badan,
 // ruang lebih di ATAS berbanding di bawah supaya subtajuk "melekat" pada perenggan di bawahnya.
+// Warna maron Adjung (2026-10-09, Izzat) — token --color-Adjung-maroon (#802334), bukan hex terus.
 const gayaSubtajukHuraian: React.CSSProperties = {
   margin: '1.7em 0 0', fontFamily: 'var(--font-serif)', fontSize: '1.14em',
   fontWeight: 'var(--weight-bold)' as any, lineHeight: 1.3, letterSpacing: 'var(--tracking-tight)',
-  color: 'var(--text-heading)', textWrap: 'balance' as any,
+  color: 'var(--color-Adjung-maroon)', textWrap: 'balance' as any,
 };
 import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
 import { Tooltip } from '../common/Tooltip';

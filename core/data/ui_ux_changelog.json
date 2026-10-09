@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-10-09T13:08:52.897Z",
+    "summary": "Subtajuk huraian panjang di Focus View bertukar warna kepada maron Adjung",
+    "files": [
+      "src/components/portal/FocusView.tsx"
+    ]
+  },
+  {
     "time": "2026-10-09T11:12:34.056Z",
     "summary": "Paparan besar Ticker: pemenggalan suku kata dimatikan pada skrin lebar (768px ke atas) sahaja; telefon kekal memenggal",
     "files": [
