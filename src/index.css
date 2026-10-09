@@ -719,6 +719,11 @@ h1, h2, h3, h4, h5, h6, p {
   .fv-eyebrow-ikon, .fv-eyebrow-kumpulan-keluar, .fv-tajuk-masuk, .fv-huraian-masuk { animation: none; }
 }
 
+/* Paparan besar Ticker: tiada pemenggalan suku kata pada skrin lebar (>= 768px). Telefon kekal memenggal. */
+@media (min-width: 768px) {
+  .ticker-tanpa-penggal { hyphens: none; -webkit-hyphens: none; overflow-wrap: break-word; word-break: normal; }
+}
+
 /* Panel transisi "kad tengah" Focus View (2026-08-05, permintaan Izzat) — lalu ATAS-BAWAH
    (bukan kiri-kanan macam carousel bento), sepadan bahasa visual Colophon. Fasa "tahan"
    (40%-60%) sengaja panel MENUTUP PENUH skrin lebih lama drpd satu bingkai supaya pertukaran

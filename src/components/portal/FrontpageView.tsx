@@ -46,13 +46,12 @@ import { trackView } from '../../utils/trackView';
 // mesti hadir literal dalam source untuk JIT kompil betul, jadi peta ni satu-satunya tempat
 // kelas sebenar ditulis. Lalai 'L'/'M' padan kelakuan sedia ada tepat (tiada perubahan
 // kelakuan sehingga Ketua Editor sunting di Tetapan → Operasi).
-// Paparan besar Ticker tanpa pemenggalan suku kata (2026-10-06, Izzat: "takde keperluan, jadi tak
-// lawa" — tajuk terpotong "Ma-laysia", huraian "ber-kenaan"). safeParseInline() tetap menyisipkan
-// sengkang lembut (perlu untuk kad bento sempit); `hyphens: none` menyuruh pelayar MENGABAIKAN
-// sengkang lembut itu, jadi baris hanya patah di antara perkataan. Lajur paparan ini lebar
-// (max-w-2xl). `overflowWrap: break-word` kekal sebagai jaring keselamatan: hanya perkataan yang
-// LANGSUNG tidak muat sebaris (cth URL panjang di telefon) dipatahkan, supaya tiada limpahan sisi.
-const GAYA_TANPA_PENGGAL: React.CSSProperties = { hyphens: 'none', WebkitHyphens: 'none', overflowWrap: 'break-word', wordBreak: 'normal' };
+// Paparan besar Ticker: pemenggalan suku kata dimatikan pada SKRIN LEBAR sahaja (2026-10-06, Izzat:
+// "takde keperluan, jadi tak lawa" — tajuk "Ma-laysia" di desktop; 2026-10-09 pembetulan: "paparan
+// telefon memang kena penggal, yang jangan penggal tu utk desktop dan skrin lebar"). Peraturan CSS
+// sebenar ada di index.css (.ticker-tanpa-penggal, media min-width 768px) kerana gaya inline tak boleh
+// responsif. Di telefon sengkang lembut daripada safeParseInline() kekal berfungsi.
+const KELAS_TICKER_TANPA_PENGGAL = 'ticker-tanpa-penggal';
 
 export const TICKER_OVERLAY_TITLE_SIZE_CLASS: Record<string, string> = {
   S: 'text-2xl md:text-3xl',
@@ -6488,13 +6487,13 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
                 </div>
 
                 {/* Large Serif Title */}
-                <h1 className={`font-serif ${TICKER_OVERLAY_TITLE_SIZE_CLASS[systemSettings?.tickerOverlayTitleSize || 'L'] || TICKER_OVERLAY_TITLE_SIZE_CLASS.L} text-stone-900 leading-tight tracking-tight font-medium px-4`} style={GAYA_TANPA_PENGGAL}>
+                <h1 className={`font-serif ${TICKER_OVERLAY_TITLE_SIZE_CLASS[systemSettings?.tickerOverlayTitleSize || 'L'] || TICKER_OVERLAY_TITLE_SIZE_CLASS.L} text-stone-900 leading-tight tracking-tight font-medium px-4 ${KELAS_TICKER_TANPA_PENGGAL}`}>
                   {safeParseInline(overlayItem.title)}
                 </h1>
 
                 {/* Brief body */}
                 {overlayItem.brief && (
-                  <p className={`font-serif ${TICKER_OVERLAY_BRIEF_SIZE_CLASS[systemSettings?.tickerOverlayBriefSize || 'M'] || TICKER_OVERLAY_BRIEF_SIZE_CLASS.M} text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light`} style={GAYA_TANPA_PENGGAL}>
+                  <p className={`font-serif ${TICKER_OVERLAY_BRIEF_SIZE_CLASS[systemSettings?.tickerOverlayBriefSize || 'M'] || TICKER_OVERLAY_BRIEF_SIZE_CLASS.M} text-stone-600 leading-relaxed max-w-xl mx-auto px-4 font-light ${KELAS_TICKER_TANPA_PENGGAL}`}>
                     {renderDenganGlosari(overlayItem.brief || '', petaGlosariKad, new Set(), overlayItem.desk, safeParseInline)}
                   </p>
                 )}
