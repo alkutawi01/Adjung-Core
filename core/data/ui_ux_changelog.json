@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-10-12T02:21:39.081Z",
+    "summary": "Huraian panjang boleh bermula dengan subtajuk di baris pertama (peraturan dilonggarkan, jarak atas dibuang untuk subtajuk pertama)",
+    "files": [
+      "src/components/portal/FocusView.tsx",
+      "src/components/portal/SlotManagerModal.tsx"
+    ]
+  },
+  {
     "time": "2026-10-09T13:08:52.897Z",
     "summary": "Subtajuk huraian panjang di Focus View bertukar warna kepada maron Adjung",
     "files": [

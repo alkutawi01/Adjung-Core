@@ -40,8 +40,9 @@ test('validateSubtajuk: susunan sah lulus, tiada subtajuk pun lulus', () => {
   assert.equal(validateSubtajuk(undefined).isValid, true);
 });
 
-test('validateSubtajuk: tolak subtajuk di awal, di hujung, berturut-turut, kosong, terlalu panjang, terlalu banyak', () => {
-  assert.equal(validateSubtajuk('## Mula\nPerenggan.').isValid, false);
+test('validateSubtajuk: tolak subtajuk berturut-turut di awal, di hujung, berturut-turut, kosong, terlalu panjang, terlalu banyak', () => {
+  assert.equal(validateSubtajuk('## Mula\nPerenggan.').isValid, true);
+  assert.equal(validateSubtajuk('## Mula\n## Lagi\nPerenggan.').isValid, false);
   assert.equal(validateSubtajuk('Perenggan.\n## Hujung').isValid, false);
   assert.equal(validateSubtajuk('Perenggan.\n## Satu\n## Dua\nPerenggan.').isValid, false);
   assert.equal(validateSubtajuk('Perenggan.\n##\nPerenggan.').isValid, false);

@@ -1144,7 +1144,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
               }}>
                 {blokHuraian.map((b, j) => (
                   b.jenis === 'subtajuk'
-                    ? <h2 key={j} style={gayaSubtajukHuraian}>{glosariMudahAlih.perenggan[j]}</h2>
+                    ? <h2 key={j} style={j === 0 ? { ...gayaSubtajukHuraian, margin: 0 } : gayaSubtajukHuraian}>{glosariMudahAlih.perenggan[j]}</h2>
                     : <p key={j} style={{ margin: j === 0 ? 0 : (blokHuraian[j - 1].jenis === 'subtajuk' ? '0.45em 0 0' : '0.9em 0 0') }}>{glosariMudahAlih.perenggan[j]}</p>
                 ))}
               </div>
@@ -1491,7 +1491,7 @@ export const FocusView: React.FC<FocusViewProps> = ({
                   <div key={`huraian-${identitiArtikel}`} className="fv-huraian-masuk" style={{ fontFamily: 'var(--font-serif)', fontSize: bodySize, fontWeight: 'var(--weight-regular)' as any, lineHeight: 1.75, color: 'var(--text-body)', textWrap: 'pretty', textAlign: 'left', hyphens: 'none', WebkitHyphens: 'none' }}>
                     {blokHuraian.map((b, j) => (
                       b.jenis === 'subtajuk'
-                        ? <h2 key={j} style={gayaSubtajukHuraian}>{glosariDesktop.perenggan[j]}</h2>
+                        ? <h2 key={j} style={j === 0 ? { ...gayaSubtajukHuraian, margin: 0 } : gayaSubtajukHuraian}>{glosariDesktop.perenggan[j]}</h2>
                         : <p key={j} style={{ margin: j === 0 ? 0 : (blokHuraian[j - 1].jenis === 'subtajuk' ? '0.45em 0 0' : '1em 0 0') }}>{glosariDesktop.perenggan[j]}</p>
                     ))}
                   </div>

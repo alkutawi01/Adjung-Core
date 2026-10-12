@@ -68,7 +68,7 @@ export function validateSubtajuk(teks) {
     if (b.teks.length > MAKS_AKSARA_SUBTAJUK) {
       return gagal(`Subtajuk "${b.teks.slice(0, 30)}..." (${b.teks.length} aksara) terlalu panjang. Maksimum ${MAKS_AKSARA_SUBTAJUK} aksara.`);
     }
-    if (i === 0) return gagal('Huraian panjang tidak boleh bermula dengan subtajuk. Mulakan dengan perenggan pembuka.');
+    // Subtajuk di BARIS PERTAMA dibenarkan (2026-10-12, keputusan Izzat) — dahulu ditolak.
     if (i === blok.length - 1) return gagal(`Subtajuk "${b.teks.slice(0, 30)}" berada di hujung huraian panjang tanpa perenggan di bawahnya.`);
     if (blok[i + 1].jenis === 'subtajuk') return gagal(`Subtajuk "${b.teks.slice(0, 30)}" diikuti terus oleh subtajuk lain tanpa perenggan di antaranya.`);
   }

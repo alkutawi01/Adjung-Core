@@ -693,7 +693,7 @@ mesti dipegang bila ubah/tambah apa-apa pada `MaklumanDrawer.tsx` atau laluan no
   write TOCTOU-prone di bawah beban serentak — guna kunci per-kekunci (`denganKunciNotifikasi`)
   atau corak setara, jangan andaikan panggilan berurutan sahaja akan pernah berlaku.
 
-### Subtajuk dalam Huraian panjang (2026-10-06, keputusan Izzat)
+### Subtajuk dalam Huraian panjang (2026-10-06, keputusan Izzat; baris pertama dibenarkan 2026-10-12)
 Izzat: "artikel semata-mata tanpa subtajuk, bosan, pembaca langkau je." Baris yang bermula `## `
 dalam Huraian panjang ialah subtajuk; baris lain kekal perenggan. Tiada medan atau skema baharu.
 
