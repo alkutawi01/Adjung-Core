@@ -202,8 +202,6 @@ html, body {
   margin: 0;
   padding: 0;
   -webkit-font-smoothing: antialiased;
-  scrollbar-color: #802334 #FDFDFD;
-  scrollbar-width: thin;
   /* Scrollbar mendatar hantu (2026-09-07, aduan Izzat — "kenapa ada scroll bar di bottom?")
      — punca: FrontpageView.tsx bekas full-bleed guna `width: 100vw; margin-left: calc(50% -
      50vw)` (teknik "pecah keluar" 2026-09-04) untuk buat seluruh lebar viewport boleh diklik.
@@ -237,6 +235,21 @@ button:not(:disabled):active {
   transform: scale(0.97);
 }
 
+/* Bar skrol: Chrome/Edge/Safari guna ::-webkit-scrollbar (6px) di bawah; Firefox tiada pseudo-elemen
+   itu jadi guna sifat piawai. WAJIB diasingkan dengan @supports (2026-10-16, aduan Izzat: "scroll bar
+   terlalu lebar, annoying"): Chromium 121+ ABAIKAN ::-webkit-scrollbar pada elemen mana pun yang
+   scrollbar-color/scrollbar-width piawainya bukan "auto". Dahulu kedua-duanya ditetapkan terus pada
+   html/body — scrollbar-color DIWARISI semua keturunan (kotak teks, panel, modal) manakala
+   scrollbar-width TIDAK, jadi kotak teks (cth Semakan Kandungan) jatuh ke bar Windows lebar ~17px
+   dengan anak panah, bukan bar nipis 6px. Jangan letak semula sifat piawai pada html/body di luar
+   blok @supports ini. */
+@supports not selector(::-webkit-scrollbar) {
+  html, body {
+    scrollbar-color: #802334 #FDFDFD;
+    scrollbar-width: thin;
+  }
+}
+
 /* Custom scrollbars matching the cream theme with maroon accent */
 ::-webkit-scrollbar {
   width: 6px;
@@ -256,9 +269,11 @@ button:not(:disabled):active {
 .maroon-scrollbar::-webkit-scrollbar-thumb {
   background: #802334 !important;
 }
-.maroon-scrollbar {
-  scrollbar-color: #802334 transparent !important;
-  scrollbar-width: thin !important;
+@supports not selector(::-webkit-scrollbar) {
+  .maroon-scrollbar {
+    scrollbar-color: #802334 transparent !important;
+    scrollbar-width: thin !important;
+  }
 }
 
 /* Thinner scrollbar for the horizontally-scrolling World Clock strip — the default 6px reads as
@@ -266,8 +281,10 @@ button:not(:disabled):active {
 #world-clock::-webkit-scrollbar {
   height: 3px;
 }
-#world-clock {
-  scrollbar-width: thin;
+@supports not selector(::-webkit-scrollbar) {
+  #world-clock {
+    scrollbar-width: thin;
+  }
 }
 
 /* Elegant line selection style */

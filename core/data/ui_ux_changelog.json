@@ -1,5 +1,12 @@
 [
   {
+    "time": "2026-10-16T12:38:45.141Z",
+    "summary": "Bar skrol kembali nipis 6px di seluruh Editorium dan portal (kotak teks, panel dan modal tidak lagi jatuh ke bar Windows lebar 15px); sifat piawai Firefox diasingkan dengan @supports",
+    "files": [
+      "src/index.css"
+    ]
+  },
+  {
     "time": "2026-10-12T02:21:39.081Z",
     "summary": "Huraian panjang boleh bermula dengan subtajuk di baris pertama (peraturan dilonggarkan, jarak atas dibuang untuk subtajuk pertama)",
     "files": [
