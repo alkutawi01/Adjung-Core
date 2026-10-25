@@ -476,7 +476,15 @@ const PengumumanBanner: React.FC = () => {
   const tempohMarqueeS = Math.max(12, Math.min(60, nota.teks.length * 0.16));
 
   return (
-    <div className="w-full bg-[#802334] text-white overflow-hidden pengumuman-banner-masuk">
+    // Sambung ke tepi sebenar (2026-10-25, dapatan Izzat — tangkapan skrin dengan bulatan di hujung
+    // kiri/kanan pita: ruang putih antara pita dan tepi halaman). Punca: bekas halaman (baris ~3808)
+    // ada `px-4 md:px-8 pt-4` dan pita guna `w-full` (lebar = kandungan bekas), jadi sentiasa
+    // terkurung 16/32px dari kiri-kanan dan 16px dari atas, walhal reka bentuk asalnya "jalur nipis
+    // merentasi lebar penuh". Margin negatif PADAN TEPAT padding bekas (jika padding bekas berubah,
+    // ubah di sini sama) dan `self-stretch` menggantikan `w-full` supaya margin negatif benar-benar
+    // melebarkan pita. `mb-4` memulangkan 16px yang diambil `-mt-4` supaya kandungan di bawah pita
+    // KEKAL pada kedudukan sama seperti dahulu.
+    <div className="self-stretch -mx-4 md:-mx-8 -mt-4 mb-4 bg-[#802334] text-white overflow-hidden pengumuman-banner-masuk">
       <div className="max-w-5xl mx-auto w-full flex items-center gap-3 px-4 md:px-8 py-2">
         <span className="font-sans text-[10px] md:text-[11px] font-semibold uppercase tracking-wide shrink-0 text-white/90">
           Pengumuman
