@@ -1,5 +1,13 @@
 [
   {
+    "time": "2026-10-25T12:18:33.678Z",
+    "summary": "Rujukan > Dokumentasi > 3. Infrastruktur: kad rujukan hosting, domain, e-mel, deploy dan pangkalan data untuk semua editor; Pentadbir boleh sunting, tambah dan padam",
+    "files": [
+      "src/components/editorium/InfrastrukturPanel.tsx",
+      "src/components/editorium/EditoriumView.tsx"
+    ]
+  },
+  {
     "time": "2026-10-25T05:39:07.025Z",
     "summary": "Notifikasi tolak pembaca: butang 'Aktifkan notifikasi berita' di footer (lajur Maklumat), manifes aplikasi web + service worker, panel suis padam di Editorium > Editorial > 6. Notifikasi Pembaca",
     "files": [

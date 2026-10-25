@@ -743,6 +743,19 @@ Keputusan Izzat: automatik (tiada butang hantar), satu saluran untuk semua pelan
 - **Belum disahkan dengan peranti sebenar**: pane pelayar ujian menyekat izin notifikasi, jadi hantaran
   hujung-ke-hujung (FCM sebenar ke telefon) mesti dicuba selepas deploy dengan satu telefon.
 
+### Rujukan Infrastruktur dalam Editorium (2026-10-25, permintaan Izzat)
+Rujukan → Dokumentasi → **3. Infrastruktur**: kad maklumat hosting (DigitalOcean Droplet, nginx, PM2), domain
+dan DNS (brief.adjung.com; DNS di Vercel), HTTPS (Let's Encrypt), e-mel (Resend), deploy (GitHub Actions
+manual) dan salinan sandaran. Semua editor yang log masuk boleh BACA; Pentadbir (`manageSettings`) boleh
+sunting/tambah/padam tanpa deploy. Jadual `rujukan_sistem`, laluan `core/routes/rujukanSistemRoutes.js`,
+paparan `InfrastrukturPanel.tsx`.
+- **Jangan simpan rahsia di sini** — halaman terbuka kepada semua editor. Tiada alamat IP, kata laluan,
+  kunci atau token. `sahkanRujukan()` menolak corak rahsia yang jelas (kunci peribadi, token GitHub/
+  OpenAI/AWS/Slack/Resend) sebagai jaring terakhir sahaja.
+- Kandungan awal disemai SEKALI (`rujukan_sistem_tetapan`), disahkan terhadap DEPLOY.md, deploy.yml dan
+  laman hidup. Selepas itu Pentadbir yang memilikinya; padam semua kad TIDAK menyemai semula. Kalau
+  hosting berubah (cth pindah pelayan), kemas kini kad di Editorium, bukan di kod.
+
 ## Bila teragak-agak
 
 Kalau perubahan melibatkan kandungan editorial sebenar (bukan kod), UI/UX yang belum

@@ -26,6 +26,7 @@ import { LogAuditConsole } from './LogAuditConsole';
 import { PerlembagaanConsole } from './PerlembagaanConsole';
 import { PanduanConsole } from './PanduanConsole';
 import { SistemRekaBentukConsole } from './SistemRekaBentukConsole';
+import { InfrastrukturPanel } from './InfrastrukturPanel';
 import { ContentReview } from '../studio/ContentReview';
 import { SlotManagerModal } from '../portal/SlotManagerModal';
 import { BarSlotManagerModal } from '../portal/BarSlotManagerModal';
@@ -274,8 +275,8 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
   );
   // Sub-tab DALAMAN destinasi "Dokumentasi" (2026-08-01) — Peraturan Am (Perlembagaan) + Reka
   // Bentuk. Log Sistem kini destinasi sendiri, tak lagi sub-tab sini.
-  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk'>(
-    () => subAwal('dokumentasi', ['peraturan_am', 'reka_bentuk'] as const, 'peraturan_am')
+  const [rujukanSubTab, setRujukanSubTab] = useState<'peraturan_am' | 'reka_bentuk' | 'infrastruktur'>(
+    () => subAwal('dokumentasi', ['peraturan_am', 'reka_bentuk', 'infrastruktur'] as const, 'peraturan_am')
   );
   // Cerminkan activeTab + sub-tab BERKAITAN semasa ke URL (replace, bukan push — menukar tab
   // TIDAK sepatutnya menambah entri baharu pada sejarah pelayar setiap klik, cuma Undur/Maju
@@ -995,12 +996,15 @@ export const EditoriumView: React.FC<EditoriumViewProps> = ({ currentUser, onReq
             items={[
               { id: 'peraturan_am', label: '1. Peraturan Am' },
               { id: 'reka_bentuk', label: '2. Reka Bentuk' },
+              { id: 'infrastruktur', label: '3. Infrastruktur' },
             ]}
             active={rujukanSubTab}
             onChange={setRujukanSubTab}
           />
           {rujukanSubTab === 'peraturan_am' && <PerlembagaanConsole />}
           {rujukanSubTab === 'reka_bentuk' && <SistemRekaBentukConsole />}
+          {/* Infrastruktur (2026-10-25, permintaan Izzat) — rujukan hosting/domain/deploy; Pentadbir sunting. */}
+          {rujukanSubTab === 'infrastruktur' && <InfrastrukturPanel bolehSunting={isPentadbir} />}
         </div>
       )}
 
