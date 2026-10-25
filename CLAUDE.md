@@ -716,6 +716,33 @@ dalam Huraian panjang ialah subtajuk; baris lain kekal perenggan. Tiada medan at
   `validateSubtajuk()`. Ubah satu, ubah kedua-duanya.
 - **Belum dibuat**: modal butiran di Indeks (`IndeksConsole.tsx`) masih papar `## ...` mentah.
 
+### Notifikasi tolak pembaca (2026-10-25, permintaan Izzat — rujukan: Breaking Alert Monitor World)
+Pembaca boleh mengaktifkan notifikasi di footer (lajur Maklumat). Bila kandungan diterbitkan di mana-mana
+slot KECUALI Ticker dan Bar, pelanggan terima tajuknya di telefon/komputer; ketik terus ke artikel.
+Keputusan Izzat: automatik (tiada butang hantar), satu saluran untuk semua pelanggan, versi asas.
+
+- **Seni bina: pengesan berkala, BUKAN cangkuk pada laluan terbit.** `core/push/PushService.js` +
+  `core/routes/pushRoutes.js` (`mulakanPengesan()`, setiap 60s, dimulakan di blok app.listen server.js).
+  Kandungan jadi 'approved' melalui banyak laluan (Terbit sekarang, kelulusan, Jadual Terbit, Terbit semula);
+  pengesan cuma tanya "objek aktif mana belum pernah diberitahu?". JANGAN pasang cangkuk per-laluan.
+- **Perlindungan pembaca (jangan longgarkan tanpa arahan Izzat)**: semai senyap kali pertama (kandungan
+  sedia ada tidak dihantar); setiap objek diberitahu SEKALI seumur hidup; hanya kandungan segar (<14 jam);
+  MASA TENANG 5 minit selepas terbit (tajuk silap/artikel ditarik balik tidak sempat sampai ke telefon);
+  jeda 10 minit antara notifikasi, kandungan serentak dilipat jadi satu ("N berita baharu"); had 10 sehari;
+  waktu senyap 23:00-06:30 waktu Malaysia. Pemalar ada di bahagian atas PushService.js.
+- **Suis padam**: Editorium > Editorial > 6. Notifikasi Pembaca (`manageEditorial`). Mati = tiada hantaran
+  dan butang footer disembunyikan untuk pembaca baharu.
+- **Keselamatan**: `sahkanLangganan()` hanya terima endpoint https perkhidmatan tolak pelayar sebenar
+  (FCM, Mozilla, Apple, Windows). WAJIB — pelayan POST ke endpoint tersimpan, tanpa senarai putih ia ialah
+  vektor SSRF. Kunci VAPID dijana sekali dan disimpan dalam jadual `push_tetapan` (tiada env baharu di
+  pelayan). Jadual `push_*` dicipta oleh `pastikanSkema()`, bukan rantaian skema server.js.
+- **Pelanggan** (`public/sw.js`, `src/utils/pushNotifikasi.ts`, `ButangNotifikasi.tsx`): service worker
+  HANYA didaftar bila pembaca menekan Aktifkan; ia tidak menyimpan cache dan tidak memintas fetch.
+  iPhone/iPad perlu "Tambah ke Skrin Utama" dahulu (had Apple) — butang papar arahan itu.
+  Ikon dijana `node scripts/jana-ikon-pwa.mjs` (simbol Adjung 1:2, tidak diubah nisbah).
+- **Belum disahkan dengan peranti sebenar**: pane pelayar ujian menyekat izin notifikasi, jadi hantaran
+  hujung-ke-hujung (FCM sebenar ke telefon) mesti dicuba selepas deploy dengan satu telefon.
+
 ## Bila teragak-agak
 
 Kalau perubahan melibatkan kandungan editorial sebenar (bukan kod), UI/UX yang belum

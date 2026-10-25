@@ -14,6 +14,7 @@ import { FormColumn } from '../common/FormColumn';
 import { EditorDialog } from '../common/EditorDialog';
 import { Tooltip } from '../common/Tooltip';
 import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../common/gayaKongsi';
+import { NotifikasiPembacaPanel } from './NotifikasiPembacaPanel';
 
 // Konsol Editorial (2026-08-01, spesifikasi pemilik projek) — peraturan BAHASA dan penjanaan AI,
 // berasingan daripada Tetapan (tetapan sistem) dan Slot (geometri kad).
@@ -22,7 +23,7 @@ import { LABEL_BORANG, INPUT_BORANG, KEPALA_JADUAL, GARIS_BARIS } from '../commo
 // sudah ada rumah di tempat lain (had aksara di Tier Kad, selang masa carousel di borang Urus Slot), ia
 // DIRUJUK ke sana, bukan disalin jadi kawalan kedua — dua kawalan untuk satu nilai bermakna
 // dua-duanya akhirnya bercanggah.
-type SubTab = 'autocondong' | 'glosari' | 'ejaan' | 'pemenggalan' | 'ai';
+type SubTab = 'autocondong' | 'glosari' | 'ejaan' | 'pemenggalan' | 'ai' | 'notifikasi';
 
 interface Istilah { id: string; term: string; status: string }
 // Glosari Berasaskan Bidang — Sense (2026-08-16, arahan Izzat, seni bina disahkan
@@ -43,6 +44,7 @@ const SUB_TABS: { id: SubTab; label: string }[] = [
   { id: 'ejaan', label: '3. Penyelarasan Ejaan' },
   { id: 'pemenggalan', label: '4. Pemenggalan Perkataan' },
   { id: 'ai', label: '5. Templat AI' },
+  { id: 'notifikasi', label: '6. Notifikasi Pembaca' },
 ];
 
 export const EditorialConsole: React.FC = () => {
@@ -1457,6 +1459,9 @@ export const EditorialConsole: React.FC = () => {
           </p>
         </PanelCard>
       )}
+
+      {/* 6. NOTIFIKASI PEMBACA (2026-10-25) */}
+      {subTab === 'notifikasi' && <NotifikasiPembacaPanel />}
     </div>
   );
 };
