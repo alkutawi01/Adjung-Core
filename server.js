@@ -74,6 +74,7 @@ import { createSearchRoutes } from './core/routes/searchRoutes.js';
 import { createBidangRoutes } from './core/routes/bidangRoutes.js';
 import { createPosterRoutes } from './core/routes/posterRoutes.js';
 import { createSponsorRoutes } from './core/routes/sponsorRoutes.js';
+import { createPushRoutes } from './core/routes/pushRoutes.js';
 import { createPermohonanPenajaRoutes } from './core/routes/permohonanPenajaRoutes.js';
 import { semakKonfigSmtpStartup, hantarEmel } from './core/email/MailSender.js';
 import { semakKonfigBaseUrlStartup } from './core/utils/baseUrl.js';
@@ -270,10 +271,23 @@ const hadPermohonanPenaja = rateLimit({
 app.use('/api/public/permohonan-penaja', hadPermohonanPenaja);
 app.use('/api/public/lengkapkan-penajaan', hadPermohonanPenaja);
 
+// Had kadar langganan notifikasi pembaca (2026-10-25) — POST AWAM tanpa sesi. Pembaca sah melanggan
+// sekali-sekala (sekali setiap peranti/pelayar), jadi had sederhana; cukup longgar untuk isi rumah/
+// pejabat yang berkongsi satu IP, tetapi menutup skrip yang membanjiri jadual langganan.
+const hadLanggananPush = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Terlalu banyak permintaan notifikasi. Cuba lagi selepas beberapa minit.' },
+});
+app.use('/api/public/push', hadLanggananPush);
+
 const LALUAN_HAD_SENDIRI = new Set([
   '/auth/login', '/auth/lupa-kata-laluan', '/auth/aktifkan-akaun',
   '/system/search', '/media/upload', '/system/track-view',
   '/public/permohonan-editor', '/public/permohonan-penaja', '/public/lengkapkan-penajaan',
+  '/public/push/langgan', '/public/push/henti',
 ]);
 const hadKadarMutasiApi = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -4738,6 +4752,8 @@ app.use('/api', createSearchRoutes(dbAll));
 app.use('/api', createBidangRoutes(dbAll, dbGet));
 app.use('/api', createPosterRoutes(db, dbAll, dbGet, dbRun));
 app.use('/api', createSponsorRoutes(dbAll, dbRun, dbGet));
+const laluanPush = createPushRoutes(dbAll, dbGet, dbRun);
+app.use('/api', laluanPush);
 app.use('/api', createPermohonanPenajaRoutes(dbAll, dbGet, dbRun, __dirname));
 // Bukan di bawah /api sengaja — sitemap.xml mesti wujud di root laman ikut konvensyen crawler
 // (robots.txt di public/robots.txt rujuk /sitemap.xml). Vite dev proxy hanya hantar laluan /api
@@ -5313,6 +5329,8 @@ const httpServer = app.listen(PORT, '0.0.0.0', () => {
   const jalankanIndexNow = () => { hantarIndexNow().catch((err) => console.warn('[IndexNow] Ralat:', err?.message)); };
   // Tangguh 60 saat selepas boot supaya pelayan sendiri sudah stabil sebelum fetch sitemap sendiri.
   setTimeout(jalankanIndexNow, 60 * 1000);
+  // Notifikasi tolak pembaca (2026-10-25) — pengesan kandungan baharu, lihat core/push/PushService.js.
+  laluanPush.mulakanPengesan();
   setInterval(jalankanIndexNow, INDEXNOW_INTERVAL_MS);
   console.log(`IndexNow aktif (sekali setiap ${INDEXNOW_INTERVAL_MS / 3600000} jam).`);
 });

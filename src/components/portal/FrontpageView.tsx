@@ -24,6 +24,7 @@ import { StandardCardTeks } from './cards/StandardCardTeks';
 import { SegiEmpatMediumCardTeks } from './cards/SegiEmpatMediumCardTeks';
 import { SegiEmpatSmallCardTeks } from './cards/SegiEmpatSmallCardTeks';
 import { binaPetaGlosari, renderDenganGlosari, type EntriGlosari } from '../common/IstilahGlosari';
+import ButangNotifikasi from '../common/ButangNotifikasi';
 import { Tooltip } from '../common/Tooltip';
 import { FocusView } from './FocusView';
 import BriefNavigator from './BriefNavigator';
@@ -6172,6 +6173,10 @@ export const FrontpageView: React.FC<FrontpageViewProps> = ({
               <ul className="flex flex-col gap-1.5 font-sans text-xs text-stone-600 font-semibold flex-start">
                 {/* Borang permohonan editor awam (2026-08-25) — laluan sebenar, bukan modal.
                     Dipindah dari kolum Institusi ke Maklumat (2026-08-27, arahan Izzat). */}
+                {/* Notifikasi tolak pembaca (2026-10-25, permintaan Izzat). Komponen paparkan teks ikut
+                    keadaan pelayar dan tidak memaparkan apa-apa jika pelayar tak menyokong atau editor
+                    mematikan suisnya. */}
+                <ButangNotifikasi />
                 <li className="flex"><Link to="/sertai-pasukan-editorial" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Sertai Pasukan Editorial</Link></li>
                 {halamanAktif('hubungi') && <li className="flex"><Link to="/hubungi" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Hubungi</Link></li>}
                 {halamanAktif('polisi-privasi') && <li className="flex"><Link to="/polisi-privasi" className="hover:text-[#802334] transition-colors text-left focus:outline-none focus-visible:ring-1 focus-visible:ring-Adjung-maroon rounded-sm cursor-pointer">Polisi Privasi</Link></li>}

@@ -1,5 +1,15 @@
 [
   {
+    "time": "2026-10-25T05:39:07.025Z",
+    "summary": "Notifikasi tolak pembaca: butang 'Aktifkan notifikasi berita' di footer (lajur Maklumat), manifes aplikasi web + service worker, panel suis padam di Editorium > Editorial > 6. Notifikasi Pembaca",
+    "files": [
+      "src/components/common/ButangNotifikasi.tsx",
+      "src/components/portal/FrontpageView.tsx",
+      "src/components/editorium/EditorialConsole.tsx",
+      "src/components/editorium/NotifikasiPembacaPanel.tsx"
+    ]
+  },
+  {
     "time": "2026-10-16T12:38:45.141Z",
     "summary": "Bar skrol kembali nipis 6px di seluruh Editorium dan portal (kotak teks, panel dan modal tidak lagi jatuh ke bar Windows lebar 15px); sifat piawai Firefox diasingkan dengan @supports",
     "files": [
